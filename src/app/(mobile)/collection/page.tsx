@@ -303,7 +303,7 @@ function CollectionPageContent() {
                         nameDe: item.nameDe,
                       })
                     }
-                    className="relative h-24 w-16 shrink-0 cursor-pointer transition hover:opacity-90 active:scale-[0.98]"
+                    className="relative aspect-[2.5/3.5] w-16 shrink-0 cursor-pointer transition hover:opacity-90 active:scale-[0.98]"
                     aria-label="Kartenbild vergrößern"
                   >
                     <CardImage

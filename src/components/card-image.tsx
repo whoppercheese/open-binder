@@ -16,7 +16,7 @@ export function CardImage({ cardId, alt, className, bare = false }: CardImagePro
     <div
       className={cn(
         "relative overflow-hidden",
-        !bare && "rounded-xl bg-zinc-900/80 ring-1 ring-white/10",
+        !bare && "rounded-md ring-1 ring-white/15",
         className,
       )}
     >
@@ -26,10 +26,10 @@ export function CardImage({ cardId, alt, className, bare = false }: CardImagePro
           alt={alt}
           fill
           sizes={bare ? "90vw" : "(max-width: 768px) 33vw, 120px"}
-          className={cn("object-contain", !bare && "p-1")}
+          className="object-contain"
         />
       ) : (
-        <div className="flex h-full items-center justify-center text-xs text-zinc-500">
+        <div className="flex h-full items-center justify-center bg-zinc-900/80 text-xs text-zinc-500">
           Kein Bild
         </div>
       )}
