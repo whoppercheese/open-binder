@@ -8,6 +8,13 @@
       "when": 1779436348279,
       "tag": "0000_slow_stellaris",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1779500000000,
+      "tag": "0001_sync_job_progress",
+      "breakpoints": true
     }
   ]
 }

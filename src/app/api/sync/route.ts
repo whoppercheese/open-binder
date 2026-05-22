@@ -6,6 +6,7 @@ import {
   enqueueCatalogSync,
   enqueuePriceSync,
 } from "@/jobs/boss";
+import { findActiveSyncJob } from "@/jobs/sync-job-utils";
 
 export async function GET() {
   try {
@@ -32,6 +33,20 @@ export async function POST(request: Request) {
       return NextResponse.json(
         { error: "Ungültiger Sync-Typ." },
         { status: 400 },
+      );
+    }
+
+    const activeJob = await findActiveSyncJob(type);
+    if (activeJob) {
+      return NextResponse.json(
+        {
+          error:
+            type === "catalog"
+              ? "Ein Katalog-Sync läuft bereits oder wartet in der Queue."
+              : "Ein Preis-Sync läuft bereits oder wartet in der Queue.",
+          job: activeJob,
+        },
+        { status: 409 },
       );
     }
 

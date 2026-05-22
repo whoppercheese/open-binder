@@ -2,6 +2,11 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { Loader2, RefreshCw } from "lucide-react";
+import {
+  formatJobStatusLabel,
+  formatJobTypeLabel,
+  isActiveSyncJob,
+} from "@/lib/sync-job-display";
 import { formatDate } from "@/lib/utils";
 
 type SyncJob = {
@@ -17,6 +22,7 @@ export default function SettingsPage() {
   const [pricePreference, setPricePreference] = useState<"trend" | "low">("trend");
   const [jobs, setJobs] = useState<SyncJob[]>([]);
   const [loading, setLoading] = useState<string | null>(null);
+  const [syncError, setSyncError] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     const [settingsRes, syncRes] = await Promise.all([
@@ -47,6 +53,13 @@ export default function SettingsPage() {
     };
   }, [load]);
 
+  const catalogActive = jobs.some(
+    (job) => job.jobType === "catalog" && isActiveSyncJob(job.status),
+  );
+  const pricesActive = jobs.some(
+    (job) => job.jobType === "prices" && isActiveSyncJob(job.status),
+  );
+
   async function savePreference(value: "trend" | "low") {
     setPricePreference(value);
     await fetch("/api/settings", {
@@ -57,12 +70,20 @@ export default function SettingsPage() {
   }
 
   async function triggerSync(type: "catalog" | "prices") {
+    setSyncError(null);
     setLoading(type);
-    await fetch("/api/sync", {
+    const response = await fetch("/api/sync", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ type }),
     });
+    if (!response.ok) {
+      const body = await response.json().catch(() => ({}));
+      setSyncError(
+        (body.error as string) ??
+          "Sync konnte nicht gestartet werden.",
+      );
+    }
     await load();
     setLoading(null);
   }
@@ -99,12 +120,15 @@ export default function SettingsPage() {
         <p className="text-sm text-zinc-400">
           Katalog wöchentlich, Preise täglich. Der Worker muss laufen.
         </p>
+        {syncError ? (
+          <p className="text-sm text-amber-400">{syncError}</p>
+        ) : null}
         <div className="grid grid-cols-1 gap-2">
           <button
             type="button"
             onClick={() => triggerSync("catalog")}
-            disabled={loading != null}
-            className="flex items-center justify-center gap-2 rounded-xl bg-white/10 px-4 py-3 text-sm font-medium text-white"
+            disabled={loading != null || catalogActive}
+            className="flex items-center justify-center gap-2 rounded-xl bg-white/10 px-4 py-3 text-sm font-medium text-white disabled:opacity-50"
           >
             {loading === "catalog" ? (
               <Loader2 className="h-4 w-4 animate-spin" />
@@ -116,8 +140,8 @@ export default function SettingsPage() {
           <button
             type="button"
             onClick={() => triggerSync("prices")}
-            disabled={loading != null}
-            className="flex items-center justify-center gap-2 rounded-xl bg-white/10 px-4 py-3 text-sm font-medium text-white"
+            disabled={loading != null || pricesActive}
+            className="flex items-center justify-center gap-2 rounded-xl bg-white/10 px-4 py-3 text-sm font-medium text-white disabled:opacity-50"
           >
             {loading === "prices" ? (
               <Loader2 className="h-4 w-4 animate-spin" />
@@ -140,10 +164,20 @@ export default function SettingsPage() {
               className="rounded-xl border border-white/10 bg-white/[0.03] p-3 text-sm"
             >
               <div className="flex items-center justify-between gap-3">
-                <span className="font-medium capitalize text-white">
-                  {job.jobType}
+                <span className="font-medium text-white">
+                  {formatJobTypeLabel(job.jobType)}
                 </span>
-                <span className="text-zinc-400">{job.status}</span>
+                <span
+                  className={
+                    job.status === "running"
+                      ? "text-emerald-400"
+                      : job.status === "failed"
+                        ? "text-amber-400"
+                        : "text-zinc-400"
+                  }
+                >
+                  {formatJobStatusLabel(job.status, job.message)}
+                </span>
               </div>
               {job.message ? (
                 <p className="mt-1 text-zinc-500">{job.message}</p>

@@ -2,6 +2,7 @@ import {
   customType,
   index,
   integer,
+  jsonb,
   numeric,
   pgEnum,
   pgTable,
@@ -158,6 +159,7 @@ export const syncJobs = pgTable("sync_jobs", {
   jobType: syncJobTypeEnum("job_type").notNull(),
   status: syncJobStatusEnum("status").notNull().default("pending"),
   message: text("message"),
+  progress: jsonb("progress").$type<{ processedSetIds?: string[] }>(),
   startedAt: timestamp("started_at", { withTimezone: true }),
   finishedAt: timestamp("finished_at", { withTimezone: true }),
   createdAt: timestamp("created_at", { withTimezone: true })

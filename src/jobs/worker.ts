@@ -10,11 +10,13 @@ import {
 } from "./boss";
 import { runCatalogSync } from "./sync-catalog";
 import { runPriceSync } from "./sync-prices";
+import { markOrphanedSyncJobs } from "./sync-job-utils";
 
 async function main() {
   console.log("[worker] Starting OpenBinder sync worker…");
   const boss = await getBoss();
   await ensureQueues();
+  await markOrphanedSyncJobs();
   await scheduleRecurringJobs();
 
   await boss.work(JOB_CATALOG_SYNC, async (jobs) => {

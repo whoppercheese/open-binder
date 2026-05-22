@@ -17,6 +17,10 @@ import {
   pricingForVariant,
 } from "@/lib/tcgdex";
 import { cacheCardImage, cacheSetImage } from "@/lib/image-storage";
+import {
+  appendCatalogProgress,
+  getResumeProcessedSetIds,
+} from "@/jobs/sync-job-utils";
 
 const BATCH_DELAY_MS = 120;
 
@@ -169,19 +173,33 @@ export async function runCatalogSync(jobId?: string) {
 
   try {
     const allSets = await fetchSets("de");
-    let processed = 0;
+    const resumedSetIds = jobId
+      ? new Set(await getResumeProcessedSetIds(jobId, "catalog"))
+      : new Set<string>();
+    const setsToProcess = allSets.filter((set) => !resumedSetIds.has(set.id));
+    let processedSetIds = Array.from(resumedSetIds);
+    let processed = resumedSetIds.size;
 
-    for (const setSummary of allSets) {
+    if (jobId && resumedSetIds.size > 0) {
+      await db
+        .update(syncJobs)
+        .set({
+          message: `Setzt fort bei ${processed + 1}/${allSets.length} (${resumedSetIds.size} Sets übersprungen)…`,
+        })
+        .where(eq(syncJobs.id, jobId));
+    }
+
+    for (const setSummary of setsToProcess) {
       await upsertSet(setSummary);
       processed += 1;
 
       if (jobId) {
-        await db
-          .update(syncJobs)
-          .set({
-            message: `Set ${processed}/${allSets.length}: ${setSummary.name}`,
-          })
-          .where(eq(syncJobs.id, jobId));
+        processedSetIds = await appendCatalogProgress(
+          jobId,
+          setSummary.id,
+          processedSetIds,
+          `Set ${processed}/${allSets.length}: ${setSummary.name}`,
+        );
       }
     }
 
@@ -191,6 +209,7 @@ export async function runCatalogSync(jobId?: string) {
         .set({
           status: "completed",
           finishedAt: new Date(),
+          progress: { processedSetIds: allSets.map((set) => set.id) },
           message: `Katalog-Sync abgeschlossen (${allSets.length} Sets).`,
         })
         .where(eq(syncJobs.id, jobId));
