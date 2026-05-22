@@ -3,6 +3,20 @@
 :root {
   --background: #0b0d12;
   --foreground: #f4f4f5;
+  --card-aspect-w: 2.5;
+  --card-aspect-h: 3.44;
+}
+
+@utility aspect-card {
+  aspect-ratio: var(--card-aspect-w) / var(--card-aspect-h);
+}
+
+@utility card-lightbox {
+  aspect-ratio: var(--card-aspect-w) / var(--card-aspect-h);
+  width: min(
+    90vw,
+    calc((100dvh - 8rem) * var(--card-aspect-w) / var(--card-aspect-h))
+  );
 }
 
 @theme inline {

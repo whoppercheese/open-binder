@@ -5,6 +5,12 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
+/** Must match --card-aspect-w / --card-aspect-h in globals.css */
+export const CARD_ASPECT = {
+  w: 2.5,
+  h: 3.44,
+} as const;
+
 export function formatCurrency(
   value: number | string | null | undefined,
   currency = "EUR",

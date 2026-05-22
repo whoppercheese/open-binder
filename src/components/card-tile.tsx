@@ -31,7 +31,7 @@ export function CardTile({ card, onClick, compact = false }: CardTileProps) {
         compact ? "space-y-1" : "space-y-2",
       )}
     >
-      <div className="relative aspect-[2.5/3.5] w-full">
+      <div className="relative aspect-card w-full">
         <CardImage
           cardId={card.id}
           alt={card.nameDe}

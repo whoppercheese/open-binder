@@ -50,7 +50,7 @@ export function CardImageLightbox({
         <X className="h-6 w-6" />
       </button>
       <div
-        className="relative aspect-[2.5/3.5] w-[min(90vw,calc((100dvh-8rem)*2.5/3.5))] shrink-0 cursor-auto"
+        className="card-lightbox relative shrink-0 cursor-auto"
         onClick={(event) => event.stopPropagation()}
       >
         <CardImage cardId={cardId} alt={alt} bare className="h-full w-full" />

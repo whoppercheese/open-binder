@@ -197,7 +197,7 @@ export function CardModal({ card, open, onClose, onSaved }: CardModalProps) {
           <button
             type="button"
             onClick={() => setImageExpanded(true)}
-            className="relative aspect-[2.5/3.5] w-24 shrink-0 self-start cursor-pointer transition hover:opacity-90 active:scale-[0.98]"
+            className="relative aspect-card w-24 shrink-0 self-start cursor-pointer transition hover:opacity-90 active:scale-[0.98]"
             aria-label="Kartenbild vergrößern"
           >
             <CardImage

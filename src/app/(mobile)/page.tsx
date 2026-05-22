@@ -77,7 +77,7 @@ export default async function DashboardPage() {
           <div className="grid grid-cols-4 gap-3">
             {summary.recent.map((item) => (
               <div key={item.id} className="space-y-1">
-                <div className="relative aspect-[2.5/3.5] w-full">
+                <div className="relative aspect-card w-full">
                   <CardImage
                     cardId={item.cardId}
                     alt={item.cardName}
