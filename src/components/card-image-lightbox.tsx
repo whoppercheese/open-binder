@@ -50,11 +50,10 @@ export function CardImageLightbox({
         <X className="h-6 w-6" />
       </button>
       <div
-        className="relative h-full max-h-[85vh] w-full max-w-[min(90vw,calc(85vh*2.5/3.5))] cursor-auto"
-        style={{ aspectRatio: "2.5 / 3.5" }}
+        className="relative aspect-[2.5/3.5] w-[min(90vw,calc((100dvh-8rem)*2.5/3.5))] shrink-0 cursor-auto"
         onClick={(event) => event.stopPropagation()}
       >
-        <CardImage cardId={cardId} alt={alt} className="h-full w-full rounded-2xl" />
+        <CardImage cardId={cardId} alt={alt} bare className="h-full w-full" />
       </div>
     </div>
   );

@@ -6,15 +6,17 @@ type CardImageProps = {
   cardId?: string | null;
   alt: string;
   className?: string;
+  bare?: boolean;
 };
 
-export function CardImage({ cardId, alt, className }: CardImageProps) {
+export function CardImage({ cardId, alt, className, bare = false }: CardImageProps) {
   const src = cardId ? getCardImageApiPath(cardId) : null;
 
   return (
     <div
       className={cn(
-        "relative overflow-hidden rounded-xl bg-zinc-900/80 ring-1 ring-white/10",
+        "relative overflow-hidden",
+        !bare && "rounded-xl bg-zinc-900/80 ring-1 ring-white/10",
         className,
       )}
     >
@@ -23,8 +25,8 @@ export function CardImage({ cardId, alt, className }: CardImageProps) {
           src={src}
           alt={alt}
           fill
-          sizes="(max-width: 768px) 33vw, 120px"
-          className="object-contain p-1"
+          sizes={bare ? "90vw" : "(max-width: 768px) 33vw, 120px"}
+          className={cn("object-contain", !bare && "p-1")}
         />
       ) : (
         <div className="flex h-full items-center justify-center text-xs text-zinc-500">
