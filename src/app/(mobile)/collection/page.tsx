@@ -4,6 +4,7 @@ import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "rea
 import { useRouter, useSearchParams } from "next/navigation";
 import { Minus, Plus, Trash2, X } from "lucide-react";
 import { CardImage } from "@/components/card-image";
+import { ConfirmDialog } from "@/components/confirm-dialog";
 import { SearchBar } from "@/components/search-bar";
 import {
   CONDITION_LABELS,
@@ -70,6 +71,9 @@ function CollectionPageContent() {
   const [loadingMore, setLoadingMore] = useState(false);
   const [query, setQuery] = useState("");
   const [updatingId, setUpdatingId] = useState<string | null>(null);
+  const [deleteCandidate, setDeleteCandidate] = useState<CollectionItem | null>(
+    null,
+  );
   const offsetRef = useRef(0);
   const sentinelRef = useRef<HTMLDivElement>(null);
 
@@ -153,28 +157,25 @@ function CollectionPageContent() {
     ? `${items[0].nameDe} · ${items[0].setName} · #${items[0].number}`
     : null;
 
-  async function removeItem(id: string) {
-    setUpdatingId(id);
+  async function removeItem(item: CollectionItem) {
+    const removedValue = item.value;
+    setUpdatingId(item.id);
     try {
-      await fetch(`/api/collection/${id}`, { method: "DELETE" });
-      setItems((current) => {
-        const removed = current.find((item) => item.id === id);
-        const removedValue = removed?.value;
-        if (removedValue != null) {
-          setTotalValue((value) => value - removedValue);
-        }
-        return current.filter((item) => item.id !== id);
-      });
+      await fetch(`/api/collection/${item.id}`, { method: "DELETE" });
+      setItems((current) => current.filter((entry) => entry.id !== item.id));
+      if (removedValue != null) {
+        setTotalValue((value) => value - removedValue);
+      }
       setTotal((current) => Math.max(0, current - 1));
     } finally {
-      setUpdatingId((current) => (current === id ? null : current));
+      setUpdatingId((current) => (current === item.id ? null : current));
     }
   }
 
   async function adjustQuantity(item: CollectionItem, delta: number) {
     const newQuantity = item.quantity + delta;
     if (newQuantity < 1) {
-      await removeItem(item.id);
+      setDeleteCandidate(item);
       return;
     }
 
@@ -209,6 +210,18 @@ function CollectionPageContent() {
     } finally {
       setUpdatingId((current) => (current === item.id ? null : current));
     }
+  }
+
+  function requestDelete(item: CollectionItem) {
+    setDeleteCandidate(item);
+  }
+
+  async function confirmDelete() {
+    if (!deleteCandidate) return;
+    const item =
+      items.find((entry) => entry.id === deleteCandidate.id) ?? deleteCandidate;
+    await removeItem(item);
+    setDeleteCandidate(null);
   }
 
   function clearCardFilter() {
@@ -323,13 +336,13 @@ function CollectionPageContent() {
                         <Plus className="h-4 w-4" />
                       </button>
                     </div>
-                    <button
-                      type="button"
-                      disabled={updatingId === item.id}
-                      onClick={() => void removeItem(item.id)}
-                      className="rounded-lg p-2 text-zinc-500 hover:bg-white/5 hover:text-red-400 disabled:opacity-40"
-                      aria-label="Eintrag löschen"
-                    >
+                      <button
+                        type="button"
+                        disabled={updatingId === item.id}
+                        onClick={() => requestDelete(item)}
+                        className="rounded-lg p-2 text-zinc-500 hover:bg-white/5 hover:text-red-400 disabled:opacity-40"
+                        aria-label="Eintrag löschen"
+                      >
                       <Trash2 className="h-4 w-4" />
                     </button>
                   </div>
@@ -348,6 +361,19 @@ function CollectionPageContent() {
           {loadingMore ? "Weitere Einträge werden geladen…" : null}
         </div>
       ) : null}
+
+      <ConfirmDialog
+        open={deleteCandidate != null}
+        title="Eintrag löschen?"
+        message={
+          deleteCandidate
+            ? `${deleteCandidate.nameDe} wirklich aus der Sammlung entfernen?`
+            : ""
+        }
+        loading={deleteCandidate != null && updatingId === deleteCandidate.id}
+        onConfirm={() => void confirmDelete()}
+        onCancel={() => setDeleteCandidate(null)}
+      />
     </div>
   );
 }

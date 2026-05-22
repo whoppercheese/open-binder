@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useMemo, useState } from "react";
-import { Loader2, WalletCards, X } from "lucide-react";
+import { Loader2, Minus, Plus, WalletCards, X } from "lucide-react";
 import { CardImage } from "@/components/card-image";
 import {
   CONDITION_LABELS,
@@ -200,17 +200,32 @@ export function CardModal({ card, open, onClose, onSaved }: CardModalProps) {
             </label>
 
             <div className="grid grid-cols-2 gap-2">
-              <label className="block space-y-1">
+              <div className="block space-y-1">
                 <span className="text-zinc-400">Anzahl</span>
-                <input
-                  type="number"
-                  min={1}
-                  max={999}
-                  value={quantity}
-                  onChange={(event) => setQuantity(Number(event.target.value))}
-                  className="w-full rounded-xl border border-white/10 bg-black/30 px-3 py-2 text-white"
-                />
-              </label>
+                <div className="flex items-center gap-0.5 rounded-xl border border-white/10 bg-black/30 p-0.5">
+                  <button
+                    type="button"
+                    disabled={quantity <= 1}
+                    onClick={() => setQuantity((current) => Math.max(1, current - 1))}
+                    className="rounded-lg p-2 text-zinc-400 hover:bg-white/5 hover:text-white disabled:opacity-40"
+                    aria-label="Anzahl verringern"
+                  >
+                    <Minus className="h-4 w-4" />
+                  </button>
+                  <span className="min-w-8 flex-1 text-center text-sm font-semibold tabular-nums text-white">
+                    {quantity}
+                  </span>
+                  <button
+                    type="button"
+                    disabled={quantity >= 999}
+                    onClick={() => setQuantity((current) => Math.min(999, current + 1))}
+                    className="rounded-lg p-2 text-zinc-400 hover:bg-white/5 hover:text-white disabled:opacity-40"
+                    aria-label="Anzahl erhöhen"
+                  >
+                    <Plus className="h-4 w-4" />
+                  </button>
+                </div>
+              </div>
               <label className="block space-y-1">
                 <span className="text-zinc-400">Zustand</span>
                 <select
