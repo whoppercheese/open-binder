@@ -2,6 +2,7 @@
 
 import { useEffect } from "react";
 import { X } from "lucide-react";
+import { CardFrame } from "@/components/card-frame";
 import { CardImage } from "@/components/card-image";
 
 type CardImageLightboxProps = {
@@ -53,7 +54,7 @@ export function CardImageLightbox({
       >
         <X className="h-6 w-6" />
       </button>
-      <div
+      <CardFrame
         className="card-lightbox relative shrink-0 cursor-auto"
         onClick={(event) => event.stopPropagation()}
       >
@@ -65,7 +66,7 @@ export function CardImageLightbox({
           bare
           className="h-full w-full"
         />
-      </div>
+      </CardFrame>
     </div>
   );
 }

@@ -5,10 +5,21 @@
   --foreground: #f4f4f5;
   --card-aspect-w: 2.5;
   --card-aspect-h: 3.44;
+  /* 1.65% of shorter card edge; applied on .rounded-card inside .card-frame */
+  --card-radius-ratio: 0.0165;
+  --card-radius: calc(min(100cqw, 100cqh) * var(--card-radius-ratio));
 }
 
 @utility aspect-card {
   aspect-ratio: var(--card-aspect-w) / var(--card-aspect-h);
+}
+
+@utility card-frame {
+  container-type: size;
+}
+
+@utility rounded-card {
+  border-radius: var(--card-radius);
 }
 
 @utility card-lightbox {

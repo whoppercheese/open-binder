@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import { ExternalLink, Loader2, Minus, Plus, WalletCards, X } from "lucide-react";
+import { CardFrame } from "@/components/card-frame";
 import { CardImage } from "@/components/card-image";
 import { CardImageLightbox } from "@/components/card-image-lightbox";
 import { getCardmarketProductUrl } from "@/lib/cardmarket";
@@ -201,13 +202,15 @@ export function CardModal({ card, open, onClose, onSaved }: CardModalProps) {
             className="relative aspect-card w-24 shrink-0 self-start cursor-pointer transition hover:opacity-90 active:scale-[0.98]"
             aria-label="Kartenbild vergrößern"
           >
-            <CardImage
-              cardId={card.id}
-              setId={card.setId}
-              number={card.number}
-              alt={card.nameDe}
-              className="h-full w-full"
-            />
+            <CardFrame className="size-full">
+              <CardImage
+                cardId={card.id}
+                setId={card.setId}
+                number={card.number}
+                alt={card.nameDe}
+                className="h-full w-full"
+              />
+            </CardFrame>
           </button>
           <div className="flex-1 space-y-3 text-sm">
             <label className="block space-y-1">

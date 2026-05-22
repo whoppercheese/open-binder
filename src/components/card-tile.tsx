@@ -1,6 +1,7 @@
 "use client";
 
 import { CheckCircle2 } from "lucide-react";
+import { CardFrame } from "@/components/card-frame";
 import { CardImage } from "@/components/card-image";
 import { cn, formatCurrency, hasCardPrice } from "@/lib/utils";
 
@@ -32,7 +33,7 @@ export function CardTile({ card, onClick, compact = false }: CardTileProps) {
         compact ? "space-y-1" : "space-y-2",
       )}
     >
-      <div className="relative aspect-card w-full">
+      <CardFrame className="aspect-card w-full">
         <CardImage
           cardId={card.id}
           setId={card.setId}
@@ -55,7 +56,7 @@ export function CardTile({ card, onClick, compact = false }: CardTileProps) {
             ×{card.ownedQuantity}
           </div>
         ) : null}
-      </div>
+      </CardFrame>
       <div className="px-0.5">
         <p className="truncate text-[11px] font-medium text-zinc-300">
           {card.number} · {card.nameDe}

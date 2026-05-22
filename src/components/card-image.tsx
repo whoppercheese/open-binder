@@ -30,8 +30,8 @@ export function CardImage({
   return (
     <div
       className={cn(
-        "relative overflow-hidden",
-        !bare && "rounded-md ring-1 ring-white/15",
+        "relative h-full w-full overflow-hidden",
+        !bare && "ring-1 ring-white/15",
         className,
       )}
     >

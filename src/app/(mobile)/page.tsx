@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { ArrowRight, RefreshCw, TrendingUp } from "lucide-react";
+import { CardFrame } from "@/components/card-frame";
 import { CardImage } from "@/components/card-image";
 import { SetListItem } from "@/components/set-list-item";
 import { getPortfolioSummary } from "@/lib/portfolio";
@@ -77,7 +78,7 @@ export default async function DashboardPage() {
           <div className="grid grid-cols-4 gap-3">
             {summary.recent.map((item) => (
               <div key={item.id} className="space-y-1">
-                <div className="relative aspect-card w-full">
+                <CardFrame className="aspect-card w-full">
                   <CardImage
                     cardId={item.cardId}
                     setId={item.setId}
@@ -85,7 +86,7 @@ export default async function DashboardPage() {
                     alt={item.cardName}
                     className="h-full w-full"
                   />
-                </div>
+                </CardFrame>
                 <p className="truncate text-[10px] text-zinc-400">
                   {item.cardName}
                 </p>

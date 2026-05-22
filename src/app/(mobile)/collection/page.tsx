@@ -3,6 +3,7 @@
 import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Minus, Plus, Trash2, X } from "lucide-react";
+import { CardFrame } from "@/components/card-frame";
 import { CardImage } from "@/components/card-image";
 import { CardImageLightbox } from "@/components/card-image-lightbox";
 import { ConfirmDialog } from "@/components/confirm-dialog";
@@ -311,13 +312,15 @@ function CollectionPageContent() {
                     className="relative aspect-card w-16 shrink-0 cursor-pointer transition hover:opacity-90 active:scale-[0.98]"
                     aria-label="Kartenbild vergrößern"
                   >
-                    <CardImage
-                      cardId={item.cardId}
-                      setId={item.setId}
-                      number={item.number}
-                      alt={item.nameDe}
-                      className="h-full w-full"
-                    />
+                    <CardFrame className="size-full">
+                      <CardImage
+                        cardId={item.cardId}
+                        setId={item.setId}
+                        number={item.number}
+                        alt={item.nameDe}
+                        className="h-full w-full"
+                      />
+                    </CardFrame>
                   </button>
                   <div className="min-w-0 flex-1">
                     <p className="truncate font-medium text-white">{item.nameDe}</p>
