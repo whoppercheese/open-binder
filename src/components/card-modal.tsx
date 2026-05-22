@@ -24,6 +24,7 @@ export type CardDetail = {
   number: string;
   nameDe: string;
   imageUrl?: string | null;
+  setId?: string;
   setName?: string;
   officialCode?: string | null;
   variants: CardVariantOption[];
@@ -108,7 +109,18 @@ export function CardModal({ card, open, onClose, onSaved }: CardModalProps) {
         <div className="mb-4 flex items-start justify-between gap-3">
           <div>
             <p className="text-xs uppercase tracking-wide text-zinc-500">
-              {card.officialCode ?? card.setName} · #{card.number}
+              {card.setId ? (
+                <Link
+                  href={`/sets/${card.setId}`}
+                  onClick={onClose}
+                  className="text-emerald-400/90 transition hover:text-emerald-300"
+                >
+                  {card.officialCode ?? card.setName}
+                </Link>
+              ) : (
+                <span>{card.officialCode ?? card.setName}</span>
+              )}
+              {" · "}#{card.number}
             </p>
             <h2 className="text-lg font-semibold text-white">{card.nameDe}</h2>
           </div>

@@ -6,7 +6,6 @@ import { CardTile } from "@/components/card-tile";
 import { SearchBar } from "@/components/search-bar";
 
 type SearchResult = CardDetail & {
-  setId: string;
   setName: string;
   owned: boolean;
 };

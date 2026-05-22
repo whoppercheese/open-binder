@@ -42,7 +42,7 @@ export function CardTile({ card, onClick, compact = false }: CardTileProps) {
             className="pointer-events-none absolute inset-0 flex items-center justify-center"
             aria-hidden
           >
-            <div className="rounded-full bg-emerald-500 p-0.5 shadow-lg shadow-black/40 ring-2 ring-white/25">
+            <div className="rounded-full bg-emerald-500 p-0.5 shadow-md shadow-black ring-2 ring-white/25">
               <CheckCircle2 className="h-8 w-8 text-black" strokeWidth={2.5} />
             </div>
           </div>

@@ -113,6 +113,7 @@ export default function SetDetailPage() {
                 number: card.number,
                 nameDe: card.nameDe,
                 imageUrl: card.imageUrl,
+                setId: data.set.id,
                 setName: data.set.nameDe,
                 officialCode: data.set.officialCode,
                 variants: card.variants,
