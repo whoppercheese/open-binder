@@ -7,6 +7,8 @@ import { CardImage } from "@/components/card-image";
 type CardImageLightboxProps = {
   open: boolean;
   cardId: string;
+  setId?: string | null;
+  number?: string | null;
   alt: string;
   onClose: () => void;
 };
@@ -14,6 +16,8 @@ type CardImageLightboxProps = {
 export function CardImageLightbox({
   open,
   cardId,
+  setId,
+  number,
   alt,
   onClose,
 }: CardImageLightboxProps) {
@@ -53,7 +57,14 @@ export function CardImageLightbox({
         className="card-lightbox relative shrink-0 cursor-auto"
         onClick={(event) => event.stopPropagation()}
       >
-        <CardImage cardId={cardId} alt={alt} bare className="h-full w-full" />
+        <CardImage
+          cardId={cardId}
+          setId={setId}
+          number={number}
+          alt={alt}
+          bare
+          className="h-full w-full"
+        />
       </div>
     </div>
   );

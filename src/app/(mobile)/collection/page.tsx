@@ -77,6 +77,8 @@ function CollectionPageContent() {
   );
   const [expandedImage, setExpandedImage] = useState<{
     cardId: string;
+    setId: string;
+    number: string;
     nameDe: string;
   } | null>(null);
   const offsetRef = useRef(0);
@@ -300,6 +302,8 @@ function CollectionPageContent() {
                     onClick={() =>
                       setExpandedImage({
                         cardId: item.cardId,
+                        setId: item.setId,
+                        number: item.number,
                         nameDe: item.nameDe,
                       })
                     }
@@ -308,6 +312,8 @@ function CollectionPageContent() {
                   >
                     <CardImage
                       cardId={item.cardId}
+                      setId={item.setId}
+                      number={item.number}
                       alt={item.nameDe}
                       className="h-full w-full"
                     />
@@ -380,6 +386,8 @@ function CollectionPageContent() {
       <CardImageLightbox
         open={expandedImage != null}
         cardId={expandedImage?.cardId ?? ""}
+        setId={expandedImage?.setId}
+        number={expandedImage?.number}
         alt={expandedImage?.nameDe ?? ""}
         onClose={() => setExpandedImage(null)}
       />

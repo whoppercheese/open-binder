@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { ExternalLink, Loader2, Minus, Plus, WalletCards, X } from "lucide-react";
 import { CardImage } from "@/components/card-image";
 import { CardImageLightbox } from "@/components/card-image-lightbox";
@@ -87,11 +87,10 @@ export function CardModal({ card, open, onClose, onSaved }: CardModalProps) {
   const [error, setError] = useState<string | null>(null);
   const [imageExpanded, setImageExpanded] = useState(false);
 
-  useEffect(() => {
-    if (!open) {
-      setImageExpanded(false);
-    }
-  }, [open]);
+  function handleClose() {
+    setImageExpanded(false);
+    onClose();
+  }
 
   function resetForm(nextCard: CardDetail | null = card) {
     const initial = createInitialFormState(nextCard);
@@ -142,7 +141,7 @@ export function CardModal({ card, open, onClose, onSaved }: CardModalProps) {
       }
       resetForm();
       onSaved?.();
-      onClose();
+      handleClose();
     } catch (saveError) {
       setError(
         saveError instanceof Error ? saveError.message : "Speichern fehlgeschlagen",
@@ -156,7 +155,7 @@ export function CardModal({ card, open, onClose, onSaved }: CardModalProps) {
     <>
       <div
         className="fixed inset-0 z-[60] flex cursor-pointer items-end justify-center bg-black/70 p-4 pb-24 sm:items-center"
-        onClick={onClose}
+        onClick={handleClose}
       >
       <div
         className="w-full max-w-md cursor-auto rounded-3xl border border-white/10 bg-[#151922] p-4 shadow-2xl"
@@ -168,7 +167,7 @@ export function CardModal({ card, open, onClose, onSaved }: CardModalProps) {
               {card.setId ? (
                 <Link
                   href={`/sets/${card.setId}`}
-                  onClick={onClose}
+                  onClick={handleClose}
                   className="inline-flex items-center rounded-lg bg-emerald-500/10 px-2 py-0.5 text-sm font-medium text-emerald-400 transition hover:bg-emerald-500/20 hover:text-emerald-300"
                 >
                   {card.officialCode ?? card.setName}
@@ -186,7 +185,7 @@ export function CardModal({ card, open, onClose, onSaved }: CardModalProps) {
           </div>
           <button
             type="button"
-            onClick={onClose}
+            onClick={handleClose}
             className="rounded-full p-2 text-zinc-400 hover:bg-white/5 hover:text-white"
           >
             <X className="h-5 w-5" />
@@ -202,6 +201,8 @@ export function CardModal({ card, open, onClose, onSaved }: CardModalProps) {
           >
             <CardImage
               cardId={card.id}
+              setId={card.setId}
+              number={card.number}
               alt={card.nameDe}
               className="h-full w-full"
             />
@@ -336,7 +337,7 @@ export function CardModal({ card, open, onClose, onSaved }: CardModalProps) {
         {ownedCount > 0 ? (
           <Link
             href={`/collection?cardId=${encodeURIComponent(card.id)}`}
-            onClick={onClose}
+            onClick={handleClose}
             className="mb-3 flex w-full items-center justify-center gap-2 rounded-2xl border border-white/10 px-4 py-3 text-sm font-medium text-white transition hover:bg-white/5"
           >
             <WalletCards className="h-4 w-4" />
@@ -362,6 +363,8 @@ export function CardModal({ card, open, onClose, onSaved }: CardModalProps) {
     <CardImageLightbox
       open={imageExpanded}
       cardId={card.id}
+      setId={card.setId}
+      number={card.number}
       alt={card.nameDe}
       onClose={() => setImageExpanded(false)}
     />

@@ -73,6 +73,7 @@ export default function SearchPage() {
               id: card.id,
               number: card.number,
               nameDe: card.nameDe,
+              setId: card.setId,
               imageUrl: card.imageUrl,
               setName: card.setName,
               owned: card.owned,

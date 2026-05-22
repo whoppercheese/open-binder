@@ -80,6 +80,8 @@ export default async function DashboardPage() {
                 <div className="relative aspect-card w-full">
                   <CardImage
                     cardId={item.cardId}
+                    setId={item.setId}
+                    number={item.number}
                     alt={item.cardName}
                     className="h-full w-full"
                   />

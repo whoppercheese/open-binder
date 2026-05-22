@@ -9,18 +9,39 @@ type SetImageProps = {
   setId: string;
   alt: string;
   className?: string;
+  plain?: boolean;
+  preferSymbol?: boolean;
 };
 
-export function SetImage({ setId, alt, className }: SetImageProps) {
-  const [kind, setKind] = useState<SetImageKind>("logo");
-  const [failed, setFailed] = useState(false);
+export function SetImage({
+  setId,
+  alt,
+  className,
+  plain = false,
+  preferSymbol = false,
+}: SetImageProps) {
+  const defaultKind: SetImageKind = preferSymbol ? "symbol" : "logo";
+  const [fallback, setFallback] = useState<{
+    setId: string;
+    preferSymbol: boolean;
+    kind: SetImageKind;
+    failed: boolean;
+  } | null>(null);
+
+  const active =
+    fallback?.setId === setId && fallback.preferSymbol === preferSymbol
+      ? fallback
+      : null;
+  const kind = active?.kind ?? defaultKind;
+  const failed = active?.failed ?? false;
 
   const src = failed ? null : getSetImageApiPath(setId, kind);
 
   return (
     <div
       className={cn(
-        "relative shrink-0 overflow-hidden rounded-xl bg-zinc-900/80 ring-1 ring-white/10",
+        "relative shrink-0 overflow-hidden",
+        !plain && "rounded-xl bg-zinc-900/80 ring-1 ring-white/10",
         className,
       )}
     >
@@ -31,15 +52,35 @@ export function SetImage({ setId, alt, className }: SetImageProps) {
           fill
           sizes="48px"
           className={cn(
-            "object-contain p-1.5",
+            "object-contain",
             kind === "logo" ? "p-1" : "p-2",
+            plain && "p-1.5",
           )}
           onError={() => {
-            if (kind === "logo") {
-              setKind("symbol");
+            if (preferSymbol) {
+              if (kind === "symbol") {
+                setFallback({
+                  setId,
+                  preferSymbol,
+                  kind: "logo",
+                  failed: false,
+                });
+                return;
+              }
+              setFallback({ setId, preferSymbol, kind, failed: true });
               return;
             }
-            setFailed(true);
+
+            if (kind === "logo") {
+              setFallback({
+                setId,
+                preferSymbol,
+                kind: "symbol",
+                failed: false,
+              });
+              return;
+            }
+            setFallback({ setId, preferSymbol, kind, failed: true });
           }}
         />
       ) : (

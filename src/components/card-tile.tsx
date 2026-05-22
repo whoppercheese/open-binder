@@ -8,6 +8,7 @@ export type CardPreview = {
   id: string;
   number: string;
   nameDe: string;
+  setId?: string;
   imageUrl?: string | null;
   owned?: boolean;
   ownedQuantity?: number;
@@ -34,6 +35,8 @@ export function CardTile({ card, onClick, compact = false }: CardTileProps) {
       <div className="relative aspect-card w-full">
         <CardImage
           cardId={card.id}
+          setId={card.setId}
+          number={card.number}
           alt={card.nameDe}
           className="h-full w-full"
         />

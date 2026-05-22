@@ -106,7 +106,7 @@ export default function SetDetailPage() {
       if (card.rarity) unique.add(card.rarity);
     }
     return sortRarities(Array.from(unique));
-  }, [data?.cards]);
+  }, [data]);
 
   const filteredCards = useMemo(() => {
     if (!data?.cards) return [];
@@ -116,7 +116,7 @@ export default function SetDetailPage() {
       if (rarityFilter && card.rarity !== rarityFilter) return false;
       return true;
     });
-  }, [data?.cards, ownershipFilter, rarityFilter]);
+  }, [data, ownershipFilter, rarityFilter]);
 
   const hasActiveFilters = ownershipFilter != null || rarityFilter != null;
 
@@ -233,6 +233,7 @@ export default function SetDetailPage() {
               id: card.id,
               number: card.number,
               nameDe: card.nameDe,
+              setId: data.set.id,
               imageUrl: card.imageUrl,
               owned: card.owned,
               ownedQuantity: card.ownedQuantity,

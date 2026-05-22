@@ -65,6 +65,7 @@ export async function getPortfolioSummary() {
       id: userCards.id,
       cardId: cards.id,
       cardName: cards.nameDe,
+      setId: sets.id,
       setName: sets.nameDe,
       number: cards.number,
       imageUrl: cards.imageUrl,
