@@ -11,6 +11,7 @@ import {
   CONDITION_LABELS,
   LANGUAGE_LABELS,
   VARIANT_LABELS,
+  formatCardPriceLabel,
   formatCurrency,
 } from "@/lib/utils";
 
@@ -329,8 +330,12 @@ function CollectionPageContent() {
                     {item.notes ? (
                       <p className="mt-1 text-xs text-zinc-500">{item.notes}</p>
                     ) : null}
-                    <p className="mt-1 text-sm font-semibold text-emerald-400">
-                      {item.value != null ? formatCurrency(item.value) : "—"}
+                    <p
+                      className={`mt-1 text-sm font-semibold ${item.value != null ? "text-emerald-400" : "text-zinc-500"}`}
+                    >
+                      {item.value != null
+                        ? formatCurrency(item.value)
+                        : formatCardPriceLabel(null, "Wert")}
                     </p>
                   </div>
                   <div className="flex shrink-0 flex-col items-end justify-between self-stretch">

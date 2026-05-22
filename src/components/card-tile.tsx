@@ -2,7 +2,7 @@
 
 import { CheckCircle2 } from "lucide-react";
 import { CardImage } from "@/components/card-image";
-import { cn, formatCurrency } from "@/lib/utils";
+import { cn, formatCurrency, hasCardPrice } from "@/lib/utils";
 
 export type CardPreview = {
   id: string;
@@ -63,11 +63,18 @@ export function CardTile({ card, onClick, compact = false }: CardTileProps) {
         {!compact && card.setName ? (
           <p className="truncate text-[10px] text-zinc-500">{card.setName}</p>
         ) : null}
-        {card.price != null ? (
-          <p className="text-[10px] font-semibold text-emerald-400">
-            {formatCurrency(card.price)}
-          </p>
-        ) : null}
+        <p className="text-[10px] tabular-nums">
+          {hasCardPrice(card.price) ? (
+            <span className="font-semibold text-emerald-400">
+              {formatCurrency(card.price)}
+            </span>
+          ) : (
+            <span className="text-zinc-500">
+              <span className="font-normal">Preis </span>
+              <span className="font-semibold">—</span>
+            </span>
+          )}
+        </p>
       </div>
     </button>
   );

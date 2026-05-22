@@ -11,7 +11,9 @@ import {
   LANGUAGE_LABELS,
   VARIANT_LABELS,
   cn,
+  formatCardPriceLabel,
   formatCurrency,
+  hasCardPrice,
 } from "@/lib/utils";
 
 export type CardVariantOption = {
@@ -218,9 +220,7 @@ export function CardModal({ card, open, onClose, onSaved }: CardModalProps) {
                 {card.variants.map((variant) => (
                   <option key={variant.id} value={variant.id}>
                     {VARIANT_LABELS[variant.variantType] ?? variant.variantType}
-                    {variant.price != null
-                      ? ` · ${formatCurrency(variant.price)}`
-                      : ""}
+                    {` · ${formatCardPriceLabel(variant.price)}`}
                   </option>
                 ))}
               </select>
@@ -308,9 +308,10 @@ export function CardModal({ card, open, onClose, onSaved }: CardModalProps) {
           </div>
         </div>
 
-        {selectedVariant?.price != null ? (
+        {selectedVariant ? (
           <p className="mb-3 text-sm">
-            {selectedVariant.cardmarketProductId ? (
+            {selectedVariant.cardmarketProductId &&
+            selectedVariant.price != null ? (
               <a
                 href={getCardmarketProductUrl(selectedVariant.cardmarketProductId, {
                   foil:
@@ -325,8 +326,15 @@ export function CardModal({ card, open, onClose, onSaved }: CardModalProps) {
                 <ExternalLink className="h-3.5 w-3.5 shrink-0 opacity-80" aria-hidden />
               </a>
             ) : (
-              <span className="text-emerald-400">
-                Cardmarket: {formatCurrency(selectedVariant.price)}
+              <span className="text-zinc-400 tabular-nums">
+                Cardmarket-Preis{" "}
+                {hasCardPrice(selectedVariant.price) ? (
+                  <span className="font-medium text-emerald-400">
+                    {formatCurrency(selectedVariant.price)}
+                  </span>
+                ) : (
+                  <span className="font-semibold">—</span>
+                )}
               </span>
             )}
           </p>

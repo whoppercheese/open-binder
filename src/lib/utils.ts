@@ -23,6 +23,21 @@ export function formatCurrency(
   }).format(num);
 }
 
+export function hasCardPrice(price: number | null | undefined): boolean {
+  return price != null && !Number.isNaN(price);
+}
+
+export function formatCardPriceLabel(
+  price: number | null | undefined,
+  label = "Preis",
+): string {
+  return hasCardPrice(price) ? formatCurrency(price) : `${label}: —`;
+}
+
+export function formatCardPrice(price: number | null | undefined): string {
+  return formatCardPriceLabel(price);
+}
+
 export function formatDate(value: string | Date | null | undefined) {
   if (!value) return "—";
   const date = typeof value === "string" ? new Date(value) : value;
