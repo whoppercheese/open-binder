@@ -12,7 +12,7 @@ import { runCatalogSync } from "./sync-catalog";
 import { runPriceSync } from "./sync-prices";
 
 async function main() {
-  console.log("[worker] Starting Binder sync worker…");
+  console.log("[worker] Starting OpenBinder sync worker…");
   const boss = await getBoss();
   await ensureQueues();
   await scheduleRecurringJobs();

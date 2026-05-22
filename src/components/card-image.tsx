@@ -6,17 +6,15 @@ type CardImageProps = {
   cardId?: string | null;
   alt: string;
   className?: string;
-  owned?: boolean;
 };
 
-export function CardImage({ cardId, alt, className, owned = false }: CardImageProps) {
+export function CardImage({ cardId, alt, className }: CardImageProps) {
   const src = cardId ? getCardImageApiPath(cardId) : null;
 
   return (
     <div
       className={cn(
         "relative overflow-hidden rounded-xl bg-zinc-900/80 ring-1 ring-white/10",
-        !owned && "opacity-45 grayscale",
         className,
       )}
     >

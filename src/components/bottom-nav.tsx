@@ -6,11 +6,11 @@ import { Home, Layers, Search, Settings, WalletCards } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const items = [
-  { href: "/", label: "Home", icon: Home },
+  { href: "/", label: "Dashboard", icon: Home },
   { href: "/sets", label: "Sets", icon: Layers },
   { href: "/search", label: "Suche", icon: Search },
   { href: "/collection", label: "Sammlung", icon: WalletCards },
-  { href: "/settings", label: "Mehr", icon: Settings },
+  { href: "/settings", label: "Einstellungen", icon: Settings },
 ];
 
 export function BottomNav() {

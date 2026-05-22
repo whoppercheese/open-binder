@@ -14,8 +14,7 @@ export default async function DashboardPage() {
   return (
     <div className="space-y-6 px-4 pt-6">
       <header className="space-y-1">
-        <p className="text-sm text-zinc-400">Binder</p>
-        <h1 className="text-2xl font-bold text-white">Deine Sammlung</h1>
+        <h1 className="text-2xl font-bold text-white">Dashboard</h1>
         <p className="text-xs text-zinc-500">
           Inoffizielles Fan-Tool · Cardmarket EUR
         </p>
@@ -82,7 +81,6 @@ export default async function DashboardPage() {
                   <CardImage
                     cardId={item.cardId}
                     alt={item.cardName}
-                    owned
                     className="h-full w-full"
                   />
                 </div>

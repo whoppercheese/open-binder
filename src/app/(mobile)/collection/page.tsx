@@ -84,7 +84,6 @@ export default function CollectionPage() {
               <CardImage
                 cardId={item.cardId}
                 alt={item.nameDe}
-                owned
                 className="h-full w-full"
               />
             </div>

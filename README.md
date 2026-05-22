@@ -1,4 +1,4 @@
-# Binder — Pokémon TCG Collection Manager
+# OpenBinder — Pokémon TCG Collection Manager
 
 Mobile-first, self-hostable web app to manage your Pokémon TCG collection with German search, set browsing, and Cardmarket EUR portfolio values.
 
@@ -13,6 +13,16 @@ Mobile-first, self-hostable web app to manage your Pokémon TCG collection with 
 - Docker Compose for self-hosting
 
 ## Quick Start
+
+From a fresh clone (or to update an existing install):
+
+```bash
+./scripts/deploy.sh
+```
+
+The script stops any running stack, pulls `main` from GitHub, creates `.env` from `.env.example` when missing, rebuilds images, runs database migrations, and starts the app with Docker Compose.
+
+Manual alternative:
 
 ```bash
 cp .env.example .env

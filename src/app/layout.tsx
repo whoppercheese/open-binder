@@ -13,13 +13,13 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Binder — Pokémon TCG Sammlung",
+  title: "OpenBinder — Pokémon TCG Sammlung",
   description:
     "Mobile-first, self-hostable Pokémon TCG Sammlungs-Manager mit Cardmarket Preisen.",
   manifest: "/manifest.json",
   appleWebApp: {
     capable: true,
-    title: "Binder",
+    title: "OpenBinder",
     statusBarStyle: "black-translucent",
   },
 };

@@ -117,7 +117,6 @@ export function CardModal({ card, open, onClose, onSaved }: CardModalProps) {
             <CardImage
               cardId={card.id}
               alt={card.nameDe}
-              owned
               className="h-full w-full"
             />
           </div>

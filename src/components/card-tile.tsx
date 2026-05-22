@@ -35,12 +35,16 @@ export function CardTile({ card, onClick, compact = false }: CardTileProps) {
         <CardImage
           cardId={card.id}
           alt={card.nameDe}
-          owned={card.owned}
           className="h-full w-full"
         />
         {card.owned ? (
-          <div className="absolute right-1 top-1 rounded-full bg-emerald-500/90 p-0.5 text-black shadow">
-            <CheckCircle2 className="h-4 w-4" />
+          <div
+            className="pointer-events-none absolute inset-0 flex items-center justify-center"
+            aria-hidden
+          >
+            <div className="rounded-full bg-emerald-500 p-0.5 shadow-lg shadow-black/40 ring-2 ring-white/25">
+              <CheckCircle2 className="h-8 w-8 text-black" strokeWidth={2.5} />
+            </div>
           </div>
         ) : null}
         {card.ownedQuantity && card.ownedQuantity > 1 ? (

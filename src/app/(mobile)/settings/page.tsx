@@ -157,7 +157,7 @@ export default function SettingsPage() {
       </section>
 
       <p className="text-xs leading-relaxed text-zinc-600">
-        Binder ist ein inoffizielles Fan-Tool. Pokémon und alle zugehörigen
+        OpenBinder ist ein inoffizielles Fan-Tool. Pokémon und alle zugehörigen
         Marken sind Eigentum von Nintendo / Creatures Inc. / GAME FREAK inc.
         Kartendaten via TCGdex, Preise via Cardmarket (über TCGdex).
       </p>
