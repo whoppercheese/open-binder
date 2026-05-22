@@ -1,15 +1,16 @@
 import { and, desc, eq, gt, inArray, lt, ne, or } from "drizzle-orm";
 import { db } from "@/db/client";
 import { syncJobs } from "@/db/schema";
-import { WORKER_RESTART_MESSAGE } from "@/lib/sync-job-display";
+import {
+  WORKER_RESTART_MESSAGE,
+  type CatalogCardError,
+  type SyncJobFailure,
+  type SyncJobProgress,
+} from "@/lib/sync-job-display";
 
-export { WORKER_RESTART_MESSAGE };
+export type { CatalogCardError, SyncJobFailure, SyncJobProgress };
 
 const ORPHAN_GRACE_MS = 2 * 60 * 1000;
-
-export type SyncJobProgress = {
-  processedSetIds?: string[];
-};
 
 export async function markOrphanedSyncJobs() {
   const now = new Date();
@@ -101,12 +102,16 @@ export async function appendCatalogProgress(
   setId: string,
   processedSetIds: string[],
   message: string,
+  cardErrors?: CatalogCardError[],
 ) {
   const updatedIds = [...processedSetIds, setId];
   await db
     .update(syncJobs)
     .set({
-      progress: { processedSetIds: updatedIds },
+      progress: {
+        processedSetIds: updatedIds,
+        ...(cardErrors && cardErrors.length > 0 ? { cardErrors } : {}),
+      },
       message,
     })
     .where(eq(syncJobs.id, jobId));

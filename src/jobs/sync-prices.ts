@@ -20,7 +20,7 @@ const BATCH_DELAY_MS = 150;
 const MAX_CARDS_PER_RUN = 500;
 
 async function refreshCardPricing(cardId: string) {
-  const card = await fetchCardWithFallback(cardId);
+  const { card } = await fetchCardWithFallback(cardId);
   const pricing = card.pricing?.cardmarket;
   if (!pricing) return false;
 

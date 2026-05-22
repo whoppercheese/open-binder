@@ -1,11 +1,14 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { Loader2, RefreshCw } from "lucide-react";
+import { ChevronDown, Loader2, RefreshCw } from "lucide-react";
 import {
   formatJobStatusLabel,
   formatJobTypeLabel,
+  formatSyncJobIssueSummary,
+  getSyncJobIssues,
   isActiveSyncJob,
+  type SyncJobProgress,
 } from "@/lib/sync-job-display";
 import { formatDate } from "@/lib/utils";
 
@@ -14,6 +17,7 @@ type SyncJob = {
   jobType: "catalog" | "prices";
   status: string;
   message: string | null;
+  progress: SyncJobProgress | null;
   createdAt: string;
   finishedAt: string | null;
 };
@@ -158,7 +162,11 @@ export default function SettingsPage() {
         {jobs.length === 0 ? (
           <p className="text-sm text-zinc-500">Noch keine Sync-Jobs.</p>
         ) : (
-          jobs.map((job) => (
+          jobs.map((job) => {
+            const issues = getSyncJobIssues(job.progress);
+            const issueSummary = formatSyncJobIssueSummary(job.progress);
+
+            return (
             <div
               key={job.id}
               className="rounded-xl border border-white/10 bg-white/[0.03] p-3 text-sm"
@@ -173,7 +181,9 @@ export default function SettingsPage() {
                       ? "text-emerald-400"
                       : job.status === "failed"
                         ? "text-amber-400"
-                        : "text-zinc-400"
+                        : issueSummary
+                          ? "text-amber-400"
+                          : "text-zinc-400"
                   }
                 >
                   {formatJobStatusLabel(job.status, job.message)}
@@ -182,11 +192,37 @@ export default function SettingsPage() {
               {job.message ? (
                 <p className="mt-1 text-zinc-500">{job.message}</p>
               ) : null}
+              {issueSummary ? (
+                <details className="mt-2 rounded-lg border border-amber-500/20 bg-amber-500/5">
+                  <summary className="flex cursor-pointer list-none items-center justify-between gap-2 px-3 py-2 text-amber-200 [&::-webkit-details-marker]:hidden">
+                    <span>
+                      Probleme: {issueSummary}
+                    </span>
+                    <ChevronDown className="h-4 w-4 shrink-0 opacity-70" />
+                  </summary>
+                  <ul className="space-y-2 border-t border-amber-500/10 px-3 py-2">
+                    {issues.map((issue, index) => (
+                      <li key={`${issue.kind}-${issue.title}-${index}`}>
+                        <p className="font-medium text-amber-100/90">
+                          {issue.kind === "set"
+                            ? "Set"
+                            : issue.kind === "card"
+                              ? "Karte"
+                              : "Job"}
+                          : {issue.title}
+                        </p>
+                        <p className="text-xs text-amber-100/60">{issue.detail}</p>
+                      </li>
+                    ))}
+                  </ul>
+                </details>
+              ) : null}
               <p className="mt-1 text-xs text-zinc-600">
                 {formatDate(job.finishedAt ?? job.createdAt)}
               </p>
             </div>
-          ))
+            );
+          })
         )}
       </section>
 

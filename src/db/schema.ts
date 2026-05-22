@@ -12,6 +12,7 @@ import {
   uuid,
 } from "drizzle-orm/pg-core";
 import { relations, sql } from "drizzle-orm";
+import type { SyncJobProgress } from "@/lib/sync-job-display";
 
 const tsvector = customType<{ data: string }>({
   dataType() {
@@ -75,7 +76,9 @@ export const cards = pgTable(
       .notNull()
       .references(() => sets.id, { onDelete: "cascade" }),
     number: text("number").notNull(),
-    nameDe: text("name_de").notNull(),
+    nameDe: text("name_de"),
+    nameEn: text("name_en"),
+    nameSource: text("name_source").notNull().default("de"),
     rarity: text("rarity"),
     imageUrl: text("image_url"),
     searchVector: tsvector("search_vector"),
@@ -89,6 +92,7 @@ export const cards = pgTable(
   (table) => [
     index("cards_set_id_idx").on(table.setId),
     index("cards_number_idx").on(table.number),
+    uniqueIndex("cards_set_number_idx").on(table.setId, table.number),
     index("cards_search_vector_idx").using("gin", table.searchVector),
   ],
 );
@@ -159,7 +163,7 @@ export const syncJobs = pgTable("sync_jobs", {
   jobType: syncJobTypeEnum("job_type").notNull(),
   status: syncJobStatusEnum("status").notNull().default("pending"),
   message: text("message"),
-  progress: jsonb("progress").$type<{ processedSetIds?: string[] }>(),
+  progress: jsonb("progress").$type<SyncJobProgress>(),
   startedAt: timestamp("started_at", { withTimezone: true }),
   finishedAt: timestamp("finished_at", { withTimezone: true }),
   createdAt: timestamp("created_at", { withTimezone: true })
@@ -213,4 +217,4 @@ export const userCardsRelations = relations(userCards, ({ one }) => ({
   }),
 }));
 
-export const searchVectorExpression = sql`to_tsvector('german', coalesce(${cards.nameDe}, '') || ' ' || coalesce(${cards.number}, '') || ' ' || coalesce(${sets.nameDe}, '') || ' ' || coalesce(${sets.officialCode}, ''))`;
+export const searchVectorExpression = sql`to_tsvector('german', coalesce(${cards.nameDe}, '') || ' ' || coalesce(${cards.nameEn}, '') || ' ' || coalesce(${cards.number}, '') || ' ' || coalesce(${sets.nameDe}, '') || ' ' || coalesce(${sets.officialCode}, ''))`;

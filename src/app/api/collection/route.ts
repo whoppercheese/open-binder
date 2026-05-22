@@ -9,6 +9,7 @@ import {
   userCards,
 } from "@/db/schema";
 import { getPricePreference, pickPrice } from "@/lib/settings";
+import { cardDisplayNameSql } from "@/lib/card-names";
 
 const DEFAULT_LIMIT = 20;
 const MAX_LIMIT = 100;
@@ -25,7 +26,7 @@ const collectionSelect = {
   variantType: cardVariants.variantType,
   cardId: cards.id,
   number: cards.number,
-  nameDe: cards.nameDe,
+  nameDe: cardDisplayNameSql,
   imageUrl: cards.imageUrl,
   setId: sets.id,
   setName: sets.nameDe,
@@ -52,6 +53,7 @@ function buildSearchFilter(query: string): SQL | undefined {
   const pattern = `%${trimmed}%`;
   return or(
     ilike(cards.nameDe, pattern),
+    ilike(cards.nameEn, pattern),
     ilike(cards.number, pattern),
     ilike(sets.nameDe, pattern),
     ilike(sets.officialCode, pattern),

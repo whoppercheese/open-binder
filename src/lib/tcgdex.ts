@@ -32,6 +32,16 @@ export type TcgdexSetDetail = TcgdexSetSummary & {
   cards: Array<{ id: string; localId: string; name: string }>;
 };
 
+export type SetCardNameHints = Map<
+  string,
+  { de?: string; en?: string }
+>;
+
+export type FetchedTcgdexCard = {
+  card: TcgdexCard;
+  lang: SupportedLanguages;
+};
+
 export type TcgdexCardVariants = {
   firstEdition?: boolean;
   holo?: boolean;
@@ -88,6 +98,65 @@ export async function fetchSet(
   return set as TcgdexSetDetail;
 }
 
+export function buildSetCardNameHints(
+  deDetail: TcgdexSetDetail,
+  enDetail: TcgdexSetDetail,
+): SetCardNameHints {
+  const hints: SetCardNameHints = new Map();
+
+  for (const card of deDetail.cards) {
+    const localId = decodeTcgdexLocalId(card.localId);
+    const entry = hints.get(localId) ?? {};
+    entry.de = card.name;
+    hints.set(localId, entry);
+  }
+
+  for (const card of enDetail.cards) {
+    const localId = decodeTcgdexLocalId(card.localId);
+    const entry = hints.get(localId) ?? {};
+    entry.en = card.name;
+    hints.set(localId, entry);
+  }
+
+  return hints;
+}
+
+export function resolveSetCardSummariesFromDetails(
+  deDetail: TcgdexSetDetail,
+  enDetail: TcgdexSetDetail,
+): TcgdexSetDetail["cards"] {
+  if (deDetail.cards.length > 0) {
+    return deDetail.cards;
+  }
+
+  const expectedCount =
+    deDetail.cardCount?.total ?? deDetail.cardCount?.official ?? 0;
+  if (expectedCount === 0) {
+    return deDetail.cards;
+  }
+
+  return enDetail.cards;
+}
+
+export async function fetchSetBundle(setId: string): Promise<{
+  deDetail: TcgdexSetDetail;
+  enDetail: TcgdexSetDetail;
+  nameHints: SetCardNameHints;
+  cardSummaries: TcgdexSetDetail["cards"];
+}> {
+  const [deDetail, enDetail] = await Promise.all([
+    fetchSet(setId, CATALOG_LANG),
+    fetchSet(setId, CATALOG_FALLBACK_LANG),
+  ]);
+
+  return {
+    deDetail,
+    enDetail,
+    nameHints: buildSetCardNameHints(deDetail, enDetail),
+    cardSummaries: resolveSetCardSummariesFromDetails(deDetail, enDetail),
+  };
+}
+
 export function decodeTcgdexLocalId(localId: string): string {
   if (!localId.includes("%")) {
     return localId;
@@ -111,24 +180,11 @@ async function fetchCardFromClient(
   client: TCGdex,
   cardId: string,
 ): Promise<TcgdexCard | null> {
-  const primary = await client.card.get(cardId);
-  if (primary) {
-    return normalizeTcgdexCard(primary as TcgdexCard);
+  const card = await client.card.get(cardId);
+  if (!card) {
+    return null;
   }
-
-  // TCGdex set listings use single-encoded local IDs (e.g. exu-%3F), but the
-  // card GET endpoint requires double-encoding (exu-%253F).
-  if (cardId.includes("%")) {
-    const doubleEncodedId = cardId.replace(/%/g, "%25");
-    if (doubleEncodedId !== cardId) {
-      const retry = await client.card.get(doubleEncodedId);
-      if (retry) {
-        return normalizeTcgdexCard(retry as TcgdexCard);
-      }
-    }
-  }
-
-  return null;
+  return normalizeTcgdexCard(card as TcgdexCard);
 }
 
 export async function fetchCard(
@@ -146,10 +202,10 @@ export async function fetchCardWithFallback(
   cardId: string,
   lang: SupportedLanguages = CATALOG_LANG,
   fallbackLang: SupportedLanguages = CATALOG_FALLBACK_LANG,
-): Promise<TcgdexCard> {
+): Promise<FetchedTcgdexCard> {
   const primary = await fetchCardFromClient(getClient(lang), cardId);
   if (primary) {
-    return primary;
+    return { card: primary, lang };
   }
 
   if (lang === fallbackLang) {
@@ -158,12 +214,13 @@ export async function fetchCardWithFallback(
 
   const fallback = await fetchCardFromClient(getClient(fallbackLang), cardId);
   if (fallback) {
-    return fallback;
+    return { card: fallback, lang: fallbackLang };
   }
 
   throw new Error(`TCGdex card not found: ${cardId}`);
 }
 
+/** @deprecated Use fetchSetBundle instead */
 export async function resolveSetCardSummaries(
   setId: string,
   detail: TcgdexSetDetail,

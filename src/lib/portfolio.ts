@@ -8,6 +8,7 @@ import {
   syncJobs,
   userCards,
 } from "@/db/schema";
+import { cardDisplayNameSql } from "@/lib/card-names";
 import { getPricePreference, pickPrice } from "@/lib/settings";
 
 export async function getPortfolioSummary() {
@@ -18,7 +19,7 @@ export async function getPortfolioSummary() {
       quantity: userCards.quantity,
       trendEur: cardPrices.trendEur,
       lowEur: cardPrices.lowEur,
-      cardName: cards.nameDe,
+      cardName: cardDisplayNameSql,
       setName: sets.nameDe,
       updatedAt: userCards.updatedAt,
     })
@@ -64,7 +65,7 @@ export async function getPortfolioSummary() {
     .select({
       id: userCards.id,
       cardId: cards.id,
-      cardName: cards.nameDe,
+      cardName: cardDisplayNameSql,
       setId: sets.id,
       setName: sets.nameDe,
       number: cards.number,
@@ -125,7 +126,7 @@ export async function getSetWithCards(setId: string) {
     .select({
       id: cards.id,
       number: cards.number,
-      nameDe: cards.nameDe,
+      nameDe: cardDisplayNameSql,
       rarity: cards.rarity,
       imageUrl: cards.imageUrl,
       variantId: cardVariants.id,
@@ -144,6 +145,7 @@ export async function getSetWithCards(setId: string) {
       cards.id,
       cards.number,
       cards.nameDe,
+      cards.nameEn,
       cards.rarity,
       cards.imageUrl,
       cardVariants.id,

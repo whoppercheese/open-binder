@@ -4,6 +4,7 @@ import { db } from "@/db/client";
 import { cardPrices, cards, cardVariants, sets, userCards } from "@/db/schema";
 import { getPricePreference, pickPrice } from "@/lib/settings";
 import { buildSearchSql, parseSearchQuery } from "@/lib/search";
+import { cardDisplayNameSql } from "@/lib/card-names";
 
 export async function GET(request: Request) {
   try {
@@ -26,7 +27,7 @@ export async function GET(request: Request) {
       .select({
         id: cards.id,
         number: cards.number,
-        nameDe: cards.nameDe,
+        nameDe: cardDisplayNameSql,
         rarity: cards.rarity,
         imageUrl: cards.imageUrl,
         setId: sets.id,
@@ -45,7 +46,7 @@ export async function GET(request: Request) {
       .leftJoin(userCards, eq(userCards.variantId, cardVariants.id))
       .leftJoin(cardPrices, eq(cardPrices.variantId, cardVariants.id))
       .where(inArray(cards.id, cardIds))
-      .orderBy(cards.nameDe);
+      .orderBy(cardDisplayNameSql);
 
     const grouped = new Map<
       string,

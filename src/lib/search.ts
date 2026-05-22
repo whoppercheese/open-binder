@@ -74,7 +74,7 @@ export function buildSearchSql(
     FROM cards c
     INNER JOIN sets s ON s.id = c.set_id
     WHERE c.search_vector @@ to_tsquery('german', ${tsQuery})
-       OR lower(c.name_de) LIKE ${`%${parsed.text.toLowerCase()}%`}
+       OR lower(coalesce(c.name_de, c.name_en, '')) LIKE ${`%${parsed.text.toLowerCase()}%`}
        OR lower(s.name_de) LIKE ${`%${parsed.text.toLowerCase()}%`}
     ORDER BY ts_rank(c.search_vector, to_tsquery('german', ${tsQuery})) DESC,
              s.release_date DESC NULLS LAST
