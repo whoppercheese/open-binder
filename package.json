@@ -3,8 +3,9 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
-    "build": "next build",
+    "dev": "SW_CACHE_VERSION=dev node scripts/generate-sw.mjs && next dev",
+    "build": "node scripts/generate-sw.mjs && next build",
+    "generate-sw": "node scripts/generate-sw.mjs",
     "start": "next start",
     "lint": "eslint",
     "db:generate": "drizzle-kit generate",

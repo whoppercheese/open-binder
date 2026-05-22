@@ -1,4 +1,4 @@
-const CACHE_NAME = "openbinder-static-dev";
+const CACHE_NAME = "openbinder-static-__CACHE_VERSION__";
 
 const PRECACHE_URLS = [
   "/manifest.json",
