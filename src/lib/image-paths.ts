@@ -1,4 +1,4 @@
-import type { SetImageKind } from "@/lib/image-storage";
+export type SetImageKind = "logo" | "symbol";
 
 export function getCardImageApiPath(cardId: string): string {
   return `/api/images/${encodeURIComponent(cardId)}`;

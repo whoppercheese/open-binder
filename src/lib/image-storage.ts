@@ -1,12 +1,13 @@
 import { existsSync } from "node:fs";
 import { mkdir, readFile, unlink, writeFile } from "node:fs/promises";
 import path from "node:path";
+import type { SetImageKind } from "@/lib/image-paths";
 import { resolveTcgdexAssetUrl } from "@/lib/tcgdex";
 
 const CARD_IMAGES_SUBDIR = "cards";
 const SET_IMAGES_SUBDIR = "sets";
 
-export type SetImageKind = "logo" | "symbol";
+export type { SetImageKind };
 
 export function getImageStorageRoot(): string {
   return (

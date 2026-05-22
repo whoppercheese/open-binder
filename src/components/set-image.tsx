@@ -1,6 +1,8 @@
+"use client";
+
 import Image from "next/image";
-import { resolveSetImageKind } from "@/lib/image-storage";
-import { getSetImageApiPath } from "@/lib/image-paths";
+import { useState } from "react";
+import { getSetImageApiPath, type SetImageKind } from "@/lib/image-paths";
 import { cn } from "@/lib/utils";
 
 type SetImageProps = {
@@ -10,8 +12,10 @@ type SetImageProps = {
 };
 
 export function SetImage({ setId, alt, className }: SetImageProps) {
-  const kind = resolveSetImageKind(setId);
-  const src = kind ? getSetImageApiPath(setId, kind) : null;
+  const [kind, setKind] = useState<SetImageKind>("logo");
+  const [failed, setFailed] = useState(false);
+
+  const src = failed ? null : getSetImageApiPath(setId, kind);
 
   return (
     <div
@@ -30,6 +34,13 @@ export function SetImage({ setId, alt, className }: SetImageProps) {
             "object-contain p-1.5",
             kind === "logo" ? "p-1" : "p-2",
           )}
+          onError={() => {
+            if (kind === "logo") {
+              setKind("symbol");
+              return;
+            }
+            setFailed(true);
+          }}
         />
       ) : (
         <div className="flex h-full items-center justify-center text-[10px] font-semibold uppercase tracking-wide text-zinc-600">
