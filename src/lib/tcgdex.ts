@@ -88,15 +88,58 @@ export async function fetchSet(
   return set as TcgdexSetDetail;
 }
 
+export function decodeTcgdexLocalId(localId: string): string {
+  if (!localId.includes("%")) {
+    return localId;
+  }
+
+  try {
+    return decodeURIComponent(localId);
+  } catch {
+    return localId;
+  }
+}
+
+function normalizeTcgdexCard(card: TcgdexCard): TcgdexCard {
+  return {
+    ...card,
+    localId: decodeTcgdexLocalId(card.localId),
+  };
+}
+
+async function fetchCardFromClient(
+  client: TCGdex,
+  cardId: string,
+): Promise<TcgdexCard | null> {
+  const primary = await client.card.get(cardId);
+  if (primary) {
+    return normalizeTcgdexCard(primary as TcgdexCard);
+  }
+
+  // TCGdex set listings use single-encoded local IDs (e.g. exu-%3F), but the
+  // card GET endpoint requires double-encoding (exu-%253F).
+  if (cardId.includes("%")) {
+    const doubleEncodedId = cardId.replace(/%/g, "%25");
+    if (doubleEncodedId !== cardId) {
+      const retry = await client.card.get(doubleEncodedId);
+      if (retry) {
+        return normalizeTcgdexCard(retry as TcgdexCard);
+      }
+    }
+  }
+
+  return null;
+}
+
 export async function fetchCard(
   cardId: string,
   lang: SupportedLanguages = CATALOG_LANG,
 ): Promise<TcgdexCard> {
-  const card = await getClient(lang).card.get(cardId);
+  const card = await fetchCardFromClient(getClient(lang), cardId);
   if (!card) {
     throw new Error(`TCGdex card not found: ${cardId}`);
   }
-  return card as TcgdexCard;
+  return card;
 }
 
 export async function fetchCardWithFallback(
@@ -104,18 +147,18 @@ export async function fetchCardWithFallback(
   lang: SupportedLanguages = CATALOG_LANG,
   fallbackLang: SupportedLanguages = CATALOG_FALLBACK_LANG,
 ): Promise<TcgdexCard> {
-  const primary = await getClient(lang).card.get(cardId);
+  const primary = await fetchCardFromClient(getClient(lang), cardId);
   if (primary) {
-    return primary as TcgdexCard;
+    return primary;
   }
 
   if (lang === fallbackLang) {
     throw new Error(`TCGdex card not found: ${cardId}`);
   }
 
-  const fallback = await getClient(fallbackLang).card.get(cardId);
+  const fallback = await fetchCardFromClient(getClient(fallbackLang), cardId);
   if (fallback) {
-    return fallback as TcgdexCard;
+    return fallback;
   }
 
   throw new Error(`TCGdex card not found: ${cardId}`);
@@ -148,7 +191,7 @@ export function buildImageUrl(
   lang = "en",
   quality: "high" | "low" = "high",
 ): string {
-  return `${ASSETS_BASE}/${lang}/${seriesId}/${setId}/${localId}/${quality}.webp`;
+  return `${ASSETS_BASE}/${lang}/${seriesId}/${setId}/${encodeURIComponent(localId)}/${quality}.webp`;
 }
 
 export function resolveTcgdexAssetUrl(

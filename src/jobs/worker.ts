@@ -1,6 +1,7 @@
 import { eq } from "drizzle-orm";
 import { db } from "@/db/client";
 import { syncJobs } from "@/db/schema";
+import { loadEnvFile } from "@/lib/load-env";
 import {
   ensureQueues,
   getBoss,
@@ -11,6 +12,8 @@ import {
 import { runCatalogSync } from "./sync-catalog";
 import { runPriceSync } from "./sync-prices";
 import { markOrphanedSyncJobs } from "./sync-job-utils";
+
+loadEnvFile();
 
 async function main() {
   console.log("[worker] Starting OpenBinder sync worker…");

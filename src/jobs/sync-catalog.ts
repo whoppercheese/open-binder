@@ -26,6 +26,13 @@ import {
 
 const BATCH_DELAY_MS = 120;
 
+function getCatalogSkipSets(): number {
+  const raw = process.env.CATALOG_SKIP_SETS;
+  if (!raw) return 0;
+  const parsed = Number.parseInt(raw, 10);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : 0;
+}
+
 async function upsertSet(
   summary: Awaited<ReturnType<typeof fetchSets>>[number],
 ) {
@@ -180,9 +187,42 @@ export async function runCatalogSync(jobId?: string) {
     const resumedSetIds = jobId
       ? new Set(await getResumeProcessedSetIds(jobId, "catalog"))
       : new Set<string>();
-    const setsToProcess = allSets.filter((set) => !resumedSetIds.has(set.id));
+    let setsToProcess = allSets.filter((set) => !resumedSetIds.has(set.id));
     let processedSetIds = Array.from(resumedSetIds);
     let processed = resumedSetIds.size;
+
+    const skipSets = getCatalogSkipSets();
+    if (skipSets > 0 && resumedSetIds.size === 0) {
+      const setsToSkip = setsToProcess.slice(0, skipSets);
+      setsToProcess = setsToProcess.slice(skipSets);
+
+      console.log(
+        `[catalog] Skipping first ${setsToSkip.length} set(s) (CATALOG_SKIP_SETS=${skipSets})`,
+      );
+
+      if (jobId) {
+        await db
+          .update(syncJobs)
+          .set({
+            message: `Überspringe ${setsToSkip.length} Sets (Testmodus)…`,
+          })
+          .where(eq(syncJobs.id, jobId));
+      }
+
+      for (const setSummary of setsToSkip) {
+        processed += 1;
+        if (jobId) {
+          processedSetIds = await appendCatalogProgress(
+            jobId,
+            setSummary.id,
+            processedSetIds,
+            `Set ${processed}/${allSets.length}: ${setSummary.name} (übersprungen)`,
+          );
+        } else {
+          processedSetIds.push(setSummary.id);
+        }
+      }
+    }
 
     if (jobId && resumedSetIds.size > 0) {
       await db
