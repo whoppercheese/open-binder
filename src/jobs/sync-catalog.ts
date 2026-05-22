@@ -16,7 +16,7 @@ import {
   fetchSets,
   pricingForVariant,
 } from "@/lib/tcgdex";
-import { cacheCardImage } from "@/lib/image-storage";
+import { cacheCardImage, cacheSetImage } from "@/lib/image-storage";
 
 const BATCH_DELAY_MS = 120;
 
@@ -26,6 +26,13 @@ async function upsertSet(
   const detail = await fetchSet(summary.id);
   const seriesId = detail.serie?.id ?? summary.serie?.id ?? "unknown";
   const seriesName = detail.serie?.name ?? summary.serie?.name ?? "Unbekannt";
+
+  if (detail.logo) {
+    await cacheSetImage(detail.id, "logo", detail.logo);
+  }
+  if (detail.symbol) {
+    await cacheSetImage(detail.id, "symbol", detail.symbol);
+  }
 
   await db
     .insert(sets)

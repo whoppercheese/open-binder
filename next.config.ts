@@ -7,6 +7,9 @@ const nextConfig: NextConfig = {
       {
         pathname: "/api/images/**",
       },
+      {
+        pathname: "/api/set-images/**",
+      },
     ],
     remotePatterns: [],
     unoptimized: false,

@@ -93,6 +93,16 @@ export function buildImageUrl(
   return `${ASSETS_BASE}/${lang}/${seriesId}/${setId}/${localId}/${quality}.webp`;
 }
 
+export function resolveTcgdexAssetUrl(
+  url: string,
+  extension: "webp" | "png" | "jpg" = "webp",
+): string {
+  if (/\.(webp|png|jpe?g)$/i.test(url)) {
+    return url;
+  }
+  return `${url}.${extension}`;
+}
+
 export type VariantType =
   | "normal"
   | "holo"
