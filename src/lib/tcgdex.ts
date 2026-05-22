@@ -87,15 +87,36 @@ export async function fetchSets(
   return (sets ?? []) as TcgdexSetSummary[];
 }
 
+/** DE catalog plus EN-only sets missing from the German TCGdex index. */
+export async function fetchCatalogSets(): Promise<TcgdexSetSummary[]> {
+  const [deSets, enSets] = await Promise.all([
+    fetchSets(CATALOG_LANG),
+    fetchSets(CATALOG_FALLBACK_LANG),
+  ]);
+
+  const deIds = new Set(deSets.map((set) => set.id));
+  const enOnlySets = enSets.filter((set) => !deIds.has(set.id));
+
+  return [...deSets, ...enOnlySets];
+}
+
+export async function fetchSetOptional(
+  setId: string,
+  lang: SupportedLanguages = CATALOG_LANG,
+): Promise<TcgdexSetDetail | null> {
+  const set = await getClient(lang).set.get(setId);
+  return set ? (set as TcgdexSetDetail) : null;
+}
+
 export async function fetchSet(
   setId: string,
   lang: SupportedLanguages = CATALOG_LANG,
 ): Promise<TcgdexSetDetail> {
-  const set = await getClient(lang).set.get(setId);
+  const set = await fetchSetOptional(setId, lang);
   if (!set) {
     throw new Error(`TCGdex set not found: ${setId}`);
   }
-  return set as TcgdexSetDetail;
+  return set;
 }
 
 export function buildSetCardNameHints(
@@ -139,22 +160,45 @@ export function resolveSetCardSummariesFromDetails(
 }
 
 export async function fetchSetBundle(setId: string): Promise<{
-  deDetail: TcgdexSetDetail;
+  deDetail: TcgdexSetDetail | null;
   enDetail: TcgdexSetDetail;
   nameHints: SetCardNameHints;
   cardSummaries: TcgdexSetDetail["cards"];
 }> {
   const [deDetail, enDetail] = await Promise.all([
-    fetchSet(setId, CATALOG_LANG),
-    fetchSet(setId, CATALOG_FALLBACK_LANG),
+    fetchSetOptional(setId, CATALOG_LANG),
+    fetchSetOptional(setId, CATALOG_FALLBACK_LANG),
   ]);
+
+  if (!deDetail && !enDetail) {
+    throw new Error(`TCGdex set not found: ${setId}`);
+  }
+
+  const resolvedEnDetail = enDetail ?? deDetail!;
 
   return {
     deDetail,
-    enDetail,
-    nameHints: buildSetCardNameHints(deDetail, enDetail),
-    cardSummaries: resolveSetCardSummariesFromDetails(deDetail, enDetail),
+    enDetail: resolvedEnDetail,
+    nameHints: deDetail
+      ? buildSetCardNameHints(deDetail, resolvedEnDetail)
+      : buildEnOnlySetCardNameHints(resolvedEnDetail),
+    cardSummaries: deDetail
+      ? resolveSetCardSummariesFromDetails(deDetail, resolvedEnDetail)
+      : resolvedEnDetail.cards,
   };
+}
+
+function buildEnOnlySetCardNameHints(
+  enDetail: TcgdexSetDetail,
+): SetCardNameHints {
+  const hints: SetCardNameHints = new Map();
+
+  for (const card of enDetail.cards) {
+    const localId = decodeTcgdexLocalId(card.localId);
+    hints.set(localId, { en: card.name });
+  }
+
+  return hints;
 }
 
 export function decodeTcgdexLocalId(localId: string): string {

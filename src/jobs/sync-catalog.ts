@@ -16,10 +16,11 @@ import {
   delay,
   deriveVariantTypes,
   fetchCardWithFallback,
+  fetchCatalogSets,
   fetchSetBundle,
-  fetchSets,
   pricingForVariant,
   type TcgdexSetDetail,
+  type TcgdexSetSummary,
 } from "@/lib/tcgdex";
 import { existsSync } from "node:fs";
 import type { SetImageKind } from "@/lib/image-paths";
@@ -42,11 +43,32 @@ import type {
 
 const BATCH_DELAY_MS = 120;
 
-function getCatalogSkipSets(): number {
-  const raw = process.env.CATALOG_SKIP_SETS;
-  if (!raw) return 0;
-  const parsed = Number.parseInt(raw, 10);
-  return Number.isFinite(parsed) && parsed > 0 ? parsed : 0;
+function getCatalogSetIdsFilter(): string[] | null {
+  const raw = process.env.CATALOG_SET_IDS?.trim();
+  if (!raw) return null;
+
+  const ids = raw
+    .split(",")
+    .map((id) => id.trim())
+    .filter(Boolean);
+
+  return ids.length > 0 ? ids : null;
+}
+
+function applyCatalogSetFilter(
+  sets: TcgdexSetSummary[],
+  filterIds: string[],
+): TcgdexSetSummary[] {
+  const setsById = new Map(sets.map((set) => [set.id, set]));
+
+  return filterIds.flatMap((id) => {
+    const set = setsById.get(id);
+    if (!set) {
+      console.warn(`[catalog] Unknown set id in CATALOG_SET_IDS: ${id}`);
+      return [];
+    }
+    return [set];
+  });
 }
 
 async function lookupCardmarketName(
@@ -110,11 +132,11 @@ async function syncSetImages(detail: TcgdexSetDetail, enDetail: TcgdexSetDetail)
 }
 
 async function upsertSet(
-  summary: Awaited<ReturnType<typeof fetchSets>>[number],
+  summary: Awaited<ReturnType<typeof fetchCatalogSets>>[number],
   cardErrors: CatalogCardError[],
 ) {
   const { deDetail, enDetail, nameHints, cardSummaries } = await fetchSetBundle(summary.id);
-  const detail = deDetail;
+  const detail = deDetail ?? enDetail;
   const seriesId = detail.serie?.id ?? summary.serie?.id ?? "unknown";
   const seriesName = detail.serie?.name ?? summary.serie?.name ?? "Unbekannt";
 
@@ -324,47 +346,31 @@ export async function runCatalogSync(jobId?: string) {
   let processedSetIds: string[] = [];
 
   try {
-    const allSets = await fetchSets(CATALOG_LANG);
-    const resumedSetIds = jobId
-      ? new Set(await getResumeProcessedSetIds(jobId, "catalog"))
-      : new Set<string>();
-    let setsToProcess = allSets.filter((set) => !resumedSetIds.has(set.id));
-    processedSetIds = Array.from(resumedSetIds);
-    let processed = resumedSetIds.size;
+    const catalogSetIds = getCatalogSetIdsFilter();
+    let allSets = await fetchCatalogSets();
 
-    const skipSets = getCatalogSkipSets();
-    if (skipSets > 0 && resumedSetIds.size === 0) {
-      const setsToSkip = setsToProcess.slice(0, skipSets);
-      setsToProcess = setsToProcess.slice(skipSets);
-
+    if (catalogSetIds) {
+      allSets = applyCatalogSetFilter(allSets, catalogSetIds);
       console.log(
-        `[catalog] Skipping first ${setsToSkip.length} set(s) (CATALOG_SKIP_SETS=${skipSets})`,
+        `[catalog] Syncing ${allSets.length} set(s) from CATALOG_SET_IDS (${catalogSetIds.length} requested)`,
       );
 
       if (jobId) {
         await db
           .update(syncJobs)
           .set({
-            message: `Überspringe ${setsToSkip.length} Sets (Testmodus)…`,
+            message: `Katalog-Sync für ${allSets.length} Set(s)…`,
           })
           .where(eq(syncJobs.id, jobId));
       }
-
-      for (const setSummary of setsToSkip) {
-        processed += 1;
-        if (jobId) {
-          processedSetIds = await appendCatalogProgress(
-            jobId,
-            setSummary.id,
-            processedSetIds,
-            `Set ${processed}/${allSets.length}: ${setSummary.name} (übersprungen)`,
-            cardErrors,
-          );
-        } else {
-          processedSetIds.push(setSummary.id);
-        }
-      }
     }
+
+    const resumedSetIds = jobId
+      ? new Set(await getResumeProcessedSetIds(jobId, "catalog"))
+      : new Set<string>();
+    const setsToProcess = allSets.filter((set) => !resumedSetIds.has(set.id));
+    processedSetIds = Array.from(resumedSetIds);
+    let processed = resumedSetIds.size;
 
     if (jobId && resumedSetIds.size > 0) {
       await db

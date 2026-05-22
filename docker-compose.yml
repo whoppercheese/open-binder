@@ -46,7 +46,7 @@ services:
       DATABASE_URL: postgres://${POSTGRES_USER:-binder}:${POSTGRES_PASSWORD:-binder}@postgres:5432/${POSTGRES_DB:-binder}
       IMAGE_STORAGE_PATH: /app/storage/images
       BOOTSTRAP_CATALOG_SYNC: ${BOOTSTRAP_CATALOG_SYNC:-true}
-      CATALOG_SKIP_SETS: ${CATALOG_SKIP_SETS:-0}
+      CATALOG_SET_IDS: ${CATALOG_SET_IDS:-}
       NODE_ENV: production
     volumes:
       - image_storage:/app/storage/images
