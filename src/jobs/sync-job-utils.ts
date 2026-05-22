@@ -1,4 +1,4 @@
-import { and, desc, eq, inArray, lt, or } from "drizzle-orm";
+import { and, desc, eq, gt, inArray, lt, ne, or } from "drizzle-orm";
 import { db } from "@/db/client";
 import { syncJobs } from "@/db/schema";
 import { WORKER_RESTART_MESSAGE } from "@/lib/sync-job-display";
@@ -70,13 +70,29 @@ export async function getResumeProcessedSetIds(
       eq(syncJobs.jobType, jobType),
       eq(syncJobs.status, "failed"),
       eq(syncJobs.message, WORKER_RESTART_MESSAGE),
+      ne(syncJobs.id, jobId),
     ),
     orderBy: [desc(syncJobs.finishedAt)],
   });
 
+  if (!lastInterrupted?.finishedAt) {
+    return [];
+  }
+
+  const completedAfterInterrupt = await db.query.syncJobs.findFirst({
+    where: and(
+      eq(syncJobs.jobType, jobType),
+      eq(syncJobs.status, "completed"),
+      gt(syncJobs.finishedAt, lastInterrupted.finishedAt),
+    ),
+  });
+
+  if (completedAfterInterrupt) {
+    return [];
+  }
+
   return (
-    (lastInterrupted?.progress as SyncJobProgress | null)?.processedSetIds ??
-    []
+    (lastInterrupted.progress as SyncJobProgress | null)?.processedSetIds ?? []
   );
 }
 
