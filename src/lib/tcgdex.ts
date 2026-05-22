@@ -1,8 +1,21 @@
-const TCGDEX_BASE = "https://api.tcgdex.net/v2";
+import TCGdex, { type SupportedLanguages } from "@tcgdex/sdk";
+
 const ASSETS_BASE = "https://assets.tcgdex.net";
 
-export const CATALOG_LANG = "de";
-export const CATALOG_FALLBACK_LANG = "en";
+export const CATALOG_LANG = "de" satisfies SupportedLanguages;
+export const CATALOG_FALLBACK_LANG = "en" satisfies SupportedLanguages;
+
+const clients = new Map<SupportedLanguages, TCGdex>();
+
+function getClient(lang: SupportedLanguages = CATALOG_LANG): TCGdex {
+  let client = clients.get(lang);
+  if (!client) {
+    client = new TCGdex(lang);
+    client.setCacheTTL(0);
+    clients.set(lang, client);
+  }
+  return client;
+}
 
 export type TcgdexSetSummary = {
   id: string;
@@ -57,70 +70,52 @@ export type TcgdexCard = {
   };
 };
 
-async function fetchJson<T>(url: string): Promise<T> {
-  const response = await fetch(url, {
-    headers: { Accept: "application/json" },
-    next: { revalidate: 0 },
-  });
-  if (!response.ok) {
-    throw new Error(`TCGdex request failed (${response.status}): ${url}`);
-  }
-  return response.json() as Promise<T>;
-}
-
-async function fetchJsonOptional<T>(url: string): Promise<T | null> {
-  const response = await fetch(url, {
-    headers: { Accept: "application/json" },
-    next: { revalidate: 0 },
-  });
-  if (response.status === 404) {
-    return null;
-  }
-  if (!response.ok) {
-    throw new Error(`TCGdex request failed (${response.status}): ${url}`);
-  }
-  return response.json() as Promise<T>;
-}
-
-export async function fetchSets(lang = "de"): Promise<TcgdexSetSummary[]> {
-  return fetchJson(`${TCGDEX_BASE}/${lang}/sets`);
+export async function fetchSets(
+  lang: SupportedLanguages = CATALOG_LANG,
+): Promise<TcgdexSetSummary[]> {
+  const sets = await getClient(lang).set.list();
+  return (sets ?? []) as TcgdexSetSummary[];
 }
 
 export async function fetchSet(
   setId: string,
-  lang = "de",
+  lang: SupportedLanguages = CATALOG_LANG,
 ): Promise<TcgdexSetDetail> {
-  return fetchJson(`${TCGDEX_BASE}/${lang}/sets/${setId}`);
+  const set = await getClient(lang).set.get(setId);
+  if (!set) {
+    throw new Error(`TCGdex set not found: ${setId}`);
+  }
+  return set as TcgdexSetDetail;
 }
 
 export async function fetchCard(
   cardId: string,
-  lang = CATALOG_LANG,
+  lang: SupportedLanguages = CATALOG_LANG,
 ): Promise<TcgdexCard> {
-  return fetchJson(`${TCGDEX_BASE}/${lang}/cards/${cardId}`);
+  const card = await getClient(lang).card.get(cardId);
+  if (!card) {
+    throw new Error(`TCGdex card not found: ${cardId}`);
+  }
+  return card as TcgdexCard;
 }
 
 export async function fetchCardWithFallback(
   cardId: string,
-  lang = CATALOG_LANG,
-  fallbackLang = CATALOG_FALLBACK_LANG,
+  lang: SupportedLanguages = CATALOG_LANG,
+  fallbackLang: SupportedLanguages = CATALOG_FALLBACK_LANG,
 ): Promise<TcgdexCard> {
-  const primary = await fetchJsonOptional<TcgdexCard>(
-    `${TCGDEX_BASE}/${lang}/cards/${cardId}`,
-  );
+  const primary = await getClient(lang).card.get(cardId);
   if (primary) {
-    return primary;
+    return primary as TcgdexCard;
   }
 
   if (lang === fallbackLang) {
     throw new Error(`TCGdex card not found: ${cardId}`);
   }
 
-  const fallback = await fetchJsonOptional<TcgdexCard>(
-    `${TCGDEX_BASE}/${fallbackLang}/cards/${cardId}`,
-  );
+  const fallback = await getClient(fallbackLang).card.get(cardId);
   if (fallback) {
-    return fallback;
+    return fallback as TcgdexCard;
   }
 
   throw new Error(`TCGdex card not found: ${cardId}`);
@@ -129,8 +124,8 @@ export async function fetchCardWithFallback(
 export async function resolveSetCardSummaries(
   setId: string,
   detail: TcgdexSetDetail,
-  lang = CATALOG_LANG,
-  fallbackLang = CATALOG_FALLBACK_LANG,
+  lang: SupportedLanguages = CATALOG_LANG,
+  fallbackLang: SupportedLanguages = CATALOG_FALLBACK_LANG,
 ): Promise<TcgdexSetDetail["cards"]> {
   if (detail.cards.length > 0) {
     return detail.cards;
