@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { NextResponse } from "next/server";
 import { readSetImage, type SetImageKind } from "@/lib/image-storage";
 
@@ -19,16 +20,17 @@ export async function GET(
     return NextResponse.json({ error: "Ungültiger Bildtyp." }, { status: 400 });
   }
 
-  const buffer = await readSetImage(decodeURIComponent(setId), kind);
+  const image = await readSetImage(decodeURIComponent(setId), kind);
 
-  if (!buffer) {
+  if (!image) {
     return NextResponse.json({ error: "Bild nicht im Cache." }, { status: 404 });
   }
 
-  return new NextResponse(new Uint8Array(buffer), {
+  return new NextResponse(new Uint8Array(image.buffer), {
     headers: {
-      "Content-Type": "image/webp",
-      "Cache-Control": "public, max-age=31536000, immutable",
+      "Content-Type": image.contentType,
+      "Cache-Control": "public, max-age=86400",
+      ETag: `"${createHash("sha1").update(image.buffer).digest("hex")}"`,
     },
   });
 }

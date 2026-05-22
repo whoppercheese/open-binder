@@ -50,6 +50,7 @@ export function SetImage({
           src={src}
           alt={alt}
           fill
+          unoptimized
           sizes="48px"
           className={cn(
             "object-contain",

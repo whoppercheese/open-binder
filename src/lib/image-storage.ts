@@ -42,12 +42,37 @@ export function getSetImageAbsolutePath(
   return path.join(getImageStorageRoot(), getSetImageRelativePath(setId, kind));
 }
 
+export function getSetPlaceholderRelativePath(
+  setId: string,
+  kind: SetImageKind,
+): string {
+  return path.join(SET_IMAGES_SUBDIR, `${sanitizeId(setId)}-${kind}.svg`);
+}
+
+export function getSetPlaceholderAbsolutePath(
+  setId: string,
+  kind: SetImageKind,
+): string {
+  return path.join(
+    getImageStorageRoot(),
+    getSetPlaceholderRelativePath(setId, kind),
+  );
+}
+
+export type StoredSetImage = {
+  buffer: Buffer;
+  contentType: "image/webp" | "image/svg+xml";
+};
+
 export function cardImageExists(cardId: string): boolean {
   return existsSync(getCardImageAbsolutePath(cardId));
 }
 
 export function setImageExists(setId: string, kind: SetImageKind): boolean {
-  return existsSync(getSetImageAbsolutePath(setId, kind));
+  return (
+    existsSync(getSetImageAbsolutePath(setId, kind)) ||
+    existsSync(getSetPlaceholderAbsolutePath(setId, kind))
+  );
 }
 
 export function resolveSetImageKind(setId: string): SetImageKind | null {
@@ -121,10 +146,97 @@ export async function cacheSetImage(
   kind: SetImageKind,
   sourceUrl: string,
 ): Promise<boolean> {
-  return cacheImage(
+  const cached = await cacheImage(
     getSetImageAbsolutePath(setId, kind),
     resolveTcgdexAssetUrl(sourceUrl),
   );
+
+  if (cached) {
+    const placeholderPath = getSetPlaceholderAbsolutePath(setId, kind);
+    if (existsSync(placeholderPath)) {
+      await unlink(placeholderPath);
+    }
+  }
+
+  return cached;
+}
+
+function escapeSvgText(text: string): string {
+  return text
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&apos;");
+}
+
+function placeholderFontSize(label: string, kind: SetImageKind): number {
+  const maxSize = kind === "symbol" ? 18 : 22;
+  if (label.length <= 2) return maxSize;
+  if (label.length === 3) return maxSize - 4;
+  return maxSize - 7;
+}
+
+export function resolveSetPlaceholderLabel(
+  officialCode: string | null | undefined,
+  name: string,
+  kind: SetImageKind = "logo",
+): string {
+  const maxLength = kind === "symbol" ? 3 : 4;
+  const code = officialCode?.trim();
+  if (code) {
+    return code.slice(0, maxLength).toUpperCase();
+  }
+
+  const words = name.trim().split(/\s+/).filter(Boolean);
+  if (words.length >= 2) {
+    return (words[0].slice(0, 1) + words[1].slice(0, 1)).toUpperCase();
+  }
+
+  return name.trim().slice(0, maxLength).toUpperCase() || "?";
+}
+
+export function buildSetPlaceholderSvg(
+  label: string,
+  kind: SetImageKind = "logo",
+): string {
+  const safeLabel = escapeSvgText(label);
+  const fontSize = placeholderFontSize(label, kind);
+
+  return [
+    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img">',
+    '<rect width="64" height="64" rx="12" fill="#10131a"/>',
+    '<rect x="4" y="4" width="56" height="56" rx="10" fill="#18181b" stroke="#27272a"/>',
+    `<text x="32" y="36" text-anchor="middle" dominant-baseline="middle" font-family="system-ui,-apple-system,sans-serif" font-size="${fontSize}" font-weight="600" fill="#10b981">${safeLabel}</text>`,
+    "</svg>",
+  ].join("");
+}
+
+export async function writeSetPlaceholderImage(
+  setId: string,
+  kind: SetImageKind,
+  label: string,
+): Promise<void> {
+  if (existsSync(getSetImageAbsolutePath(setId, kind))) {
+    return;
+  }
+
+  await ensureImageStorageDir();
+  await writeFile(
+    getSetPlaceholderAbsolutePath(setId, kind),
+    buildSetPlaceholderSvg(label, kind),
+    "utf8",
+  );
+}
+
+export async function removeSetPlaceholderImage(
+  setId: string,
+  kind: SetImageKind,
+): Promise<void> {
+  const placeholderPath = getSetPlaceholderAbsolutePath(setId, kind);
+  if (existsSync(placeholderPath)) {
+    await unlink(placeholderPath);
+  }
 }
 
 export async function readCardImage(cardId: string): Promise<Buffer | null> {
@@ -139,11 +251,22 @@ export async function readCardImage(cardId: string): Promise<Buffer | null> {
 export async function readSetImage(
   setId: string,
   kind: SetImageKind,
-): Promise<Buffer | null> {
-  const filePath = getSetImageAbsolutePath(setId, kind);
-  if (!existsSync(filePath)) {
-    return null;
+): Promise<StoredSetImage | null> {
+  const webpPath = getSetImageAbsolutePath(setId, kind);
+  if (existsSync(webpPath)) {
+    return {
+      buffer: await readFile(webpPath),
+      contentType: "image/webp",
+    };
   }
 
-  return readFile(filePath);
+  const svgPath = getSetPlaceholderAbsolutePath(setId, kind);
+  if (existsSync(svgPath)) {
+    return {
+      buffer: await readFile(svgPath),
+      contentType: "image/svg+xml",
+    };
+  }
+
+  return null;
 }

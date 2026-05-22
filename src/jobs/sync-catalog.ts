@@ -19,8 +19,18 @@ import {
   fetchSetBundle,
   fetchSets,
   pricingForVariant,
+  type TcgdexSetDetail,
 } from "@/lib/tcgdex";
-import { cacheCardImage, cacheSetImage } from "@/lib/image-storage";
+import { existsSync } from "node:fs";
+import type { SetImageKind } from "@/lib/image-paths";
+import {
+  cacheCardImage,
+  cacheSetImage,
+  getSetImageAbsolutePath,
+  removeSetPlaceholderImage,
+  resolveSetPlaceholderLabel,
+  writeSetPlaceholderImage,
+} from "@/lib/image-storage";
 import {
   appendCatalogProgress,
   getResumeProcessedSetIds,
@@ -52,21 +62,63 @@ async function lookupCardmarketName(
   return product?.name ?? null;
 }
 
+async function syncSetImageKind(
+  setId: string,
+  kind: SetImageKind,
+  sourceUrl: string | null | undefined,
+  placeholderLabel: string,
+) {
+  if (sourceUrl) {
+    await cacheSetImage(setId, kind, sourceUrl);
+    if (!existsSync(getSetImageAbsolutePath(setId, kind))) {
+      await removeSetPlaceholderImage(setId, kind);
+    }
+    return;
+  }
+
+  await writeSetPlaceholderImage(setId, kind, placeholderLabel);
+}
+
+async function syncSetImages(detail: TcgdexSetDetail, enDetail: TcgdexSetDetail) {
+  const logoUrl = detail.logo ?? enDetail.logo ?? null;
+  const symbolUrl = detail.symbol ?? enDetail.symbol ?? null;
+  const placeholderBase = {
+    officialCode: detail.abbreviation?.official,
+    name: detail.name,
+  };
+
+  await syncSetImageKind(
+    detail.id,
+    "logo",
+    logoUrl,
+    resolveSetPlaceholderLabel(
+      placeholderBase.officialCode,
+      placeholderBase.name,
+      "logo",
+    ),
+  );
+  await syncSetImageKind(
+    detail.id,
+    "symbol",
+    symbolUrl,
+    resolveSetPlaceholderLabel(
+      placeholderBase.officialCode,
+      placeholderBase.name,
+      "symbol",
+    ),
+  );
+}
+
 async function upsertSet(
   summary: Awaited<ReturnType<typeof fetchSets>>[number],
   cardErrors: CatalogCardError[],
 ) {
-  const { deDetail, nameHints, cardSummaries } = await fetchSetBundle(summary.id);
+  const { deDetail, enDetail, nameHints, cardSummaries } = await fetchSetBundle(summary.id);
   const detail = deDetail;
   const seriesId = detail.serie?.id ?? summary.serie?.id ?? "unknown";
   const seriesName = detail.serie?.name ?? summary.serie?.name ?? "Unbekannt";
 
-  if (detail.logo) {
-    await cacheSetImage(detail.id, "logo", detail.logo);
-  }
-  if (detail.symbol) {
-    await cacheSetImage(detail.id, "symbol", detail.symbol);
-  }
+  await syncSetImages(detail, enDetail);
 
   await db
     .insert(sets)
