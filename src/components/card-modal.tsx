@@ -1,9 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
-import { Loader2, Minus, Plus, WalletCards, X } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { ExternalLink, Loader2, Minus, Plus, WalletCards, X } from "lucide-react";
 import { CardImage } from "@/components/card-image";
+import { CardImageLightbox } from "@/components/card-image-lightbox";
+import { getCardmarketProductUrl } from "@/lib/cardmarket";
 import {
   CONDITION_LABELS,
   LANGUAGE_LABELS,
@@ -17,6 +19,7 @@ export type CardVariantOption = {
   variantType: string;
   ownedQuantity?: number | null;
   price?: number | null;
+  cardmarketProductId?: number | null;
 };
 
 export type CardDetail = {
@@ -82,6 +85,13 @@ export function CardModal({ card, open, onClose, onSaved }: CardModalProps) {
   const [purchasePrice, setPurchasePrice] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [imageExpanded, setImageExpanded] = useState(false);
+
+  useEffect(() => {
+    if (!open) {
+      setImageExpanded(false);
+    }
+  }, [open]);
 
   function resetForm(nextCard: CardDetail | null = card) {
     const initial = createInitialFormState(nextCard);
@@ -143,24 +153,35 @@ export function CardModal({ card, open, onClose, onSaved }: CardModalProps) {
   }
 
   return (
-    <div className="fixed inset-0 z-[60] flex items-end justify-center bg-black/70 p-4 pb-24 sm:items-center">
-      <div className="w-full max-w-md rounded-3xl border border-white/10 bg-[#151922] p-4 shadow-2xl">
+    <>
+      <div
+        className="fixed inset-0 z-[60] flex cursor-pointer items-end justify-center bg-black/70 p-4 pb-24 sm:items-center"
+        onClick={onClose}
+      >
+      <div
+        className="w-full max-w-md cursor-auto rounded-3xl border border-white/10 bg-[#151922] p-4 shadow-2xl"
+        onClick={(event) => event.stopPropagation()}
+      >
         <div className="mb-4 flex items-start justify-between gap-3">
           <div>
-            <p className="text-xs uppercase tracking-wide text-zinc-500">
+            <div className="mb-1 flex flex-wrap items-center gap-x-2 gap-y-1">
               {card.setId ? (
                 <Link
                   href={`/sets/${card.setId}`}
                   onClick={onClose}
-                  className="text-emerald-400/90 transition hover:text-emerald-300"
+                  className="inline-flex items-center rounded-lg bg-emerald-500/10 px-2 py-0.5 text-sm font-medium text-emerald-400 transition hover:bg-emerald-500/20 hover:text-emerald-300"
                 >
                   {card.officialCode ?? card.setName}
                 </Link>
               ) : (
-                <span>{card.officialCode ?? card.setName}</span>
+                <span className="text-sm font-medium text-zinc-400">
+                  {card.officialCode ?? card.setName}
+                </span>
               )}
-              {" · "}#{card.number}
-            </p>
+              <span className="inline-flex items-center rounded-lg border border-white/10 bg-white/5 px-2 py-0.5 text-sm font-medium tabular-nums text-zinc-200">
+                #{card.number}
+              </span>
+            </div>
             <h2 className="text-lg font-semibold text-white">{card.nameDe}</h2>
           </div>
           <button
@@ -173,13 +194,18 @@ export function CardModal({ card, open, onClose, onSaved }: CardModalProps) {
         </div>
 
         <div className="mb-4 flex gap-4">
-          <div className="relative h-36 w-24 shrink-0">
+          <button
+            type="button"
+            onClick={() => setImageExpanded(true)}
+            className="relative h-36 w-24 shrink-0 cursor-pointer transition hover:opacity-90 active:scale-[0.98]"
+            aria-label="Kartenbild vergrößern"
+          >
             <CardImage
               cardId={card.id}
               alt={card.nameDe}
               className="h-full w-full"
             />
-          </div>
+          </button>
           <div className="flex-1 space-y-3 text-sm">
             <label className="block space-y-1">
               <span className="text-zinc-400">Variante</span>
@@ -282,8 +308,26 @@ export function CardModal({ card, open, onClose, onSaved }: CardModalProps) {
         </div>
 
         {selectedVariant?.price != null ? (
-          <p className="mb-3 text-sm text-emerald-400">
-            Cardmarket: {formatCurrency(selectedVariant.price)}
+          <p className="mb-3 text-sm">
+            {selectedVariant.cardmarketProductId ? (
+              <a
+                href={getCardmarketProductUrl(selectedVariant.cardmarketProductId, {
+                  foil:
+                    selectedVariant.variantType === "holo" ||
+                    selectedVariant.variantType === "first_edition",
+                })}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1 font-medium text-emerald-400 transition hover:text-emerald-300 hover:underline"
+              >
+                Cardmarket: {formatCurrency(selectedVariant.price)}
+                <ExternalLink className="h-3.5 w-3.5 shrink-0 opacity-80" aria-hidden />
+              </a>
+            ) : (
+              <span className="text-emerald-400">
+                Cardmarket: {formatCurrency(selectedVariant.price)}
+              </span>
+            )}
           </p>
         ) : null}
 
@@ -314,5 +358,13 @@ export function CardModal({ card, open, onClose, onSaved }: CardModalProps) {
         </button>
       </div>
     </div>
+
+    <CardImageLightbox
+      open={imageExpanded}
+      cardId={card.id}
+      alt={card.nameDe}
+      onClose={() => setImageExpanded(false)}
+    />
+  </>
   );
 }

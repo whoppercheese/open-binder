@@ -36,6 +36,18 @@ export async function fetchProductCatalog(): Promise<CardmarketProductCatalog> {
   return response.json() as Promise<CardmarketProductCatalog>;
 }
 
+export function getCardmarketProductUrl(
+  productId: number,
+  options?: { foil?: boolean },
+): string {
+  const url = new URL("https://www.cardmarket.com/de/Pokemon/Products");
+  url.searchParams.set("idProduct", String(productId));
+  if (options?.foil) {
+    url.searchParams.set("isFoil", "Y");
+  }
+  return url.toString();
+}
+
 export function buildPriceMapFromTcgdexEntries(
   entries: Array<{
     idProduct: number;

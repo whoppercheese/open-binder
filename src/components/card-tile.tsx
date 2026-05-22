@@ -27,7 +27,7 @@ export function CardTile({ card, onClick, compact = false }: CardTileProps) {
       type="button"
       onClick={onClick}
       className={cn(
-        "group relative w-full text-left transition-transform active:scale-[0.98]",
+        "group relative w-full cursor-pointer text-left transition-transform active:scale-[0.98]",
         compact ? "space-y-1" : "space-y-2",
       )}
     >

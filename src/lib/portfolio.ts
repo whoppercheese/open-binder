@@ -129,6 +129,7 @@ export async function getSetWithCards(setId: string) {
       imageUrl: cards.imageUrl,
       variantId: cardVariants.id,
       variantType: cardVariants.variantType,
+      cardmarketProductId: cardVariants.cardmarketProductId,
       ownedQuantity: sql<number>`coalesce(sum(${userCards.quantity}), 0)::int`,
       trendEur: cardPrices.trendEur,
       lowEur: cardPrices.lowEur,
@@ -146,6 +147,7 @@ export async function getSetWithCards(setId: string) {
       cards.imageUrl,
       cardVariants.id,
       cardVariants.variantType,
+      cardVariants.cardmarketProductId,
       cardPrices.trendEur,
       cardPrices.lowEur,
     )
@@ -166,6 +168,7 @@ export async function getSetWithCards(setId: string) {
         variantType: string;
         ownedQuantity: number;
         price: number | null;
+        cardmarketProductId: number | null;
       }>;
     }
   >();
@@ -190,6 +193,7 @@ export async function getSetWithCards(setId: string) {
       variantType: row.variantType,
       ownedQuantity,
       price: pickPrice(row, preference),
+      cardmarketProductId: row.cardmarketProductId,
     });
     grouped.set(row.id, existing);
   }

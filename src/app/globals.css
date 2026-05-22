@@ -33,3 +33,20 @@ textarea,
 button {
   font: inherit;
 }
+
+@layer base {
+  button:not(:disabled),
+  [role="button"]:not([aria-disabled="true"]),
+  a[href],
+  label[for],
+  select:not(:disabled),
+  summary {
+    @apply cursor-pointer;
+  }
+
+  button:disabled,
+  select:disabled,
+  [aria-disabled="true"] {
+    @apply cursor-not-allowed;
+  }
+}

@@ -4,6 +4,7 @@ import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "rea
 import { useRouter, useSearchParams } from "next/navigation";
 import { Minus, Plus, Trash2, X } from "lucide-react";
 import { CardImage } from "@/components/card-image";
+import { CardImageLightbox } from "@/components/card-image-lightbox";
 import { ConfirmDialog } from "@/components/confirm-dialog";
 import { SearchBar } from "@/components/search-bar";
 import {
@@ -74,6 +75,10 @@ function CollectionPageContent() {
   const [deleteCandidate, setDeleteCandidate] = useState<CollectionItem | null>(
     null,
   );
+  const [expandedImage, setExpandedImage] = useState<{
+    cardId: string;
+    nameDe: string;
+  } | null>(null);
   const offsetRef = useRef(0);
   const sentinelRef = useRef<HTMLDivElement>(null);
 
@@ -290,13 +295,23 @@ function CollectionPageContent() {
                   key={item.id}
                   className="flex gap-3 rounded-2xl border border-white/10 bg-white/[0.03] p-3"
                 >
-                  <div className="relative h-24 w-16 shrink-0">
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setExpandedImage({
+                        cardId: item.cardId,
+                        nameDe: item.nameDe,
+                      })
+                    }
+                    className="relative h-24 w-16 shrink-0 cursor-pointer transition hover:opacity-90 active:scale-[0.98]"
+                    aria-label="Kartenbild vergrößern"
+                  >
                     <CardImage
                       cardId={item.cardId}
                       alt={item.nameDe}
                       className="h-full w-full"
                     />
-                  </div>
+                  </button>
                   <div className="min-w-0 flex-1">
                     <p className="truncate font-medium text-white">{item.nameDe}</p>
                     <p className="text-xs text-zinc-500">#{item.number}</p>
@@ -312,7 +327,7 @@ function CollectionPageContent() {
                       {item.value != null ? formatCurrency(item.value) : "—"}
                     </p>
                   </div>
-                  <div className="flex shrink-0 flex-col items-end gap-2 self-start">
+                  <div className="flex shrink-0 flex-col items-end justify-between self-stretch">
                     <div className="flex items-center gap-0.5 rounded-xl border border-white/10 bg-black/20 p-0.5">
                       <button
                         type="button"
@@ -336,13 +351,13 @@ function CollectionPageContent() {
                         <Plus className="h-4 w-4" />
                       </button>
                     </div>
-                      <button
-                        type="button"
-                        disabled={updatingId === item.id}
-                        onClick={() => requestDelete(item)}
-                        className="rounded-lg p-2 text-zinc-500 hover:bg-white/5 hover:text-red-400 disabled:opacity-40"
-                        aria-label="Eintrag löschen"
-                      >
+                    <button
+                      type="button"
+                      disabled={updatingId === item.id}
+                      onClick={() => requestDelete(item)}
+                      className="rounded-lg p-2 text-zinc-500 hover:bg-white/5 hover:text-red-400 disabled:opacity-40"
+                      aria-label="Eintrag löschen"
+                    >
                       <Trash2 className="h-4 w-4" />
                     </button>
                   </div>
@@ -361,6 +376,13 @@ function CollectionPageContent() {
           {loadingMore ? "Weitere Einträge werden geladen…" : null}
         </div>
       ) : null}
+
+      <CardImageLightbox
+        open={expandedImage != null}
+        cardId={expandedImage?.cardId ?? ""}
+        alt={expandedImage?.nameDe ?? ""}
+        onClose={() => setExpandedImage(null)}
+      />
 
       <ConfirmDialog
         open={deleteCandidate != null}

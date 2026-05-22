@@ -34,6 +34,7 @@ export async function GET(request: Request) {
         officialCode: sets.officialCode,
         variantId: cardVariants.id,
         variantType: cardVariants.variantType,
+        cardmarketProductId: cardVariants.cardmarketProductId,
         ownedQuantity: userCards.quantity,
         trendEur: cardPrices.trendEur,
         lowEur: cardPrices.lowEur,
@@ -63,6 +64,7 @@ export async function GET(request: Request) {
           variantType: string;
           ownedQuantity: number | null;
           price: number | null;
+          cardmarketProductId: number | null;
         }>;
       }
     >();
@@ -88,6 +90,7 @@ export async function GET(request: Request) {
         variantType: row.variantType,
         ownedQuantity: row.ownedQuantity,
         price: pickPrice(row, preference),
+        cardmarketProductId: row.cardmarketProductId,
       });
       grouped.set(row.id, existing);
     }
