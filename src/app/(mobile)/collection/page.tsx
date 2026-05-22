@@ -1,14 +1,18 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { Trash2 } from "lucide-react";
+import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { Minus, Plus, Trash2, X } from "lucide-react";
 import { CardImage } from "@/components/card-image";
+import { SearchBar } from "@/components/search-bar";
 import {
   CONDITION_LABELS,
   LANGUAGE_LABELS,
   VARIANT_LABELS,
   formatCurrency,
 } from "@/lib/utils";
+
+const PAGE_SIZE = 20;
 
 type CollectionItem = {
   id: string;
@@ -21,48 +25,237 @@ type CollectionItem = {
   cardId: string;
   nameDe: string;
   number: string;
+  setId: string;
   setName: string;
   imageUrl: string | null;
   price: number | null;
   value: number | null;
 };
 
-export default function CollectionPage() {
-  const [items, setItems] = useState<CollectionItem[]>([]);
-  const [loading, setLoading] = useState(true);
+type CollectionGroup = {
+  setId: string;
+  setName: string;
+  items: CollectionItem[];
+};
 
-  useEffect(() => {
-    let cancelled = false;
+function groupBySet(items: CollectionItem[]): CollectionGroup[] {
+  const groups = new Map<string, CollectionGroup>();
 
-    (async () => {
-      const response = await fetch("/api/collection");
-      const payload = await response.json();
-      if (!cancelled) {
-        setItems(payload.items ?? []);
-        setLoading(false);
-      }
-    })();
-
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
-  async function removeItem(id: string) {
-    await fetch(`/api/collection/${id}`, { method: "DELETE" });
-    setItems((current) => current.filter((item) => item.id !== id));
+  for (const item of items) {
+    const existing = groups.get(item.setId);
+    if (existing) {
+      existing.items.push(item);
+    } else {
+      groups.set(item.setId, {
+        setId: item.setId,
+        setName: item.setName,
+        items: [item],
+      });
+    }
   }
 
-  const totalValue = items.reduce((sum, item) => sum + (item.value ?? 0), 0);
+  return Array.from(groups.values());
+}
+
+function CollectionPageContent() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const cardId = searchParams.get("cardId")?.trim() ?? "";
+
+  const [items, setItems] = useState<CollectionItem[]>([]);
+  const [total, setTotal] = useState(0);
+  const [totalValue, setTotalValue] = useState(0);
+  const [hasMore, setHasMore] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [query, setQuery] = useState("");
+  const [updatingId, setUpdatingId] = useState<string | null>(null);
+  const offsetRef = useRef(0);
+  const sentinelRef = useRef<HTMLDivElement>(null);
+
+  const loadPage = useCallback(
+    async (reset: boolean, searchQuery: string, filterCardId: string) => {
+      if (reset) {
+        setLoading(true);
+        offsetRef.current = 0;
+      } else {
+        setLoadingMore(true);
+      }
+
+      const params = new URLSearchParams({
+        limit: String(PAGE_SIZE),
+        offset: String(offsetRef.current),
+      });
+      const trimmed = searchQuery.trim();
+      if (trimmed) {
+        params.set("q", trimmed);
+      }
+      if (filterCardId) {
+        params.set("cardId", filterCardId);
+      }
+
+      try {
+        const response = await fetch(`/api/collection?${params}`);
+        const payload = await response.json();
+        const newItems: CollectionItem[] = payload.items ?? [];
+
+        if (reset) {
+          setItems(newItems);
+          setTotal(payload.total ?? newItems.length);
+          setTotalValue(payload.totalValue ?? 0);
+        } else {
+          setItems((current) => [...current, ...newItems]);
+        }
+
+        offsetRef.current += newItems.length;
+        setHasMore(Boolean(payload.hasMore));
+      } finally {
+        setLoading(false);
+        setLoadingMore(false);
+      }
+    },
+    [],
+  );
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      void loadPage(true, query, cardId);
+    }, query.trim() ? 300 : 0);
+
+    return () => clearTimeout(timer);
+  }, [query, cardId, loadPage]);
+
+  useEffect(() => {
+    if (!hasMore || loading || loadingMore) {
+      return;
+    }
+
+    const sentinel = sentinelRef.current;
+    if (!sentinel) {
+      return;
+    }
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0]?.isIntersecting) {
+          void loadPage(false, query, cardId);
+        }
+      },
+      { rootMargin: "200px" },
+    );
+
+    observer.observe(sentinel);
+    return () => observer.disconnect();
+  }, [hasMore, loading, loadingMore, query, cardId, loadPage, items.length]);
+
+  const groups = useMemo(() => groupBySet(items), [items]);
+  const filterLabel = items[0]
+    ? `${items[0].nameDe} · ${items[0].setName} · #${items[0].number}`
+    : null;
+
+  async function removeItem(id: string) {
+    setUpdatingId(id);
+    try {
+      await fetch(`/api/collection/${id}`, { method: "DELETE" });
+      setItems((current) => {
+        const removed = current.find((item) => item.id === id);
+        const removedValue = removed?.value;
+        if (removedValue != null) {
+          setTotalValue((value) => value - removedValue);
+        }
+        return current.filter((item) => item.id !== id);
+      });
+      setTotal((current) => Math.max(0, current - 1));
+    } finally {
+      setUpdatingId((current) => (current === id ? null : current));
+    }
+  }
+
+  async function adjustQuantity(item: CollectionItem, delta: number) {
+    const newQuantity = item.quantity + delta;
+    if (newQuantity < 1) {
+      await removeItem(item.id);
+      return;
+    }
+
+    setUpdatingId(item.id);
+    try {
+      const response = await fetch(`/api/collection/${item.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ quantity: newQuantity }),
+      });
+      if (!response.ok) {
+        return;
+      }
+
+      setItems((current) =>
+        current.map((entry) =>
+          entry.id === item.id
+            ? {
+                ...entry,
+                quantity: newQuantity,
+                value:
+                  entry.price != null ? entry.price * newQuantity : null,
+              }
+            : entry,
+        ),
+      );
+
+      const unitPrice = item.price;
+      if (unitPrice != null) {
+        setTotalValue((value) => value + unitPrice * delta);
+      }
+    } finally {
+      setUpdatingId((current) => (current === item.id ? null : current));
+    }
+  }
+
+  function clearCardFilter() {
+    router.push("/collection");
+  }
+
+  const emptyMessage = cardId
+    ? "Keine Einträge für diese Karte."
+    : query.trim()
+      ? "Keine Einträge für diese Suche."
+      : "Noch keine Karten gespeichert. Suche eine Karte oder öffne ein Set.";
 
   return (
     <div className="space-y-5 px-4 pt-6">
       <header>
         <h1 className="text-2xl font-bold">Sammlung</h1>
         <p className="text-sm text-zinc-400">
-          {items.length} Einträge · {formatCurrency(totalValue)}
+          {total} Einträge · {formatCurrency(totalValue)}
         </p>
       </header>
+
+      {cardId ? (
+        <div className="flex items-center gap-2 rounded-2xl border border-emerald-500/20 bg-emerald-500/10 px-3 py-2 text-sm text-emerald-100">
+          <div className="min-w-0 flex-1">
+            <p className="text-xs uppercase tracking-wide text-emerald-300/80">
+              Gefiltert nach Karte
+            </p>
+            <p className="truncate font-medium">
+              {filterLabel ?? "Karte wird geladen…"}
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={clearCardFilter}
+            className="shrink-0 rounded-lg p-2 text-emerald-200 hover:bg-emerald-500/10"
+            aria-label="Kartenfilter zurücksetzen"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+      ) : null}
+
+      <SearchBar
+        value={query}
+        onChange={setQuery}
+        placeholder="Name, Nummer oder Set"
+      />
 
       {loading ? (
         <p className="text-sm text-zinc-400">Sammlung wird geladen…</p>
@@ -70,50 +263,105 @@ export default function CollectionPage() {
 
       {!loading && items.length === 0 ? (
         <div className="rounded-2xl border border-dashed border-white/10 p-8 text-center text-sm text-zinc-500">
-          Noch keine Karten gespeichert. Suche eine Karte oder öffne ein Set.
+          {emptyMessage}
         </div>
       ) : null}
 
-      <div className="space-y-3">
-        {items.map((item) => (
-          <article
-            key={item.id}
-            className="flex gap-3 rounded-2xl border border-white/10 bg-white/[0.03] p-3"
-          >
-            <div className="relative h-24 w-16 shrink-0">
-              <CardImage
-                cardId={item.cardId}
-                alt={item.nameDe}
-                className="h-full w-full"
-              />
+      <div className="space-y-6">
+        {groups.map((group) => (
+          <section key={group.setId} className="space-y-3">
+            <h2 className="text-lg font-semibold text-white">{group.setName}</h2>
+            <div className="space-y-3">
+              {group.items.map((item) => (
+                <article
+                  key={item.id}
+                  className="flex gap-3 rounded-2xl border border-white/10 bg-white/[0.03] p-3"
+                >
+                  <div className="relative h-24 w-16 shrink-0">
+                    <CardImage
+                      cardId={item.cardId}
+                      alt={item.nameDe}
+                      className="h-full w-full"
+                    />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate font-medium text-white">{item.nameDe}</p>
+                    <p className="text-xs text-zinc-500">#{item.number}</p>
+                    <p className="mt-1 text-xs text-zinc-400">
+                      {VARIANT_LABELS[item.variantType] ?? item.variantType} ·{" "}
+                      {CONDITION_LABELS[item.condition]} ·{" "}
+                      {LANGUAGE_LABELS[item.language]}
+                    </p>
+                    {item.notes ? (
+                      <p className="mt-1 text-xs text-zinc-500">{item.notes}</p>
+                    ) : null}
+                    <p className="mt-1 text-sm font-semibold text-emerald-400">
+                      {item.value != null ? formatCurrency(item.value) : "—"}
+                    </p>
+                  </div>
+                  <div className="flex shrink-0 flex-col items-end gap-2 self-start">
+                    <div className="flex items-center gap-0.5 rounded-xl border border-white/10 bg-black/20 p-0.5">
+                      <button
+                        type="button"
+                        disabled={updatingId === item.id}
+                        onClick={() => void adjustQuantity(item, -1)}
+                        className="rounded-lg p-2 text-zinc-400 hover:bg-white/5 hover:text-white disabled:opacity-40"
+                        aria-label="Anzahl verringern"
+                      >
+                        <Minus className="h-4 w-4" />
+                      </button>
+                      <span className="min-w-8 text-center text-sm font-semibold tabular-nums text-white">
+                        {item.quantity}
+                      </span>
+                      <button
+                        type="button"
+                        disabled={updatingId === item.id || item.quantity >= 999}
+                        onClick={() => void adjustQuantity(item, 1)}
+                        className="rounded-lg p-2 text-zinc-400 hover:bg-white/5 hover:text-white disabled:opacity-40"
+                        aria-label="Anzahl erhöhen"
+                      >
+                        <Plus className="h-4 w-4" />
+                      </button>
+                    </div>
+                    <button
+                      type="button"
+                      disabled={updatingId === item.id}
+                      onClick={() => void removeItem(item.id)}
+                      className="rounded-lg p-2 text-zinc-500 hover:bg-white/5 hover:text-red-400 disabled:opacity-40"
+                      aria-label="Eintrag löschen"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  </div>
+                </article>
+              ))}
             </div>
-            <div className="min-w-0 flex-1">
-              <p className="truncate font-medium text-white">{item.nameDe}</p>
-              <p className="text-xs text-zinc-500">
-                {item.setName} · #{item.number}
-              </p>
-              <p className="mt-1 text-xs text-zinc-400">
-                {VARIANT_LABELS[item.variantType] ?? item.variantType} ·{" "}
-                {CONDITION_LABELS[item.condition]} ·{" "}
-                {LANGUAGE_LABELS[item.language]} · ×{item.quantity}
-              </p>
-              {item.notes ? (
-                <p className="mt-1 text-xs text-zinc-500">{item.notes}</p>
-              ) : null}
-              <p className="mt-1 text-sm font-semibold text-emerald-400">
-                {item.value != null ? formatCurrency(item.value) : "—"}
-              </p>
-            </div>
-            <button
-              type="button"
-              onClick={() => removeItem(item.id)}
-              className="self-start rounded-lg p-2 text-zinc-500 hover:bg-white/5 hover:text-red-400"
-            >
-              <Trash2 className="h-4 w-4" />
-            </button>
-          </article>
+          </section>
         ))}
       </div>
+
+      {hasMore ? (
+        <div
+          ref={sentinelRef}
+          className="py-4 text-center text-sm text-zinc-500"
+        >
+          {loadingMore ? "Weitere Einträge werden geladen…" : null}
+        </div>
+      ) : null}
     </div>
+  );
+}
+
+export default function CollectionPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="px-4 pt-6 text-sm text-zinc-400">
+          Sammlung wird geladen…
+        </div>
+      }
+    >
+      <CollectionPageContent />
+    </Suspense>
   );
 }

@@ -1,7 +1,8 @@
 "use client";
 
+import Link from "next/link";
 import { useMemo, useState } from "react";
-import { Loader2, X } from "lucide-react";
+import { Loader2, WalletCards, X } from "lucide-react";
 import { CardImage } from "@/components/card-image";
 import {
   CONDITION_LABELS,
@@ -57,6 +58,14 @@ export function CardModal({ card, open, onClose, onSaved }: CardModalProps) {
   const activeVariantId = variantId || defaultVariant?.id || "";
   const selectedVariant = card?.variants.find(
     (variant) => variant.id === activeVariantId,
+  );
+  const ownedCount = useMemo(
+    () =>
+      card?.variants.reduce(
+        (sum, variant) => sum + (variant.ownedQuantity ?? 0),
+        0,
+      ) ?? 0,
+    [card],
   );
 
   if (!open || !card) return null;
@@ -213,6 +222,17 @@ export function CardModal({ card, open, onClose, onSaved }: CardModalProps) {
         ) : null}
 
         {error ? <p className="mb-3 text-sm text-red-400">{error}</p> : null}
+
+        {ownedCount > 0 ? (
+          <Link
+            href={`/collection?cardId=${encodeURIComponent(card.id)}`}
+            onClick={onClose}
+            className="mb-3 flex w-full items-center justify-center gap-2 rounded-2xl border border-white/10 px-4 py-3 text-sm font-medium text-white transition hover:bg-white/5"
+          >
+            <WalletCards className="h-4 w-4" />
+            In Sammlung anzeigen ({ownedCount})
+          </Link>
+        ) : null}
 
         <button
           type="button"
