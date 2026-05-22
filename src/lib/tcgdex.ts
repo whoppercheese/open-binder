@@ -1,6 +1,9 @@
 const TCGDEX_BASE = "https://api.tcgdex.net/v2";
 const ASSETS_BASE = "https://assets.tcgdex.net";
 
+export const CATALOG_LANG = "de";
+export const CATALOG_FALLBACK_LANG = "en";
+
 export type TcgdexSetSummary = {
   id: string;
   name: string;
@@ -65,6 +68,20 @@ async function fetchJson<T>(url: string): Promise<T> {
   return response.json() as Promise<T>;
 }
 
+async function fetchJsonOptional<T>(url: string): Promise<T | null> {
+  const response = await fetch(url, {
+    headers: { Accept: "application/json" },
+    next: { revalidate: 0 },
+  });
+  if (response.status === 404) {
+    return null;
+  }
+  if (!response.ok) {
+    throw new Error(`TCGdex request failed (${response.status}): ${url}`);
+  }
+  return response.json() as Promise<T>;
+}
+
 export async function fetchSets(lang = "de"): Promise<TcgdexSetSummary[]> {
   return fetchJson(`${TCGDEX_BASE}/${lang}/sets`);
 }
@@ -78,9 +95,55 @@ export async function fetchSet(
 
 export async function fetchCard(
   cardId: string,
-  lang = "de",
+  lang = CATALOG_LANG,
 ): Promise<TcgdexCard> {
   return fetchJson(`${TCGDEX_BASE}/${lang}/cards/${cardId}`);
+}
+
+export async function fetchCardWithFallback(
+  cardId: string,
+  lang = CATALOG_LANG,
+  fallbackLang = CATALOG_FALLBACK_LANG,
+): Promise<TcgdexCard> {
+  const primary = await fetchJsonOptional<TcgdexCard>(
+    `${TCGDEX_BASE}/${lang}/cards/${cardId}`,
+  );
+  if (primary) {
+    return primary;
+  }
+
+  if (lang === fallbackLang) {
+    throw new Error(`TCGdex card not found: ${cardId}`);
+  }
+
+  const fallback = await fetchJsonOptional<TcgdexCard>(
+    `${TCGDEX_BASE}/${fallbackLang}/cards/${cardId}`,
+  );
+  if (fallback) {
+    return fallback;
+  }
+
+  throw new Error(`TCGdex card not found: ${cardId}`);
+}
+
+export async function resolveSetCardSummaries(
+  setId: string,
+  detail: TcgdexSetDetail,
+  lang = CATALOG_LANG,
+  fallbackLang = CATALOG_FALLBACK_LANG,
+): Promise<TcgdexSetDetail["cards"]> {
+  if (detail.cards.length > 0) {
+    return detail.cards;
+  }
+
+  const expectedCount =
+    detail.cardCount?.total ?? detail.cardCount?.official ?? 0;
+  if (expectedCount === 0 || lang === fallbackLang) {
+    return detail.cards;
+  }
+
+  const fallbackDetail = await fetchSet(setId, fallbackLang);
+  return fallbackDetail.cards;
 }
 
 export function buildImageUrl(

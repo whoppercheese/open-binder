@@ -9,12 +9,14 @@ import {
 } from "@/db/schema";
 import {
   buildImageUrl,
+  CATALOG_LANG,
   delay,
   deriveVariantTypes,
-  fetchCard,
+  fetchCardWithFallback,
   fetchSet,
   fetchSets,
   pricingForVariant,
+  resolveSetCardSummaries,
 } from "@/lib/tcgdex";
 import { cacheCardImage, cacheSetImage } from "@/lib/image-storage";
 import {
@@ -69,14 +71,16 @@ async function upsertSet(
       },
     });
 
-  for (const cardSummary of detail.cards) {
+  const cardSummaries = await resolveSetCardSummaries(detail.id, detail);
+
+  for (const cardSummary of cardSummaries) {
     await syncCard(cardSummary.id, seriesId, detail.id);
     await delay(BATCH_DELAY_MS);
   }
 }
 
 async function syncCard(cardId: string, seriesId: string, setId: string) {
-  const card = await fetchCard(cardId);
+  const card = await fetchCardWithFallback(cardId);
   const imageUrl = buildImageUrl(seriesId, setId, card.localId);
   await cacheCardImage(card.id, imageUrl);
 
@@ -172,7 +176,7 @@ export async function runCatalogSync(jobId?: string) {
   }
 
   try {
-    const allSets = await fetchSets("de");
+    const allSets = await fetchSets(CATALOG_LANG);
     const resumedSetIds = jobId
       ? new Set(await getResumeProcessedSetIds(jobId, "catalog"))
       : new Set<string>();

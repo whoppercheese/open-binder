@@ -11,7 +11,7 @@ import {
 import { fetchProductCatalog } from "@/lib/cardmarket";
 import {
   delay,
-  fetchCard,
+  fetchCardWithFallback,
   pricingForVariant,
   type VariantType,
 } from "@/lib/tcgdex";
@@ -20,7 +20,7 @@ const BATCH_DELAY_MS = 150;
 const MAX_CARDS_PER_RUN = 500;
 
 async function refreshCardPricing(cardId: string) {
-  const card = await fetchCard(cardId);
+  const card = await fetchCardWithFallback(cardId);
   const pricing = card.pricing?.cardmarket;
   if (!pricing) return false;
 
