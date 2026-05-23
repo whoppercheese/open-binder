@@ -12,7 +12,10 @@ import { cn } from "@/lib/utils";
 
 const MIN_SCALE = 1;
 const MAX_SCALE = 5;
+const DOUBLE_TAP_SCALE = 2.5;
 const ZOOMED_THRESHOLD = 1.01;
+const DOUBLE_TAP_MS = 350;
+const DOUBLE_TAP_DISTANCE_PX = 40;
 
 type Point = { x: number; y: number };
 
@@ -68,20 +71,29 @@ export function LightboxZoomViewport({
     x: 0,
     y: 0,
   });
+  const [animateTransform, setAnimateTransform] = useState(false);
   const transformRef = useRef(transform);
+  const isZoomedRef = useRef(false);
   const gestureRef = useRef<GestureState>({
     mode: "idle",
     startScale: 1,
     startTranslate: { x: 0, y: 0 },
   });
   const viewportRef = useRef<HTMLDivElement>(null);
-  const lastTapRef = useRef(0);
+  const lastTapRef = useRef<{ time: number; x: number; y: number } | null>(null);
+  const isTouchGestureRef = useRef(false);
+  const lastTouchAtRef = useRef(0);
 
-  const syncTransform = useCallback((next: Transform) => {
-    transformRef.current = next;
-    setTransform(next);
-    onZoomChange?.(next.scale > ZOOMED_THRESHOLD);
-  }, [onZoomChange]);
+  const syncTransform = useCallback(
+    (next: Transform, animated = false) => {
+      transformRef.current = next;
+      isZoomedRef.current = next.scale > ZOOMED_THRESHOLD;
+      setAnimateTransform(animated);
+      setTransform(next);
+      onZoomChange?.(isZoomedRef.current);
+    },
+    [onZoomChange],
+  );
 
   const clampTranslate = useCallback(
     (x: number, y: number, scale: number): Point => {
@@ -101,13 +113,77 @@ export function LightboxZoomViewport({
     [],
   );
 
-  const reset = useCallback(() => {
-    syncTransform({ scale: 1, x: 0, y: 0 });
-  }, [syncTransform]);
+  const reset = useCallback(
+    (animated = false) => {
+      syncTransform({ scale: 1, x: 0, y: 0 }, animated);
+    },
+    [syncTransform],
+  );
+
+  const zoomToPoint = useCallback(
+    (clientX: number, clientY: number, targetScale: number, animated = false) => {
+      const viewport = viewportRef.current;
+      if (!viewport) {
+        return;
+      }
+
+      const rect = viewport.getBoundingClientRect();
+      const focal = focalFromPoint({ x: clientX, y: clientY }, rect);
+      const x = focal.x * (1 - targetScale);
+      const y = focal.y * (1 - targetScale);
+
+      syncTransform(
+        {
+          scale: targetScale,
+          ...clampTranslate(x, y, targetScale),
+        },
+        animated,
+      );
+    },
+    [clampTranslate, syncTransform],
+  );
+
+  const toggleZoomAt = useCallback(
+    (clientX: number, clientY: number) => {
+      if (transformRef.current.scale > ZOOMED_THRESHOLD) {
+        reset(true);
+        return;
+      }
+
+      zoomToPoint(clientX, clientY, DOUBLE_TAP_SCALE, true);
+    },
+    [reset, zoomToPoint],
+  );
+
+  const registerTap = useCallback(
+    (clientX: number, clientY: number) => {
+      const now = Date.now();
+      const lastTap = lastTapRef.current;
+
+      if (
+        lastTap &&
+        now - lastTap.time < DOUBLE_TAP_MS &&
+        Math.hypot(clientX - lastTap.x, clientY - lastTap.y) < DOUBLE_TAP_DISTANCE_PX
+      ) {
+        lastTapRef.current = null;
+        toggleZoomAt(clientX, clientY);
+        return true;
+      }
+
+      lastTapRef.current = { time: now, x: clientX, y: clientY };
+      return false;
+    },
+    [toggleZoomAt],
+  );
+
+  useEffect(() => {
+    transformRef.current = transform;
+    isZoomedRef.current = transform.scale > ZOOMED_THRESHOLD;
+  }, [transform]);
 
   useEffect(() => {
     if (resetRef) {
-      resetRef.current = reset;
+      resetRef.current = () => reset(true);
     }
   }, [reset, resetRef]);
 
@@ -128,10 +204,17 @@ export function LightboxZoomViewport({
     };
 
     viewport.addEventListener("touchmove", onTouchMove, { passive: false });
-    return () => viewport.removeEventListener("touchmove", onTouchMove);
+
+    return () => {
+      viewport.removeEventListener("touchmove", onTouchMove);
+    };
   }, []);
 
   const handleTouchStart = (event: React.TouchEvent) => {
+    isTouchGestureRef.current = true;
+    lastTouchAtRef.current = Date.now();
+    setAnimateTransform(false);
+
     const viewport = viewportRef.current;
     if (!viewport) {
       return;
@@ -173,6 +256,10 @@ export function LightboxZoomViewport({
       return;
     }
 
+    if (gesture.mode !== "idle") {
+      setAnimateTransform(false);
+    }
+
     if (gesture.mode === "pinch" && event.touches.length === 2 && gesture.startDistance) {
       const distance = getDistance(event.touches[0]!, event.touches[1]!);
       const scale = Math.min(
@@ -201,15 +288,21 @@ export function LightboxZoomViewport({
   };
 
   const handleTouchEnd = (event: React.TouchEvent) => {
+    const endedMode = gestureRef.current.mode;
+    const endedTouch = event.changedTouches[0];
+
     if (event.touches.length === 0) {
-      if (transformRef.current.scale <= ZOOMED_THRESHOLD) {
-        reset();
-      }
       gestureRef.current = {
         mode: "idle",
         startScale: 1,
         startTranslate: { x: 0, y: 0 },
       };
+
+      if (isTouchGestureRef.current && endedMode === "idle" && endedTouch) {
+        registerTap(endedTouch.clientX, endedTouch.clientY);
+      }
+
+      isTouchGestureRef.current = false;
       return;
     }
 
@@ -229,31 +322,37 @@ export function LightboxZoomViewport({
     }
   };
 
-  const handleClick = (event: React.MouseEvent) => {
+  const handleDoubleClick = (event: React.MouseEvent) => {
+    event.preventDefault();
     event.stopPropagation();
 
-    const now = Date.now();
-    if (now - lastTapRef.current < 300) {
-      reset();
-      lastTapRef.current = 0;
+    if (Date.now() - lastTouchAtRef.current < 500) {
       return;
     }
 
-    lastTapRef.current = now;
+    toggleZoomAt(event.clientX, event.clientY);
+  };
+
+  const handleClick = (event: React.MouseEvent) => {
+    event.stopPropagation();
   };
 
   return (
     <div
       ref={viewportRef}
-      className={cn("touch-none overflow-hidden", className)}
+      className={cn("touch-none overflow-hidden select-none", className)}
+      onClick={handleClick}
+      onDoubleClick={handleDoubleClick}
       onTouchStart={handleTouchStart}
       onTouchMove={handleTouchMove}
       onTouchEnd={handleTouchEnd}
       onTouchCancel={handleTouchEnd}
-      onClick={handleClick}
     >
       <div
-        className="size-full origin-center will-change-transform"
+        className={cn(
+          "pointer-events-none size-full origin-center will-change-transform",
+          animateTransform && "transition-transform duration-300 ease-out",
+        )}
         style={{
           transform: `translate(${transform.x}px, ${transform.y}px) scale(${transform.scale})`,
         }}

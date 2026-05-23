@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect } from "react";
 import { X } from "lucide-react";
 import { CardFrame } from "@/components/card-frame";
 import { CardImage } from "@/components/card-image";
@@ -24,9 +24,6 @@ export function CardImageLightbox({
   alt,
   onClose,
 }: CardImageLightboxProps) {
-  const zoomedRef = useRef(false);
-  const resetZoomRef = useRef<(() => void) | null>(null);
-
   useEffect(() => {
     if (!open) {
       return;
@@ -46,20 +43,11 @@ export function CardImageLightbox({
     return null;
   }
 
-  function handleBackdropClick() {
-    if (zoomedRef.current) {
-      resetZoomRef.current?.();
-      return;
-    }
-
-    onClose();
-  }
-
   return (
     <Portal>
       <div
         className="fixed inset-0 z-[70] flex cursor-pointer items-center justify-center bg-black/90 p-4"
-        onClick={handleBackdropClick}
+        onClick={onClose}
       >
         <button
           type="button"
@@ -71,10 +59,6 @@ export function CardImageLightbox({
         </button>
         <LightboxZoomViewport
           key={cardId}
-          resetRef={resetZoomRef}
-          onZoomChange={(zoomed) => {
-            zoomedRef.current = zoomed;
-          }}
           className="card-lightbox relative shrink-0 cursor-auto"
         >
           <CardFrame className="size-full">
