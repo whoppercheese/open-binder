@@ -33,6 +33,7 @@ type GestureState = {
   startTranslate: Point;
   startDistance?: number;
   lastTouch?: Point;
+  moved?: boolean;
 };
 
 function getDistance(t1: TouchPoint, t2: TouchPoint) {
@@ -245,6 +246,7 @@ export function LightboxZoomViewport({
           x: event.touches[0]!.clientX,
           y: event.touches[0]!.clientY,
         },
+        moved: false,
       };
     }
   };
@@ -278,6 +280,9 @@ export function LightboxZoomViewport({
     if (gesture.mode === "pan" && event.touches.length === 1 && gesture.lastTouch) {
       const dx = event.touches[0]!.clientX - gesture.lastTouch.x;
       const dy = event.touches[0]!.clientY - gesture.lastTouch.y;
+      if (dx !== 0 || dy !== 0) {
+        gesture.moved = true;
+      }
       gesture.lastTouch = {
         x: event.touches[0]!.clientX,
         y: event.touches[0]!.clientY,
@@ -289,7 +294,10 @@ export function LightboxZoomViewport({
 
   const handleTouchEnd = (event: React.TouchEvent) => {
     const endedMode = gestureRef.current.mode;
+    const endedMoved = gestureRef.current.moved;
     const endedTouch = event.changedTouches[0];
+    const isTap =
+      endedMode === "idle" || (endedMode === "pan" && !endedMoved);
 
     if (event.touches.length === 0) {
       gestureRef.current = {
@@ -298,7 +306,7 @@ export function LightboxZoomViewport({
         startTranslate: { x: 0, y: 0 },
       };
 
-      if (isTouchGestureRef.current && endedMode === "idle" && endedTouch) {
+      if (isTouchGestureRef.current && isTap && endedTouch) {
         registerTap(endedTouch.clientX, endedTouch.clientY);
       }
 
@@ -318,6 +326,7 @@ export function LightboxZoomViewport({
           x: event.touches[0]!.clientX,
           y: event.touches[0]!.clientY,
         },
+        moved: false,
       };
     }
   };
