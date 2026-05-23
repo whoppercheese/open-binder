@@ -51,7 +51,7 @@ export default function RootLayout({
       lang="de"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
-      <body className="min-h-full bg-[#0b0d12] text-white">
+      <body className="h-full overflow-hidden bg-[#0b0d12] text-white">
         {children}
         <ServiceWorkerRegistration />
       </body>
