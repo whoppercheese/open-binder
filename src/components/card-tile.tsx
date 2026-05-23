@@ -32,23 +32,27 @@ export function CardTile({
   onLongPress,
   compact = false,
 }: CardTileProps) {
-  const longPress = useLongPress(() => onLongPress?.(), {
+  const longPress = useLongPress<HTMLButtonElement>(() => onLongPress?.(), {
     disabled: !onLongPress,
+    onTap: onLongPress ? onClick : undefined,
   });
 
   return (
     <button
       type="button"
-      onClick={longPress.bindClick(onClick)}
-      onPointerDown={longPress.onPointerDown}
-      onPointerMove={longPress.onPointerMove}
-      onPointerUp={longPress.onPointerUp}
-      onPointerCancel={longPress.onPointerCancel}
-      onPointerLeave={longPress.onPointerLeave}
-      onContextMenu={longPress.onContextMenu}
+      ref={onLongPress ? longPress.ref : undefined}
+      onClick={onLongPress ? undefined : onClick}
+      onPointerDown={onLongPress ? longPress.onPointerDown : undefined}
+      onPointerMove={onLongPress ? longPress.onPointerMove : undefined}
+      onPointerUp={onLongPress ? longPress.onPointerUp : undefined}
+      onPointerCancel={onLongPress ? longPress.onPointerCancel : undefined}
+      onPointerLeave={onLongPress ? longPress.onPointerLeave : undefined}
+      onContextMenu={onLongPress ? longPress.onContextMenu : undefined}
       className={cn(
-        "group relative w-full cursor-pointer select-none text-left transition-transform [touch-action:manipulation] [-webkit-touch-callout:none]",
-        longPress.isPending ? "scale-100" : "active:scale-[0.98]",
+        "group relative w-full cursor-pointer select-none text-left transition-transform [-webkit-touch-callout:none]",
+        onLongPress && longPress.isPending
+          ? "scale-100 touch-none"
+          : "active:scale-[0.98] [touch-action:manipulation]",
         compact ? "space-y-1" : "space-y-2",
       )}
     >
