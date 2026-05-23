@@ -1,16 +1,185 @@
-# OpenBinder — Pokémon TCG Collection Manager
+<p align="center">
+  <img src="public/icon.svg" alt="OpenBinder Logo" width="120" height="120" />
+</p>
 
-Mobile-first, self-hostable web app to manage your Pokémon TCG collection with German search, set browsing, and Cardmarket EUR portfolio values.
+<h1 align="center">OpenBinder</h1>
 
-## Features
+<p align="center">
+  Mobile-first, self-hostable web app to manage your Pokémon TCG collection — with set checklists and Cardmarket EUR portfolio values.
+</p>
 
-- Full card catalog synced from [TCGdex](https://tcgdex.dev) (DE)
-- Search by name, card number, or set + number (e.g. `Dschungel 60`)
-- Browse sets with owned/missing checklist view
-- Track variant, condition, language, notes, and purchase price
-- Cardmarket EUR prices via TCGdex + product catalog import
-- Background jobs (pg-boss): weekly catalog sync, daily price sync
-- Docker Compose for self-hosting
+---
+
+## Overview
+
+OpenBinder is an unofficial fan tool for collectors. Card data comes from [TCGdex](https://tcgdex.dev); prices from Cardmarket (via TCGdex). The app runs as a **Progressive Web App (PWA)** in the browser or as an installable home-screen app — optimized for mobile with a fixed bottom navigation bar.
+
+> **Language focus:** The UI and catalog are **German-first** today: card names, set names, search, and labels are in German (`de`). The catalog is synced from TCGdex with `lang=de`. Collection entries can still track English cards via the language field. Broader locale support may come later; for now, expect German content throughout the app.
+
+**Navigation:** Dashboard · Sets · Search (*Suche*) · Collection (*Sammlung*) · Settings (*Einstellungen*)
+
+---
+
+## Pages & Features
+
+### Dashboard (`/`)
+
+Home screen with a snapshot of your collection:
+
+- **Portfolio value** — estimated total in EUR (Cardmarket, based on your Trend/Low price setting)
+- **Cards & entries** — physical card count vs. collection entries (different variants/conditions count separately)
+- **Set progress** — top six sets by owned cards with progress bars; link to all sets
+- **Recently added** — preview of the latest collection entries with card images
+- **Sync status** — last catalog and price sync with a link to settings
+
+### Sets (`/sets`)
+
+All Pokémon sets, grouped by series (e.g. Base, Neo, …):
+
+- **Search** by set name or official code (e.g. “Base Set”, “BS”)
+- **Progress** per set (owned/total, percent) — once card data has been loaded
+- **Load cards** — card data is synced **on demand per set**, not all at once
+- **Live sync indicator** — shows running catalog or set-card sync jobs and queue status
+- Set logos and placeholders are cached locally during sync
+
+### Set detail (`/sets/[id]`)
+
+Checklist view for a single set:
+
+- **Progress bar** — how many cards you own
+- **Filters**
+  - *Owned* / *Missing*
+  - by **rarity** (Common, Rare, Ultra Rare, … — German labels in the UI)
+- **Card grid** (3–4 columns) with number, name, and Cardmarket price
+- **Ownership badge** — green checkmark on owned cards; `×N` badge for multiple copies
+- **Tap** → card detail modal (see below)
+- **Long-press (Quick Add)** → add a card to your collection instantly (see below)
+- If card data is missing: **Load cards** button with progress indicator
+
+### Search (`/search`)
+
+Find cards across the full catalog:
+
+- **Full-text search** (German) from 2 characters, with 300 ms debounce
+- Query patterns:
+  - **Name** — e.g. “Glurak” (Charizard)
+  - **Number** — e.g. “4”
+  - **Set + number** — e.g. “Dschungel 60” or “BS 4”
+- Results show set name, Cardmarket price, and ownership status
+- **Tap** → card detail modal
+
+### Collection (`/collection`)
+
+All saved cards, grouped by set:
+
+- **Summary** — entry count and total value
+- **Search** by name, number, or set
+- **Card filter** — via URL `?cardId=…` (e.g. from the card modal: “View in collection”)
+- **Infinite scroll** — loads more entries while scrolling (20 per page)
+- Per entry:
+  - Card image (tap → lightbox with zoom)
+  - Variant, condition, language, notes
+  - Cardmarket value (quantity × price)
+  - **Quantity** via +/- (at 0 → confirm delete)
+  - **Delete** with confirmation dialog
+
+### Settings (`/settings`)
+
+- **Cardmarket price** — *Trend* or *Low* for portfolio calculation and display
+- **Manual sync**
+  - *Sync sets* — refresh set metadata from the catalog
+  - *Sync prices now* — fetch Cardmarket prices immediately
+- **Job history** — status, progress, and error details for recent sync jobs
+- Note: the **worker** must be running for sync jobs to be processed
+
+---
+
+## Card detail modal
+
+Opened from search and set detail (tap a card):
+
+- Set link (official code), card number, and German card name
+- **Card image** — tap for full-screen lightbox
+- **Add to collection** with:
+  - **Variant** — Normal, Holo, Reverse Holo, 1st Edition (per card); Cardmarket price per variant
+  - **Quantity** (1–999)
+  - **Condition** — Mint, NM, LP, MP, HP
+  - **Language** — German, English
+  - **Notes** (free text)
+  - **Purchase price** (EUR, optional)
+- **Cardmarket link** — direct product link (foil/non-foil mapped correctly)
+- **View in collection** — if you already own the card, link to the filtered collection view
+
+---
+
+## Card image — full view & zoom
+
+Available from the modal and collection (tap the card image):
+
+- **Full-screen lightbox** on a dark backdrop
+- **Pinch-to-zoom** — 1× to 5×
+- **Double-tap** (touch) / **double-click** (desktop) — zoom to 2.5× or reset
+- **Pan** — drag the image when zoomed in
+- **Close** — tap outside, X button, or Escape
+
+---
+
+## Quick Add (long-press)
+
+On the set checklist (`/sets/[id]`) you can add cards **without opening the modal**:
+
+1. **Press and hold** (~1.2 s) on a card
+2. Progress ring shows the hold timer
+3. Short **vibration feedback** (where supported)
+4. Card is saved with **defaults**:
+   - Variant: already-owned variant if any, otherwise the first available
+   - Quantity: 1 · Condition: NM · Language: German
+5. Toast confirmation at the bottom of the screen
+
+A normal **tap** still opens the detail modal for fine-grained input.
+
+---
+
+## Sync — how it works
+
+OpenBinder syncs data in **three stages** via a background worker (pg-boss):
+
+| Stage | What | When | Trigger |
+| --- | --- | --- | --- |
+| **Catalog (sets)** | Set metadata (name, series, code, logos) | Weekly Sun 03:00 UTC · on first start (empty DB) | Worker bootstrap, manual in Settings |
+| **Card data (per set)** | Cards, variants, images → local disk | On demand | “Load cards” on set list or set detail |
+| **Prices** | Cardmarket EUR (Trend + Low) | Daily 04:00 UTC | Automatic, manual in Settings |
+
+**First-start flow:**
+
+1. Worker starts, detects empty database → initial catalog sync (15–30 min)
+2. Set list appears; card data per set must be **loaded on demand**
+3. Images are stored under `storage/images` during card sync (configurable via `IMAGE_STORAGE_PATH`)
+4. Prices update daily or on manual trigger
+
+**Important:** App and worker run separately — without the worker, sync jobs stay queued. Docker Compose includes both services.
+
+For faster local testing, use `CATALOG_SET_IDS` and `CATALOG_SET_CARD_LIMIT` (see environment variables).
+
+---
+
+## Portfolio & prices
+
+- Values based on **Cardmarket EUR** via TCGdex
+- Configurable: **Trend price** (default) or **Low price**
+- Separate price per **variant** (Normal vs. Holo vs. Reverse Holo vs. 1st Edition)
+- Portfolio = Σ (price × quantity) across all collection entries
+- Cards without a price are counted but excluded from the total value
+
+---
+
+## PWA & offline
+
+- Installable as a **standalone app** (manifest, icons, `apple-touch-icon`)
+- **Service worker** caches the app shell and static assets; checks for updates when the tab regains focus
+- Mobile layout with safe-area support and fixed bottom navigation
+
+---
 
 ## Environment Variables
 
@@ -52,9 +221,9 @@ docker compose up -d --build
 
 Open http://localhost:3000
 
-On first start, the worker enqueues an initial catalog sync if the database is empty. This can take 15–30 minutes depending on network speed. Card images are downloaded during catalog sync and stored on disk under `storage/images` (configurable via `IMAGE_STORAGE_PATH`).
+On first start, the worker enqueues an initial catalog sync if the database is empty. This can take 15–30 minutes depending on network speed. Card images are downloaded during card sync and stored on disk under `storage/images` (configurable via `IMAGE_STORAGE_PATH`).
 
-If you already synced before adding local image caching, run **Katalog jetzt synchronisieren** in Settings to download missing images.
+If you already synced before adding local image caching, run **Sync sets** in Settings to download missing images.
 
 ## Reset (Dev)
 
