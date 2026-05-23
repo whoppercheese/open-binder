@@ -51,8 +51,8 @@ export async function getPortfolioSummary() {
     SELECT
       s.id AS set_id,
       s.name_de AS set_name,
-      COUNT(DISTINCT CASE WHEN uc.id IS NOT NULL THEN cv.id END)::int AS owned,
-      COUNT(DISTINCT cv.id)::int AS total
+      COUNT(DISTINCT CASE WHEN uc.id IS NOT NULL THEN c.id END)::int AS owned,
+      COUNT(DISTINCT c.id)::int AS total
     FROM sets s
     INNER JOIN cards c ON c.set_id = s.id
     INNER JOIN card_variants cv ON cv.card_id = c.id
@@ -202,25 +202,17 @@ export async function getSetWithCards(setId: string) {
   }
 
   const cardsList = Array.from(grouped.values());
-  const ownedVariants = cardsList.reduce(
-    (sum, card) => sum + card.variants.filter((v) => v.ownedQuantity > 0).length,
-    0,
-  );
-  const totalVariants = cardsList.reduce(
-    (sum, card) => sum + card.variants.length,
-    0,
-  );
+  const ownedCards = cardsList.filter((card) => card.owned).length;
+  const totalCards = cardsList.length;
 
   return {
     set,
     cards: cardsList,
     progress: {
-      ownedVariants,
-      totalVariants,
+      ownedCards,
+      totalCards,
       percent:
-        totalVariants > 0
-          ? Math.round((ownedVariants / totalVariants) * 100)
-          : 0,
+        totalCards > 0 ? Math.round((ownedCards / totalCards) * 100) : 0,
     },
   };
 }

@@ -20,7 +20,7 @@ export async function getSetListEntries(): Promise<SetListEntry[]> {
     const progress = cardsSynced
       ? (progressBySet.get(set.id) ?? {
           owned: 0,
-          total: set.cardCountTotal,
+          total: set.cardCountOfficial || set.cardCountTotal,
           percent: 0,
         })
       : null;

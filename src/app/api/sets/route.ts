@@ -21,7 +21,7 @@ export async function GET() {
       const series = set.seriesName || "Sonstige";
       const progress = progressBySet.get(set.id) ?? {
         owned: 0,
-        total: set.cardCountTotal,
+        total: set.cardCountOfficial || set.cardCountTotal,
         percent: 0,
       };
       acc[series] ??= [];

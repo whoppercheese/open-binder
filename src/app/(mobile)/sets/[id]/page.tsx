@@ -83,8 +83,8 @@ type SetDetailResponse = {
     }>;
   }>;
   progress: {
-    ownedVariants: number;
-    totalVariants: number;
+    ownedCards: number;
+    totalCards: number;
     percent: number;
   };
 };
@@ -312,7 +312,7 @@ export default function SetDetailPage() {
           <div className="mb-1 flex justify-between text-sm text-zinc-400">
             <span>Fortschritt</span>
             <span>
-              {data.progress.ownedVariants}/{data.progress.totalVariants}
+              {data.progress.ownedCards}/{data.progress.totalCards}
             </span>
           </div>
           <ProgressBar value={data.progress.percent} />
