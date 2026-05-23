@@ -32,6 +32,7 @@ async function refreshCardPricing(cardId: string) {
     const variantPricing = pricingForVariant(
       variant.variantType as VariantType,
       pricing,
+      card.variants,
     );
     if (!variantPricing) continue;
 

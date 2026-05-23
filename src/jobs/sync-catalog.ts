@@ -53,6 +53,21 @@ function getCatalogSetIdsFilter(): string[] | null {
   return ids.length > 0 ? ids : null;
 }
 
+function getCatalogSetCardLimit(): number | null {
+  const raw = process.env.CATALOG_SET_CARD_LIMIT?.trim();
+  if (!raw) return null;
+
+  const limit = Number.parseInt(raw, 10);
+  if (!Number.isFinite(limit) || limit <= 0) {
+    console.warn(
+      `[catalog] Ignoring invalid CATALOG_SET_CARD_LIMIT: ${raw}`,
+    );
+    return null;
+  }
+
+  return limit;
+}
+
 function applyCatalogSetFilter(
   catalogSets: TcgdexSetSummary[],
   filterIds: string[],
@@ -238,7 +253,7 @@ async function syncCard(
   const pricing = card.pricing?.cardmarket;
 
   for (const variantType of variantTypes) {
-    const variantPricing = pricingForVariant(variantType, pricing);
+    const variantPricing = pricingForVariant(variantType, pricing, card.variants);
 
     const [variant] = await db
       .insert(cardVariants)
@@ -289,10 +304,21 @@ async function syncSetCards(
     await fetchSetBundle(setId);
   const detail = deDetail ?? enDetail;
   const seriesId = detail.serie?.id ?? "unknown";
-  const totalCards = cardSummaries.length;
 
-  for (let index = 0; index < cardSummaries.length; index += 1) {
-    const cardSummary = cardSummaries[index];
+  const cardLimit = getCatalogSetCardLimit();
+  const cardsToSync =
+    cardLimit != null ? cardSummaries.slice(0, cardLimit) : cardSummaries;
+
+  if (cardLimit != null && cardSummaries.length > cardLimit) {
+    console.warn(
+      `[catalog] CATALOG_SET_CARD_LIMIT=${cardLimit}: syncing ${cardsToSync.length}/${cardSummaries.length} cards for set ${setId}`,
+    );
+  }
+
+  const totalCards = cardsToSync.length;
+
+  for (let index = 0; index < cardsToSync.length; index += 1) {
+    const cardSummary = cardsToSync[index];
     const localId = decodeTcgdexLocalId(cardSummary.localId);
     const hints = nameHints.get(localId);
 

@@ -325,27 +325,62 @@ export function deriveVariantTypes(
   return result.length > 0 ? result : ["normal"];
 }
 
+function usesCardmarketFoilBucket(
+  variantType: VariantType,
+  variants?: TcgdexCardVariants,
+): boolean {
+  switch (variantType) {
+    case "normal":
+      return false;
+    case "holo":
+    case "reverse_holo":
+      return true;
+    case "first_edition":
+      // Vintage holo rares (e.g. Base Set): 1st edition prices sit in the standard bucket.
+      if (variants?.holo && !variants.normal) {
+        return false;
+      }
+      return true;
+  }
+}
+
+/** Infer foil bucket for Cardmarket links from synced variant types. */
+export function cardmarketIsFoilForVariant(
+  variantType: VariantType,
+  availableVariantTypes: VariantType[],
+): boolean {
+  const hasNormal = availableVariantTypes.includes("normal");
+  const hasHolo = availableVariantTypes.includes("holo");
+
+  switch (variantType) {
+    case "normal":
+      return false;
+    case "holo":
+    case "reverse_holo":
+      return true;
+    case "first_edition":
+      return hasNormal || !hasHolo;
+  }
+}
+
 export function pricingForVariant(
   variantType: VariantType,
   pricing?: TcgdexCardmarketPricing,
+  variants?: TcgdexCardVariants,
 ) {
   if (!pricing) return null;
 
-  const isHoloVariant =
-    variantType === "holo" || variantType === "first_edition";
+  const useFoilBucket = usesCardmarketFoilBucket(variantType, variants);
 
-  const trend =
-    isHoloVariant && pricing["trend-holo"] != null
-      ? pricing["trend-holo"]
-      : pricing.trend;
-  const low =
-    isHoloVariant && pricing["low-holo"] != null
-      ? pricing["low-holo"]
-      : pricing.low;
-  const avg =
-    isHoloVariant && pricing["avg-holo"] != null
-      ? pricing["avg-holo"]
-      : pricing.avg;
+  const trend = useFoilBucket
+    ? (pricing["trend-holo"] ?? pricing.trend)
+    : pricing.trend;
+  const low = useFoilBucket
+    ? (pricing["low-holo"] ?? pricing.low)
+    : pricing.low;
+  const avg = useFoilBucket
+    ? (pricing["avg-holo"] ?? pricing.avg)
+    : pricing.avg;
 
   return {
     trendEur: trend ?? null,

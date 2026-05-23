@@ -8,6 +8,10 @@ import { CardImage } from "@/components/card-image";
 import { CardImageLightbox } from "@/components/card-image-lightbox";
 import { getCardmarketProductUrl } from "@/lib/cardmarket";
 import {
+  cardmarketIsFoilForVariant,
+  type VariantType,
+} from "@/lib/tcgdex";
+import {
   CONDITION_LABELS,
   LANGUAGE_LABELS,
   VARIANT_LABELS,
@@ -109,6 +113,10 @@ export function CardModal({ card, open, onClose, onSaved }: CardModalProps) {
   const activeVariantId = variantId || defaultVariant?.id || "";
   const selectedVariant = card?.variants.find(
     (variant) => variant.id === activeVariantId,
+  );
+  const availableVariantTypes = useMemo(
+    () => card?.variants.map((variant) => variant.variantType as VariantType) ?? [],
+    [card?.variants],
   );
   const ownedCount = useMemo(
     () =>
@@ -317,9 +325,10 @@ export function CardModal({ card, open, onClose, onSaved }: CardModalProps) {
             selectedVariant.price != null ? (
               <a
                 href={getCardmarketProductUrl(selectedVariant.cardmarketProductId, {
-                  foil:
-                    selectedVariant.variantType === "holo" ||
-                    selectedVariant.variantType === "first_edition",
+                  foil: cardmarketIsFoilForVariant(
+                    selectedVariant.variantType as VariantType,
+                    availableVariantTypes,
+                  ),
                 })}
                 target="_blank"
                 rel="noopener noreferrer"
