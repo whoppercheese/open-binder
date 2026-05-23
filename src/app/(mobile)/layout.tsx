@@ -8,8 +8,8 @@ export default function MobileLayout({
   children: React.ReactNode;
 }) {
   return (
-    <div className="mx-auto min-h-screen max-w-lg bg-[#0b0d12] text-white">
-      <main className="pb-24">{children}</main>
+    <div className="mx-auto flex h-dvh max-w-lg flex-col bg-[#0b0d12] text-white">
+      <main className="min-h-0 flex-1 overflow-y-auto">{children}</main>
       <BottomNav />
     </div>
   );
