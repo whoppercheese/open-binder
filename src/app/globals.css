@@ -10,6 +10,17 @@
   --card-radius: calc(min(100cqw, 100cqh) * var(--card-radius-ratio));
 }
 
+@utility app-scroll {
+  overflow-y: scroll;
+  overscroll-behavior-y: contain;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+
+@utility app-scroll-content {
+  min-height: calc(100% + 1px);
+}
+
 @utility aspect-card {
   aspect-ratio: var(--card-aspect-w) / var(--card-aspect-h);
 }
@@ -61,6 +72,10 @@ button {
 }
 
 @layer base {
+  .app-scroll::-webkit-scrollbar {
+    display: none;
+  }
+
   button:not(:disabled),
   [role="button"]:not([aria-disabled="true"]),
   a[href],

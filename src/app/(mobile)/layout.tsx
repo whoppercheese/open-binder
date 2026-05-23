@@ -9,8 +9,8 @@ export default function MobileLayout({
 }) {
   return (
     <div className="fixed inset-0 mx-auto flex w-full max-w-lg flex-col overflow-hidden bg-[#0b0d12] text-white">
-      <main className="min-h-0 flex-1 overflow-y-auto overscroll-y-contain pb-6">
-        {children}
+      <main className="app-scroll min-h-0 flex-1">
+        <div className="app-scroll-content pb-6">{children}</div>
       </main>
       <BottomNav />
     </div>
