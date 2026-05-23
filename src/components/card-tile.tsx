@@ -48,10 +48,8 @@ export function CardTile({
       onPointerCancel={onLongPress ? longPress.onPointerCancel : undefined}
       onContextMenu={onLongPress ? longPress.onContextMenu : undefined}
       className={cn(
-        "group relative w-full cursor-pointer select-none text-left transition-transform [-webkit-touch-callout:none]",
-        onLongPress && longPress.showIndicator
-          ? "scale-100 touch-none"
-          : "active:scale-[0.98] [touch-action:manipulation]",
+        "group relative w-full cursor-pointer select-none text-left [-webkit-touch-callout:none] [touch-action:manipulation]",
+        onLongPress && longPress.showIndicator && "touch-none",
         compact ? "space-y-1" : "space-y-2",
       )}
     >

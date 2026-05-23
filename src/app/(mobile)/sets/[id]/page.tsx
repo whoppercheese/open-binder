@@ -463,7 +463,7 @@ export default function SetDetailPage() {
       />
 
       {quickAddMessage ? (
-        <div className="pointer-events-none fixed inset-x-4 bottom-[calc(4.5rem+env(safe-area-inset-bottom))] z-50 mx-auto max-w-lg rounded-xl border border-emerald-400/30 bg-emerald-500/15 px-4 py-2.5 text-center text-sm text-emerald-100 shadow-lg backdrop-blur-sm">
+        <div className="pointer-events-none fixed inset-x-4 bottom-[calc(4.5rem+env(safe-area-inset-bottom))] z-50 mx-auto max-w-lg rounded-xl border border-emerald-400/30 bg-emerald-500/15 px-4 py-2.5 text-center text-sm text-emerald-100 shadow-lg">
           {quickAddMessage}
         </div>
       ) : null}
