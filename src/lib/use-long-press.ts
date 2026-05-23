@@ -251,6 +251,17 @@ export function useLongPress<T extends HTMLElement = HTMLElement>(
         event.pointerType === "touch" ? TOUCH_MOVE_THRESHOLD : moveThreshold;
       const dx = event.clientX - startPosRef.current.x;
       const dy = event.clientY - startPosRef.current.y;
+
+      if (
+        !indicatorShownRef.current &&
+        event.pointerType === "touch" &&
+        Math.abs(dy) > 8 &&
+        Math.abs(dy) > Math.abs(dx)
+      ) {
+        cancelPending();
+        return;
+      }
+
       if (Math.hypot(dx, dy) > threshold) {
         cancelPending();
       }
