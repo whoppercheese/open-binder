@@ -16,6 +16,8 @@ const ZOOMED_THRESHOLD = 1.01;
 
 type Point = { x: number; y: number };
 
+type TouchPoint = { clientX: number; clientY: number };
+
 type Transform = {
   scale: number;
   x: number;
@@ -30,21 +32,21 @@ type GestureState = {
   lastTouch?: Point;
 };
 
-function getDistance(t1: Touch, t2: Touch) {
+function getDistance(t1: TouchPoint, t2: TouchPoint) {
   return Math.hypot(t1.clientX - t2.clientX, t1.clientY - t2.clientY);
 }
 
-function getMidpoint(t1: Touch, t2: Touch): Point {
+function getMidpoint(t1: TouchPoint, t2: TouchPoint): Point {
   return {
     x: (t1.clientX + t2.clientX) / 2,
     y: (t1.clientY + t2.clientY) / 2,
   };
 }
 
-function focalFromTouch(touch: Touch, rect: DOMRect): Point {
+function focalFromPoint(point: Point, rect: DOMRect): Point {
   return {
-    x: touch.clientX - rect.left - rect.width / 2,
-    y: touch.clientY - rect.top - rect.height / 2,
+    x: point.x - rect.left - rect.width / 2,
+    y: point.y - rect.top - rect.height / 2,
   };
 }
 
@@ -178,7 +180,7 @@ export function LightboxZoomViewport({
         Math.max(MIN_SCALE, gesture.startScale * (distance / gesture.startDistance)),
       );
       const rect = viewport.getBoundingClientRect();
-      const focal = focalFromTouch(getMidpoint(event.touches[0]!, event.touches[1]!), rect);
+      const focal = focalFromPoint(getMidpoint(event.touches[0]!, event.touches[1]!), rect);
       const ratio = scale / gesture.startScale;
       const x = focal.x - (focal.x - gesture.startTranslate.x) * ratio;
       const y = focal.y - (focal.y - gesture.startTranslate.y) * ratio;
