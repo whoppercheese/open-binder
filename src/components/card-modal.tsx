@@ -6,6 +6,7 @@ import { ExternalLink, Loader2, Minus, Plus, WalletCards, X } from "lucide-react
 import { CardFrame } from "@/components/card-frame";
 import { CardImage } from "@/components/card-image";
 import { CardImageLightbox } from "@/components/card-image-lightbox";
+import { Portal } from "@/components/portal";
 import { getCardmarketProductUrl } from "@/lib/cardmarket";
 import {
   cardmarketIsFoilForVariant,
@@ -164,14 +165,15 @@ export function CardModal({ card, open, onClose, onSaved }: CardModalProps) {
 
   return (
     <>
-      <div
-        className="fixed inset-0 z-[60] flex cursor-pointer items-end justify-center bg-black/70 p-4 pb-24 sm:items-center"
-        onClick={handleClose}
-      >
-      <div
-        className="w-full max-w-md cursor-auto rounded-3xl border border-white/10 bg-[#151922] p-4 shadow-2xl"
-        onClick={(event) => event.stopPropagation()}
-      >
+      <Portal>
+        <div
+          className="fixed inset-0 z-[60] flex cursor-pointer items-center justify-center bg-black/70 p-4"
+          onClick={handleClose}
+        >
+          <div
+            className="w-full max-w-md cursor-auto rounded-3xl border border-white/10 bg-[#151922] p-4 shadow-2xl"
+            onClick={(event) => event.stopPropagation()}
+          >
         <div className="mb-4 flex items-start justify-between gap-3">
           <div>
             <div className="mb-1 flex flex-wrap items-center gap-x-2 gap-y-1">
@@ -376,11 +378,12 @@ export function CardModal({ card, open, onClose, onSaved }: CardModalProps) {
         >
           {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
           Zur Sammlung hinzufügen
-        </button>
-      </div>
-    </div>
+          </button>
+          </div>
+        </div>
+      </Portal>
 
-    <CardImageLightbox
+      <CardImageLightbox
       open={imageExpanded}
       cardId={card.id}
       setId={card.setId}

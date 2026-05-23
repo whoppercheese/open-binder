@@ -1,6 +1,7 @@
 "use client";
 
 import { Loader2 } from "lucide-react";
+import { Portal } from "@/components/portal";
 import { cn } from "@/lib/utils";
 
 type ConfirmDialogProps = {
@@ -27,14 +28,15 @@ export function ConfirmDialog({
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-[70] flex items-end justify-center bg-black/70 p-4 pb-24 sm:items-center">
-      <div
-        role="alertdialog"
-        aria-modal="true"
-        aria-labelledby="confirm-dialog-title"
-        aria-describedby="confirm-dialog-message"
-        className="w-full max-w-sm rounded-3xl border border-white/10 bg-[#151922] p-4 shadow-2xl"
-      >
+    <Portal>
+      <div className="fixed inset-0 z-[70] flex items-end justify-center bg-black/70 p-4 sm:items-center">
+        <div
+          role="alertdialog"
+          aria-modal="true"
+          aria-labelledby="confirm-dialog-title"
+          aria-describedby="confirm-dialog-message"
+          className="w-full max-w-sm rounded-3xl border border-white/10 bg-[#151922] p-4 shadow-2xl"
+        >
         <h2 id="confirm-dialog-title" className="text-lg font-semibold text-white">
           {title}
         </h2>
@@ -62,7 +64,8 @@ export function ConfirmDialog({
             {confirmLabel}
           </button>
         </div>
+        </div>
       </div>
-    </div>
+    </Portal>
   );
 }
