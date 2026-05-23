@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, ilike, or, sql, type SQL } from "drizzle-orm";
+import { and, asc, desc, eq, ilike, isNull, or, sql, type SQL } from "drizzle-orm";
 import { NextResponse } from "next/server";
 import { db } from "@/db/client";
 import {
@@ -184,6 +184,37 @@ export async function POST(request: Request) {
       );
     }
 
+    const normalizedNotes = notes || null;
+    const normalizedPurchasePrice =
+      purchasePrice != null ? purchasePrice.toString() : null;
+
+    const existing = await db.query.userCards.findFirst({
+      where: and(
+        eq(userCards.variantId, variantId),
+        eq(userCards.condition, condition),
+        eq(userCards.language, language),
+        normalizedNotes != null
+          ? eq(userCards.notes, normalizedNotes)
+          : isNull(userCards.notes),
+        normalizedPurchasePrice != null
+          ? eq(userCards.purchasePrice, normalizedPurchasePrice)
+          : isNull(userCards.purchasePrice),
+      ),
+    });
+
+    if (existing) {
+      const [entry] = await db
+        .update(userCards)
+        .set({
+          quantity: Math.min(existing.quantity + quantity, 999),
+          updatedAt: new Date(),
+        })
+        .where(eq(userCards.id, existing.id))
+        .returning();
+
+      return NextResponse.json({ item: entry });
+    }
+
     const [entry] = await db
       .insert(userCards)
       .values({
@@ -191,9 +222,8 @@ export async function POST(request: Request) {
         quantity,
         condition,
         language,
-        notes,
-        purchasePrice:
-          purchasePrice != null ? purchasePrice.toString() : null,
+        notes: normalizedNotes,
+        purchasePrice: normalizedPurchasePrice,
         updatedAt: new Date(),
       })
       .returning();
