@@ -46,11 +46,10 @@ export function CardTile({
       onPointerMove={onLongPress ? longPress.onPointerMove : undefined}
       onPointerUp={onLongPress ? longPress.onPointerUp : undefined}
       onPointerCancel={onLongPress ? longPress.onPointerCancel : undefined}
-      onPointerLeave={onLongPress ? longPress.onPointerLeave : undefined}
       onContextMenu={onLongPress ? longPress.onContextMenu : undefined}
       className={cn(
         "group relative w-full cursor-pointer select-none text-left transition-transform [-webkit-touch-callout:none]",
-        onLongPress && longPress.isPending
+        onLongPress && longPress.showIndicator
           ? "scale-100 touch-none"
           : "active:scale-[0.98] [touch-action:manipulation]",
         compact ? "space-y-1" : "space-y-2",
@@ -58,7 +57,7 @@ export function CardTile({
     >
       <CardFrame className="aspect-card w-full">
         <LongPressIndicator
-          active={longPress.isPending}
+          active={Boolean(onLongPress && longPress.showIndicator)}
           durationMs={longPress.progressDurationMs}
           compact={compact}
         />

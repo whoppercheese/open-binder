@@ -16,6 +16,7 @@ type UseLongPressOptions = {
 const CLICK_SUPPRESS_MS = 500;
 const DEFAULT_HOLD_DURATION = 1000;
 const DEFAULT_INDICATOR_DELAY = 200;
+const TOUCH_MOVE_THRESHOLD = 24;
 
 export function useLongPress<T extends HTMLElement = HTMLElement>(
   onLongPress: () => void,
@@ -37,8 +38,10 @@ export function useLongPress<T extends HTMLElement = HTMLElement>(
   const suppressClickRef = useRef(false);
   const indicatorShownRef = useRef(false);
   const pressingRef = useRef(false);
+  const activePointerIdRef = useRef<number | null>(null);
+  const gestureEndedRef = useRef(false);
   const touchEndCleanupRef = useRef<(() => void) | null>(null);
-  const [isPending, setIsPending] = useState(false);
+  const [showIndicator, setShowIndicator] = useState(false);
 
   const totalDelay = indicatorDelay + holdDuration;
   const progressDurationMs = holdDuration;
@@ -60,6 +63,19 @@ export function useLongPress<T extends HTMLElement = HTMLElement>(
     }
   }, []);
 
+  const clearAllTimers = useCallback(() => {
+    clearTimer();
+    clearIndicatorTimer();
+    if (suppressClearRef.current != null) {
+      window.clearTimeout(suppressClearRef.current);
+      suppressClearRef.current = null;
+    }
+  }, [clearIndicatorTimer, clearTimer]);
+
+  const hideIndicator = useCallback(() => {
+    setShowIndicator(false);
+  }, []);
+
   const scheduleSuppressClear = useCallback(() => {
     if (suppressClearRef.current != null) {
       window.clearTimeout(suppressClearRef.current);
@@ -73,28 +89,52 @@ export function useLongPress<T extends HTMLElement = HTMLElement>(
     }, CLICK_SUPPRESS_MS);
   }, []);
 
-  const cancelPending = useCallback(
-    (options?: { keepClickSuppress?: boolean }) => {
-      if (longPressFiredRef.current) return;
-      clearTimer();
-      clearIndicatorTimer();
-      pressingRef.current = false;
-      startPosRef.current = null;
-      setIsPending(false);
-      if (!options?.keepClickSuppress) {
-        suppressClickRef.current = false;
-        indicatorShownRef.current = false;
-      }
-    },
-    [clearIndicatorTimer, clearTimer],
-  );
+  const cancelPending = useCallback(() => {
+    if (longPressFiredRef.current) return;
+    clearAllTimers();
+    pressingRef.current = false;
+    startPosRef.current = null;
+    activePointerIdRef.current = null;
+    hideIndicator();
+    suppressClickRef.current = false;
+    indicatorShownRef.current = false;
+  }, [clearAllTimers, hideIndicator]);
+
+  const finishPress = useCallback(() => {
+    if (gestureEndedRef.current) return;
+    gestureEndedRef.current = true;
+
+    clearAllTimers();
+
+    const engaged =
+      indicatorShownRef.current ||
+      longPressFiredRef.current ||
+      suppressClickRef.current;
+
+    pressingRef.current = false;
+    startPosRef.current = null;
+    activePointerIdRef.current = null;
+    hideIndicator();
+
+    if (engaged) {
+      scheduleSuppressClear();
+      return;
+    }
+
+    const tapHandler = tapRef.current;
+    if (tapHandler) {
+      scheduleSuppressClear();
+      tapHandler();
+    }
+  }, [clearAllTimers, hideIndicator, scheduleSuppressClear]);
 
   useEffect(() => {
     return () => {
       touchEndCleanupRef.current?.();
       touchEndCleanupRef.current = null;
+      clearAllTimers();
     };
-  }, []);
+  }, [clearAllTimers]);
 
   const setRef = useCallback(
     (node: T | null) => {
@@ -102,6 +142,25 @@ export function useLongPress<T extends HTMLElement = HTMLElement>(
       touchEndCleanupRef.current = null;
 
       if (!node || disabled) return;
+
+      const onNativeTouchEnd = (event: TouchEvent) => {
+        if (
+          suppressClickRef.current ||
+          indicatorShownRef.current ||
+          longPressFiredRef.current
+        ) {
+          event.preventDefault();
+          event.stopPropagation();
+        }
+
+        if (
+          pressingRef.current ||
+          indicatorShownRef.current ||
+          longPressFiredRef.current
+        ) {
+          finishPress();
+        }
+      };
 
       const blockSyntheticClick = (event: Event) => {
         if (
@@ -114,20 +173,20 @@ export function useLongPress<T extends HTMLElement = HTMLElement>(
         }
       };
 
-      node.addEventListener("touchend", blockSyntheticClick, {
+      node.addEventListener("touchend", onNativeTouchEnd, {
         passive: false,
         capture: true,
       });
       node.addEventListener("click", blockSyntheticClick, { capture: true });
 
       touchEndCleanupRef.current = () => {
-        node.removeEventListener("touchend", blockSyntheticClick, {
+        node.removeEventListener("touchend", onNativeTouchEnd, {
           capture: true,
         });
         node.removeEventListener("click", blockSyntheticClick, { capture: true });
       };
     },
-    [disabled],
+    [disabled, finishPress],
   );
 
   const onPointerDown = useCallback(
@@ -142,18 +201,19 @@ export function useLongPress<T extends HTMLElement = HTMLElement>(
         suppressClearRef.current = null;
       }
 
+      activePointerIdRef.current = event.pointerId;
+      gestureEndedRef.current = false;
       pressingRef.current = true;
       startPosRef.current = { x: event.clientX, y: event.clientY };
-      clearTimer();
-      clearIndicatorTimer();
-      setIsPending(false);
+      clearAllTimers();
+      hideIndicator();
 
       indicatorTimerRef.current = window.setTimeout(() => {
         indicatorTimerRef.current = null;
         if (pressingRef.current && !longPressFiredRef.current) {
           indicatorShownRef.current = true;
           suppressClickRef.current = true;
-          setIsPending(true);
+          setShowIndicator(true);
         }
       }, indicatorDelay);
 
@@ -161,61 +221,67 @@ export function useLongPress<T extends HTMLElement = HTMLElement>(
         timerRef.current = null;
         longPressFiredRef.current = true;
         suppressClickRef.current = true;
-        setIsPending(false);
+        hideIndicator();
         callbackRef.current();
         if (typeof navigator !== "undefined" && navigator.vibrate) {
           navigator.vibrate(40);
         }
       }, totalDelay);
     },
-    [clearIndicatorTimer, clearTimer, disabled, indicatorDelay, totalDelay],
+    [
+      clearAllTimers,
+      disabled,
+      hideIndicator,
+      indicatorDelay,
+      totalDelay,
+    ],
   );
 
   const onPointerMove = useCallback(
     (event: React.PointerEvent<HTMLElement>) => {
+      if (
+        activePointerIdRef.current != null &&
+        event.pointerId !== activePointerIdRef.current
+      ) {
+        return;
+      }
       if (!pressingRef.current || !startPosRef.current) return;
 
+      const threshold =
+        event.pointerType === "touch" ? TOUCH_MOVE_THRESHOLD : moveThreshold;
       const dx = event.clientX - startPosRef.current.x;
       const dy = event.clientY - startPosRef.current.y;
-      if (Math.hypot(dx, dy) > moveThreshold) {
-        cancelPending({
-          keepClickSuppress:
-            indicatorShownRef.current || suppressClickRef.current,
-        });
+      if (Math.hypot(dx, dy) > threshold) {
+        cancelPending();
       }
     },
     [cancelPending, moveThreshold],
   );
 
-  const endPress = useCallback(
+  const onPointerUp = useCallback(
     (event: React.PointerEvent<HTMLElement>) => {
-      clearTimer();
-      clearIndicatorTimer();
-
-      const engaged =
-        indicatorShownRef.current ||
-        longPressFiredRef.current ||
-        suppressClickRef.current;
-
-      pressingRef.current = false;
-      startPosRef.current = null;
-      setIsPending(false);
-
-      event.preventDefault();
-      event.stopPropagation();
-
-      if (engaged) {
-        scheduleSuppressClear();
+      if (event.pointerType === "touch") return;
+      if (
+        activePointerIdRef.current != null &&
+        event.pointerId !== activePointerIdRef.current
+      ) {
         return;
       }
 
-      const tapHandler = tapRef.current;
-      if (tapHandler) {
-        scheduleSuppressClear();
-        tapHandler();
-      }
+      event.preventDefault();
+      event.stopPropagation();
+      finishPress();
     },
-    [clearIndicatorTimer, clearTimer, scheduleSuppressClear],
+    [finishPress],
+  );
+
+  const onPointerCancel = useCallback(
+    (event: React.PointerEvent<HTMLElement>) => {
+      // iOS fires spurious pointercancel mid-gesture; touchend/pointerup handle release.
+      if (event.pointerType === "touch") return;
+      onPointerUp(event);
+    },
+    [onPointerUp],
   );
 
   const onContextMenu = useCallback(
@@ -226,21 +292,14 @@ export function useLongPress<T extends HTMLElement = HTMLElement>(
     [disabled],
   );
 
-  const onPointerLeave = useCallback(() => {
-    cancelPending({
-      keepClickSuppress: indicatorShownRef.current || suppressClickRef.current,
-    });
-  }, [cancelPending]);
-
   return {
-    isPending,
+    showIndicator,
     progressDurationMs,
     ref: setRef,
     onPointerDown,
     onPointerMove,
-    onPointerUp: endPress,
-    onPointerCancel: endPress,
-    onPointerLeave,
+    onPointerUp,
+    onPointerCancel,
     onContextMenu,
   };
 }
