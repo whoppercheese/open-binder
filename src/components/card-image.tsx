@@ -30,7 +30,7 @@ export function CardImage({
   return (
     <div
       className={cn(
-        "relative h-full w-full overflow-hidden",
+        "pointer-events-none relative h-full w-full select-none overflow-hidden [-webkit-touch-callout:none] [-webkit-user-drag:none]",
         !bare && "ring-1 ring-white/15",
         className,
       )}
@@ -42,8 +42,10 @@ export function CardImage({
           src={getCardImageApiPath(cardId)}
           alt={alt}
           fill
+          draggable={false}
           sizes={bare ? "90vw" : "(max-width: 768px) 33vw, 120px"}
-          className="object-contain"
+          className="pointer-events-none object-contain select-none [-webkit-user-drag:none]"
+          onDragStart={(event) => event.preventDefault()}
           onError={() => cardId && setFailedCardId(cardId)}
         />
       )}

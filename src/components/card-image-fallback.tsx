@@ -18,7 +18,7 @@ export function CardImageFallback({
   return (
     <div
       className={cn(
-        "flex h-full flex-col items-center justify-center bg-zinc-900/90 px-2 py-3 text-center",
+        "pointer-events-none flex h-full select-none flex-col items-center justify-center bg-zinc-900/90 px-2 py-3 text-center [-webkit-touch-callout:none] [-webkit-user-drag:none]",
         className,
       )}
     >
