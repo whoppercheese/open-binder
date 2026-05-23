@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { X } from "lucide-react";
 import { CardFrame } from "@/components/card-frame";
 import { CardImage } from "@/components/card-image";
+import { LightboxZoomViewport } from "@/components/lightbox-zoom-viewport";
 import { Portal } from "@/components/portal";
 
 type CardImageLightboxProps = {
@@ -23,6 +24,9 @@ export function CardImageLightbox({
   alt,
   onClose,
 }: CardImageLightboxProps) {
+  const zoomedRef = useRef(false);
+  const resetZoomRef = useRef<(() => void) | null>(null);
+
   useEffect(() => {
     if (!open) {
       return;
@@ -42,11 +46,20 @@ export function CardImageLightbox({
     return null;
   }
 
+  function handleBackdropClick() {
+    if (zoomedRef.current) {
+      resetZoomRef.current?.();
+      return;
+    }
+
+    onClose();
+  }
+
   return (
     <Portal>
       <div
         className="fixed inset-0 z-[70] flex cursor-pointer items-center justify-center bg-black/90 p-4"
-        onClick={onClose}
+        onClick={handleBackdropClick}
       >
         <button
           type="button"
@@ -56,19 +69,25 @@ export function CardImageLightbox({
         >
           <X className="h-6 w-6" />
         </button>
-        <CardFrame
+        <LightboxZoomViewport
+          key={cardId}
+          resetRef={resetZoomRef}
+          onZoomChange={(zoomed) => {
+            zoomedRef.current = zoomed;
+          }}
           className="card-lightbox relative shrink-0 cursor-auto"
-          onClick={(event) => event.stopPropagation()}
         >
-          <CardImage
-            cardId={cardId}
-            setId={setId}
-            number={number}
-            alt={alt}
-            bare
-            className="h-full w-full"
-          />
-        </CardFrame>
+          <CardFrame className="size-full">
+            <CardImage
+              cardId={cardId}
+              setId={setId}
+              number={number}
+              alt={alt}
+              bare
+              className="h-full w-full"
+            />
+          </CardFrame>
+        </LightboxZoomViewport>
       </div>
     </Portal>
   );
