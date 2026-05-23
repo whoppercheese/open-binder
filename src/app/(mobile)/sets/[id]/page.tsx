@@ -1,11 +1,12 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { Loader2, Download } from "lucide-react";
 import { CardModal, type CardDetail } from "@/components/card-modal";
 import { CardTile } from "@/components/card-tile";
 import { ProgressBar } from "@/components/progress-bar";
+import { addToCollection, pickDefaultVariantId } from "@/lib/collection-client";
 import { cn } from "@/lib/utils";
 
 const RARITY_ORDER = [
@@ -107,6 +108,9 @@ export default function SetDetailPage() {
   );
   const [loadingCards, setLoadingCards] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
+  const [quickAddMessage, setQuickAddMessage] = useState<string | null>(null);
+  const addingCardIdsRef = useRef(new Set<string>());
+  const quickAddTimeoutRef = useRef<number | null>(null);
 
   const cardsSynced = data?.set.cardsSyncedAt != null;
 
@@ -130,6 +134,49 @@ export default function SetDetailPage() {
   }, [data, ownershipFilter, rarityFilter]);
 
   const hasActiveFilters = ownershipFilter != null || rarityFilter != null;
+
+  const showQuickAddMessage = useCallback((message: string, duration = 2500) => {
+    setQuickAddMessage(message);
+    if (quickAddTimeoutRef.current != null) {
+      window.clearTimeout(quickAddTimeoutRef.current);
+    }
+    quickAddTimeoutRef.current = window.setTimeout(() => {
+      setQuickAddMessage(null);
+      quickAddTimeoutRef.current = null;
+    }, duration);
+  }, []);
+
+  const handleQuickAdd = useCallback(
+    async (card: SetDetailResponse["cards"][number]) => {
+      if (addingCardIdsRef.current.has(card.id)) return;
+
+      const variantId = pickDefaultVariantId(card.variants);
+      if (!variantId) return;
+
+      addingCardIdsRef.current.add(card.id);
+      try {
+        await addToCollection({ variantId });
+        setRefreshKey((value) => value + 1);
+        showQuickAddMessage(`${card.number} · ${card.nameDe} hinzugefügt`);
+      } catch (error) {
+        showQuickAddMessage(
+          error instanceof Error ? error.message : "Hinzufügen fehlgeschlagen",
+          3000,
+        );
+      } finally {
+        addingCardIdsRef.current.delete(card.id);
+      }
+    },
+    [showQuickAddMessage],
+  );
+
+  useEffect(() => {
+    return () => {
+      if (quickAddTimeoutRef.current != null) {
+        window.clearTimeout(quickAddTimeoutRef.current);
+      }
+    };
+  }, []);
 
   const loadSet = useCallback(async () => {
     const response = await fetch(`/api/sets/${params.id}`);
@@ -401,6 +448,7 @@ export default function SetDetailPage() {
               });
               setOpen(true);
             }}
+            onLongPress={() => void handleQuickAdd(card)}
           />
         ))}
       </div>
@@ -413,6 +461,12 @@ export default function SetDetailPage() {
         onClose={() => setOpen(false)}
         onSaved={() => setRefreshKey((value) => value + 1)}
       />
+
+      {quickAddMessage ? (
+        <div className="pointer-events-none fixed inset-x-4 bottom-[calc(4.5rem+env(safe-area-inset-bottom))] z-50 mx-auto max-w-lg rounded-xl border border-emerald-400/30 bg-emerald-500/15 px-4 py-2.5 text-center text-sm text-emerald-100 shadow-lg backdrop-blur-sm">
+          {quickAddMessage}
+        </div>
+      ) : null}
     </div>
   );
 }

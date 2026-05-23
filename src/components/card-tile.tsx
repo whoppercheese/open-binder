@@ -3,6 +3,8 @@
 import { CheckCircle2 } from "lucide-react";
 import { CardFrame } from "@/components/card-frame";
 import { CardImage } from "@/components/card-image";
+import { LongPressIndicator } from "@/components/long-press-indicator";
+import { useLongPress } from "@/lib/use-long-press";
 import { cn, formatCurrency, hasCardPrice } from "@/lib/utils";
 
 export type CardPreview = {
@@ -20,20 +22,42 @@ export type CardPreview = {
 type CardTileProps = {
   card: CardPreview;
   onClick?: () => void;
+  onLongPress?: () => void;
   compact?: boolean;
 };
 
-export function CardTile({ card, onClick, compact = false }: CardTileProps) {
+export function CardTile({
+  card,
+  onClick,
+  onLongPress,
+  compact = false,
+}: CardTileProps) {
+  const longPress = useLongPress(() => onLongPress?.(), {
+    disabled: !onLongPress,
+  });
+
   return (
     <button
       type="button"
-      onClick={onClick}
+      onClick={longPress.bindClick(onClick)}
+      onPointerDown={longPress.onPointerDown}
+      onPointerMove={longPress.onPointerMove}
+      onPointerUp={longPress.onPointerUp}
+      onPointerCancel={longPress.onPointerCancel}
+      onPointerLeave={longPress.onPointerLeave}
+      onContextMenu={longPress.onContextMenu}
       className={cn(
-        "group relative w-full cursor-pointer text-left transition-transform active:scale-[0.98]",
+        "group relative w-full cursor-pointer select-none text-left transition-transform [touch-action:manipulation] [-webkit-touch-callout:none]",
+        longPress.isPending ? "scale-100" : "active:scale-[0.98]",
         compact ? "space-y-1" : "space-y-2",
       )}
     >
       <CardFrame className="aspect-card w-full">
+        <LongPressIndicator
+          active={longPress.isPending}
+          durationMs={longPress.progressDurationMs}
+          compact={compact}
+        />
         <CardImage
           cardId={card.id}
           setId={card.setId}

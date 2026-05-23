@@ -90,4 +90,13 @@ button {
   [aria-disabled="true"] {
     @apply cursor-not-allowed;
   }
+
+  @keyframes long-press-progress {
+    from {
+      stroke-dashoffset: 94.25;
+    }
+    to {
+      stroke-dashoffset: 0;
+    }
+  }
 }

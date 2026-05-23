@@ -21,6 +21,7 @@ import {
   formatCurrency,
   hasCardPrice,
 } from "@/lib/utils";
+import { addToCollection, pickDefaultVariantId } from "@/lib/collection-client";
 
 export type CardVariantOption = {
   id: string;
@@ -60,13 +61,8 @@ function createInitialFormState(card: CardDetail | null) {
     };
   }
 
-  const defaultVariant =
-    card.variants.find((variant) => (variant.ownedQuantity ?? 0) > 0) ??
-    card.variants[0] ??
-    null;
-
   return {
-    variantId: defaultVariant?.id ?? "",
+    variantId: pickDefaultVariantId(card.variants) ?? "",
     quantity: 1,
     condition: "nm",
     language: "de",
@@ -78,11 +74,8 @@ function createInitialFormState(card: CardDetail | null) {
 export function CardModal({ card, open, onClose, onSaved }: CardModalProps) {
   const defaultVariant = useMemo(() => {
     if (!card) return null;
-    return (
-      card.variants.find((variant) => (variant.ownedQuantity ?? 0) > 0) ??
-      card.variants[0] ??
-      null
-    );
+    const variantId = pickDefaultVariantId(card.variants);
+    return card.variants.find((variant) => variant.id === variantId) ?? null;
   }, [card]);
 
   const [variantId, setVariantId] = useState("");
@@ -135,22 +128,14 @@ export function CardModal({ card, open, onClose, onSaved }: CardModalProps) {
     setLoading(true);
     setError(null);
     try {
-      const response = await fetch("/api/collection", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          variantId: activeVariantId,
-          quantity,
-          condition,
-          language,
-          notes: notes || null,
-          purchasePrice: purchasePrice ? Number(purchasePrice) : null,
-        }),
+      await addToCollection({
+        variantId: activeVariantId,
+        quantity,
+        condition,
+        language,
+        notes: notes || null,
+        purchasePrice: purchasePrice ? Number(purchasePrice) : null,
       });
-      if (!response.ok) {
-        const payload = await response.json();
-        throw new Error(payload.error ?? "Speichern fehlgeschlagen");
-      }
       resetForm();
       onSaved?.();
       handleClose();
