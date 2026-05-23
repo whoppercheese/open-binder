@@ -42,7 +42,7 @@ export async function POST(request: Request) {
         {
           error:
             type === "catalog"
-              ? "Ein Katalog-Sync läuft bereits oder wartet in der Queue."
+              ? "Ein Sets-Sync läuft bereits oder wartet in der Queue."
               : "Ein Preis-Sync läuft bereits oder wartet in der Queue.",
           job: activeJob,
         },

@@ -56,6 +56,7 @@ export default async function DashboardPage() {
               key={set.setId}
               id={set.setId}
               nameDe={set.setName}
+              cardsSynced
               owned={set.owned}
               total={set.total}
               percent={set.percent}
@@ -102,7 +103,7 @@ export default async function DashboardPage() {
           Sync-Status
         </div>
         <p>
-          Katalog:{" "}
+          Sets:{" "}
           {summary.sync.catalog
             ? `${summary.sync.catalog.status} · ${formatDate(summary.sync.catalog.finishedAt ?? summary.sync.catalog.createdAt)}`
             : "Noch kein Sync"}

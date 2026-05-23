@@ -49,8 +49,20 @@ export function formatJobStatusLabel(
   }
 }
 
-export function formatJobTypeLabel(jobType: "catalog" | "prices"): string {
-  return jobType === "catalog" ? "Katalog" : "Preise";
+export function formatJobTypeLabel(
+  jobType: "catalog" | "set_cards" | "prices",
+  setId?: string | null,
+): string {
+  switch (jobType) {
+    case "catalog":
+      return "Sets";
+    case "set_cards":
+      return setId ? `Set-Karten (${setId})` : "Set-Karten";
+    case "prices":
+      return "Preise";
+    default:
+      return jobType;
+  }
 }
 
 export function isActiveSyncJob(status: string): boolean {

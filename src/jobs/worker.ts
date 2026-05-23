@@ -7,11 +7,16 @@ import {
   getBoss,
   JOB_CATALOG_SYNC,
   JOB_PRICE_SYNC,
+  JOB_SET_CARDS_SYNC,
   scheduleRecurringJobs,
 } from "./boss";
-import { runCatalogSync } from "./sync-catalog";
+import {
+  runSetCardsSync,
+  runSetsSync,
+  runWeeklyCatalogRefresh,
+} from "./sync-catalog";
 import { runPriceSync } from "./sync-prices";
-import { markOrphanedSyncJobs } from "./sync-job-utils";
+import { requeueInterruptedSyncJobs } from "./sync-job-utils";
 
 loadEnvFile();
 
@@ -19,15 +24,39 @@ async function main() {
   console.log("[worker] Starting OpenBinder sync worker…");
   const boss = await getBoss();
   await ensureQueues();
-  await markOrphanedSyncJobs();
+  await requeueInterruptedSyncJobs();
   await scheduleRecurringJobs();
 
   await boss.work(JOB_CATALOG_SYNC, async (jobs) => {
     for (const job of jobs) {
-      console.log("[worker] Catalog sync started");
       const jobId = (job.data as { jobId?: string }).jobId;
-      await runCatalogSync(jobId);
-      console.log("[worker] Catalog sync finished");
+      if (jobId) {
+        console.log("[worker] Sets sync started");
+        await runSetsSync(jobId);
+        console.log("[worker] Sets sync finished");
+      } else {
+        console.log("[worker] Weekly catalog refresh started");
+        await runWeeklyCatalogRefresh();
+        console.log("[worker] Weekly catalog refresh finished");
+      }
+    }
+  });
+
+  await boss.work(JOB_SET_CARDS_SYNC, async (jobs) => {
+    for (const job of jobs) {
+      const { jobId, setId } = job.data as {
+        jobId?: string;
+        setId?: string;
+      };
+
+      if (!setId) {
+        console.warn("[worker] Set cards sync job missing setId");
+        continue;
+      }
+
+      console.log(`[worker] Set cards sync started for ${setId}`);
+      await runSetCardsSync(setId, jobId);
+      console.log(`[worker] Set cards sync finished for ${setId}`);
     }
   });
 
@@ -47,7 +76,7 @@ async function main() {
   if (shouldBootstrap) {
     const existingSets = await db.query.sets.findFirst();
     if (!existingSets) {
-      console.log("[worker] No catalog found — enqueueing initial catalog sync");
+      console.log("[worker] No catalog found — enqueueing initial sets sync");
       const [bootstrapJob] = await db
         .insert(syncJobs)
         .values({ jobType: "catalog", status: "pending" })

@@ -55,7 +55,7 @@ async function main() {
   await clearImageStorage();
   console.log("[reset] Bildspeicher geleert.");
 
-  console.log("[reset] Fertig. Starte Worker neu, um Katalog-Sync auszulösen.");
+  console.log("[reset] Fertig. Starte Worker neu, um Sets-Sync auszulösen.");
 }
 
 main().catch((error) => {

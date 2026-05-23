@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useMemo, useState, type ReactNode } from "react";
-import { useParams } from "next/navigation";
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
+import { useParams, useRouter } from "next/navigation";
+import { Loader2, Download } from "lucide-react";
 import { CardModal, type CardDetail } from "@/components/card-modal";
 import { CardTile } from "@/components/card-tile";
 import { ProgressBar } from "@/components/progress-bar";
@@ -63,6 +64,7 @@ type SetDetailResponse = {
     id: string;
     nameDe: string;
     officialCode: string | null;
+    cardsSyncedAt: string | null;
   };
   cards: Array<{
     id: string;
@@ -89,6 +91,7 @@ type SetDetailResponse = {
 
 export default function SetDetailPage() {
   const params = useParams<{ id: string }>();
+  const router = useRouter();
   const [data, setData] = useState<SetDetailResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [selectedCard, setSelectedCard] = useState<CardDetail | null>(null);
@@ -98,6 +101,14 @@ export default function SetDetailPage() {
     null,
   );
   const [rarityFilter, setRarityFilter] = useState<string | null>(null);
+  const [syncMessage, setSyncMessage] = useState<string | null>(null);
+  const [syncStatus, setSyncStatus] = useState<"idle" | "pending" | "running">(
+    "idle",
+  );
+  const [loadingCards, setLoadingCards] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
+
+  const cardsSynced = data?.set.cardsSyncedAt != null;
 
   const rarities = useMemo(() => {
     if (!data?.cards) return [];
@@ -120,22 +131,113 @@ export default function SetDetailPage() {
 
   const hasActiveFilters = ownershipFilter != null || rarityFilter != null;
 
+  const loadSet = useCallback(async () => {
+    const response = await fetch(`/api/sets/${params.id}`);
+    const payload = await response.json();
+    setData(payload);
+    setLoading(false);
+    return payload as SetDetailResponse;
+  }, [params.id]);
+
+  const loadSyncStatus = useCallback(async () => {
+    const response = await fetch(
+      `/api/sync/set-cards?setIds=${encodeURIComponent(params.id)}`,
+    );
+    if (!response.ok) {
+      return;
+    }
+
+    const payload = (await response.json()) as {
+      sets: Array<{
+        setId: string;
+        cardsSyncedAt: string | null;
+        activeJob: {
+          status: string;
+          message: string | null;
+        } | null;
+      }>;
+    };
+
+    const status = payload.sets[0];
+    if (!status) {
+      return;
+    }
+
+    if (status.cardsSyncedAt && !data?.set.cardsSyncedAt) {
+      await loadSet();
+      router.refresh();
+      return;
+    }
+
+    const activeJob = status.activeJob;
+    if (activeJob?.status === "running") {
+      setSyncStatus("running");
+      setSyncMessage(activeJob.message);
+    } else if (activeJob?.status === "pending") {
+      setSyncStatus("pending");
+      setSyncMessage(activeJob.message);
+    } else {
+      setSyncStatus("idle");
+      setSyncMessage(null);
+    }
+  }, [data?.set.cardsSyncedAt, loadSet, params.id, router]);
+
   useEffect(() => {
     let cancelled = false;
 
     (async () => {
-      const response = await fetch(`/api/sets/${params.id}`);
-      const payload = await response.json();
-      if (!cancelled) {
-        setData(payload);
-        setLoading(false);
-      }
+      await loadSet();
+      if (cancelled) return;
     })();
 
     return () => {
       cancelled = true;
     };
-  }, [params.id, refreshKey]);
+  }, [loadSet, refreshKey]);
+
+  useEffect(() => {
+    if (cardsSynced) {
+      return;
+    }
+
+    let cancelled = false;
+
+    (async () => {
+      await loadSyncStatus();
+      if (cancelled) return;
+    })();
+
+    const timer = setInterval(() => {
+      void loadSyncStatus();
+    }, 5000);
+
+    return () => {
+      cancelled = true;
+      clearInterval(timer);
+    };
+  }, [cardsSynced, loadSyncStatus]);
+
+  async function handleLoadCards() {
+    setLoadError(null);
+    setLoadingCards(true);
+
+    const response = await fetch("/api/sync/set-cards", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ setId: params.id }),
+    });
+
+    if (!response.ok) {
+      const body = await response.json().catch(() => ({}));
+      setLoadError(
+        (body.error as string) ?? "Karten-Sync konnte nicht gestartet werden.",
+      );
+    } else {
+      await loadSyncStatus();
+    }
+
+    setLoadingCards(false);
+  }
 
   if (loading) {
     return (
@@ -146,6 +248,52 @@ export default function SetDetailPage() {
   if (!data?.set) {
     return (
       <div className="px-4 pt-6 text-sm text-red-400">Set nicht gefunden.</div>
+    );
+  }
+
+  if (!cardsSynced) {
+    return (
+      <div className="space-y-5 px-4 pt-6">
+        <header>
+          <h1 className="text-2xl font-bold">
+            {data.set.nameDe}
+            <span className="ml-2 text-base font-normal text-zinc-500">
+              {data.set.officialCode ?? data.set.id}
+            </span>
+          </h1>
+        </header>
+
+        <div className="rounded-2xl border border-dashed border-white/10 p-8 text-center">
+          {syncStatus === "pending" || syncStatus === "running" ? (
+            <div className="flex flex-col items-center gap-3 text-sm text-zinc-400">
+              <Loader2 className="h-5 w-5 animate-spin text-emerald-400" />
+              <p>{syncMessage ?? "Karten werden geladen…"}</p>
+            </div>
+          ) : (
+            <>
+              <p className="text-sm text-zinc-500">
+                Für dieses Set wurden noch keine Kartendaten geladen.
+              </p>
+              {loadError ? (
+                <p className="mt-3 text-sm text-amber-400">{loadError}</p>
+              ) : null}
+              <button
+                type="button"
+                onClick={handleLoadCards}
+                disabled={loadingCards}
+                className="mt-4 inline-flex items-center gap-2 rounded-xl bg-emerald-500/15 px-4 py-2.5 text-sm font-medium text-emerald-300 transition hover:bg-emerald-500/25 disabled:opacity-50"
+              >
+                {loadingCards ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Download className="h-4 w-4" />
+                )}
+                Karten laden
+              </button>
+            </>
+          )}
+        </div>
+      </div>
     );
   }
 

@@ -1,46 +1,62 @@
-import { and, desc, eq, gt, inArray, lt, ne, or } from "drizzle-orm";
+import { and, desc, eq, inArray, lt, or } from "drizzle-orm";
 import { db } from "@/db/client";
-import { syncJobs } from "@/db/schema";
+import { sets, syncJobs } from "@/db/schema";
 import {
-  WORKER_RESTART_MESSAGE,
-  type CatalogCardError,
-  type SyncJobFailure,
-  type SyncJobProgress,
+  enqueueCatalogSync,
+  enqueuePriceSync,
+  enqueueSetCardsSync,
+} from "@/jobs/boss";
+import type {
+  CatalogCardError,
+  SyncJobFailure,
+  SyncJobProgress,
 } from "@/lib/sync-job-display";
 
 export type { CatalogCardError, SyncJobFailure, SyncJobProgress };
 
 const ORPHAN_GRACE_MS = 2 * 60 * 1000;
 
-export async function markOrphanedSyncJobs() {
+export async function requeueInterruptedSyncJobs() {
   const now = new Date();
   const graceCutoff = new Date(now.getTime() - ORPHAN_GRACE_MS);
 
-  const orphaned = await db
-    .update(syncJobs)
-    .set({
-      status: "failed",
-      finishedAt: now,
-      message: WORKER_RESTART_MESSAGE,
-    })
-    .where(
-      or(
-        eq(syncJobs.status, "running"),
-        and(
-          eq(syncJobs.status, "pending"),
-          lt(syncJobs.createdAt, graceCutoff),
-        ),
-      ),
-    )
-    .returning({ id: syncJobs.id });
+  const interrupted = await db.query.syncJobs.findMany({
+    where: or(
+      eq(syncJobs.status, "running"),
+      and(eq(syncJobs.status, "pending"), lt(syncJobs.createdAt, graceCutoff)),
+    ),
+  });
 
-  if (orphaned.length > 0) {
-    console.log(
-      `[worker] Marked ${orphaned.length} orphaned sync job(s) as failed`,
-    );
+  if (interrupted.length === 0) {
+    return 0;
   }
 
-  return orphaned.length;
+  for (const job of interrupted) {
+    await db
+      .update(syncJobs)
+      .set({
+        status: "pending",
+        message: null,
+        progress: null,
+        startedAt: null,
+        finishedAt: null,
+      })
+      .where(eq(syncJobs.id, job.id));
+
+    if (job.jobType === "catalog") {
+      await enqueueCatalogSync(job.id);
+    } else if (job.jobType === "set_cards" && job.setId) {
+      await enqueueSetCardsSync(job.id, job.setId);
+    } else if (job.jobType === "prices") {
+      await enqueuePriceSync(job.id);
+    }
+  }
+
+  console.log(
+    `[worker] Requeued ${interrupted.length} interrupted sync job(s)`,
+  );
+
+  return interrupted.length;
 }
 
 export async function findActiveSyncJob(jobType: "catalog" | "prices") {
@@ -53,67 +69,101 @@ export async function findActiveSyncJob(jobType: "catalog" | "prices") {
   });
 }
 
-export async function getResumeProcessedSetIds(
-  jobId: string,
-  jobType: "catalog",
-): Promise<string[]> {
-  const job = await db.query.syncJobs.findFirst({
-    where: eq(syncJobs.id, jobId),
-  });
-
-  const fromJob = (job?.progress as SyncJobProgress | null)?.processedSetIds;
-  if (fromJob && fromJob.length > 0) {
-    return fromJob;
-  }
-
-  const lastInterrupted = await db.query.syncJobs.findFirst({
+export async function findActiveSetCardsJob(setId: string) {
+  return db.query.syncJobs.findFirst({
     where: and(
-      eq(syncJobs.jobType, jobType),
-      eq(syncJobs.status, "failed"),
-      eq(syncJobs.message, WORKER_RESTART_MESSAGE),
-      ne(syncJobs.id, jobId),
+      eq(syncJobs.jobType, "set_cards"),
+      eq(syncJobs.setId, setId),
+      inArray(syncJobs.status, ["pending", "running"]),
     ),
-    orderBy: [desc(syncJobs.finishedAt)],
+    orderBy: [desc(syncJobs.createdAt)],
   });
-
-  if (!lastInterrupted?.finishedAt) {
-    return [];
-  }
-
-  const completedAfterInterrupt = await db.query.syncJobs.findFirst({
-    where: and(
-      eq(syncJobs.jobType, jobType),
-      eq(syncJobs.status, "completed"),
-      gt(syncJobs.finishedAt, lastInterrupted.finishedAt),
-    ),
-  });
-
-  if (completedAfterInterrupt) {
-    return [];
-  }
-
-  return (
-    (lastInterrupted.progress as SyncJobProgress | null)?.processedSetIds ?? []
-  );
 }
 
-export async function appendCatalogProgress(
-  jobId: string,
-  setId: string,
-  processedSetIds: string[],
-  message: string,
-  cardErrors?: CatalogCardError[],
-) {
-  const updatedIds = [...processedSetIds, setId];
-  await db
-    .update(syncJobs)
-    .set({
-      progress: {
-        processedSetIds: updatedIds,
-        ...(cardErrors && cardErrors.length > 0 ? { cardErrors } : {}),
-      },
-      message,
-    })
-    .where(eq(syncJobs.id, jobId));
-  return updatedIds;
+export async function getSetCardsSyncStatuses(setIds: string[]) {
+  if (setIds.length === 0) {
+    return [];
+  }
+
+  const activeJobs = await db.query.syncJobs.findMany({
+    where: and(
+      eq(syncJobs.jobType, "set_cards"),
+      inArray(syncJobs.setId, setIds),
+      inArray(syncJobs.status, ["pending", "running"]),
+    ),
+    orderBy: [desc(syncJobs.createdAt)],
+  });
+
+  const activeBySetId = new Map<string, (typeof activeJobs)[number]>();
+  for (const job of activeJobs) {
+    if (job.setId && !activeBySetId.has(job.setId)) {
+      activeBySetId.set(job.setId, job);
+    }
+  }
+
+  return setIds.map((setId) => {
+    const activeJob = activeBySetId.get(setId);
+    return {
+      setId,
+      activeJob: activeJob
+        ? {
+            id: activeJob.id,
+            status: activeJob.status,
+            message: activeJob.message,
+          }
+        : null,
+    };
+  });
+}
+
+export async function getActiveSetCardsJobs() {
+  const activeJobs = await db.query.syncJobs.findMany({
+    where: and(
+      eq(syncJobs.jobType, "set_cards"),
+      inArray(syncJobs.status, ["pending", "running"]),
+    ),
+    orderBy: [desc(syncJobs.createdAt)],
+  });
+
+  if (activeJobs.length === 0) {
+    return [];
+  }
+
+  const setIds = [
+    ...new Set(
+      activeJobs
+        .map((job) => job.setId)
+        .filter((setId): setId is string => setId != null),
+    ),
+  ];
+
+  const setRows =
+    setIds.length > 0
+      ? await db.query.sets.findMany({
+          where: inArray(sets.id, setIds),
+          columns: { id: true, nameDe: true },
+        })
+      : [];
+
+  const setNameById = new Map(setRows.map((set) => [set.id, set.nameDe]));
+
+  const activeBySetId = new Map<string, (typeof activeJobs)[number]>();
+  for (const job of activeJobs) {
+    if (!job.setId) continue;
+    const existing = activeBySetId.get(job.setId);
+    if (
+      !existing ||
+      (existing.status === "pending" && job.status === "running")
+    ) {
+      activeBySetId.set(job.setId, job);
+    }
+  }
+
+  return Array.from(activeBySetId.values()).map((job) => ({
+    id: job.id,
+    setId: job.setId!,
+    setName: setNameById.get(job.setId!) ?? job.setId!,
+    status: job.status,
+    message: job.message,
+  }));
 }

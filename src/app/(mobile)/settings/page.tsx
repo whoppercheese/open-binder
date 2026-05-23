@@ -14,7 +14,8 @@ import { formatDate } from "@/lib/utils";
 
 type SyncJob = {
   id: string;
-  jobType: "catalog" | "prices";
+  jobType: "catalog" | "set_cards" | "prices";
+  setId?: string | null;
   status: string;
   message: string | null;
   progress: SyncJobProgress | null;
@@ -122,7 +123,8 @@ export default function SettingsPage() {
       <section className="space-y-3 rounded-2xl border border-white/10 bg-white/[0.03] p-4">
         <h2 className="font-medium">Daten-Sync</h2>
         <p className="text-sm text-zinc-400">
-          Katalog wöchentlich, Preise täglich. Der Worker muss laufen.
+          Sets wöchentlich, Preise täglich. Kartendaten pro Set in der
+          Set-Liste. Der Worker muss laufen.
         </p>
         {syncError ? (
           <p className="text-sm text-amber-400">{syncError}</p>
@@ -139,7 +141,7 @@ export default function SettingsPage() {
             ) : (
               <RefreshCw className="h-4 w-4" />
             )}
-            Katalog jetzt synchronisieren
+            Sets synchronisieren
           </button>
           <button
             type="button"
@@ -173,7 +175,7 @@ export default function SettingsPage() {
             >
               <div className="flex items-center justify-between gap-3">
                 <span className="font-medium text-white">
-                  {formatJobTypeLabel(job.jobType)}
+                  {formatJobTypeLabel(job.jobType, job.setId)}
                 </span>
                 <span
                   className={

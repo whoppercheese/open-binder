@@ -39,6 +39,7 @@ export const languageEnum = pgEnum("card_language", ["de", "en"]);
 
 export const syncJobTypeEnum = pgEnum("sync_job_type", [
   "catalog",
+  "set_cards",
   "prices",
 ]);
 
@@ -60,6 +61,7 @@ export const sets = pgTable("sets", {
   officialCode: text("official_code"),
   cardCountTotal: integer("card_count_total").notNull().default(0),
   cardCountOfficial: integer("card_count_official").notNull().default(0),
+  cardsSyncedAt: timestamp("cards_synced_at", { withTimezone: true }),
   createdAt: timestamp("created_at", { withTimezone: true })
     .notNull()
     .defaultNow(),
@@ -158,18 +160,23 @@ export const userCards = pgTable(
   (table) => [index("user_cards_variant_idx").on(table.variantId)],
 );
 
-export const syncJobs = pgTable("sync_jobs", {
-  id: uuid("id").primaryKey().defaultRandom(),
-  jobType: syncJobTypeEnum("job_type").notNull(),
-  status: syncJobStatusEnum("status").notNull().default("pending"),
-  message: text("message"),
-  progress: jsonb("progress").$type<SyncJobProgress>(),
-  startedAt: timestamp("started_at", { withTimezone: true }),
-  finishedAt: timestamp("finished_at", { withTimezone: true }),
-  createdAt: timestamp("created_at", { withTimezone: true })
-    .notNull()
-    .defaultNow(),
-});
+export const syncJobs = pgTable(
+  "sync_jobs",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    jobType: syncJobTypeEnum("job_type").notNull(),
+    setId: text("set_id").references(() => sets.id, { onDelete: "set null" }),
+    status: syncJobStatusEnum("status").notNull().default("pending"),
+    message: text("message"),
+    progress: jsonb("progress").$type<SyncJobProgress>(),
+    startedAt: timestamp("started_at", { withTimezone: true }),
+    finishedAt: timestamp("finished_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [index("sync_jobs_set_id_status_idx").on(table.setId, table.status)],
+);
 
 export const appSettings = pgTable("app_settings", {
   key: text("key").primaryKey(),
