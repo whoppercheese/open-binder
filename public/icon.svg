@@ -1,15 +1,15 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" fill="none" role="img" aria-label="OpenBinder">
   <defs>
     <clipPath id="binder-clip">
-      <rect x="96" y="96" width="320" height="320" rx="64"/>
+      <rect x="40" y="40" width="432" height="432" rx="72"/>
     </clipPath>
   </defs>
   <rect width="512" height="512" rx="112" fill="#10131a"/>
-  <rect x="96" y="96" width="320" height="320" rx="64" fill="#10b981"/>
+  <rect x="40" y="40" width="432" height="432" rx="72" fill="#10b981"/>
   <g clip-path="url(#binder-clip)">
-    <rect x="96" y="256" width="320" height="160" fill="#D7E8E1"/>
+    <rect x="40" y="256" width="432" height="216" fill="#D7E8E1"/>
   </g>
-  <line x1="90" y1="256" x2="420" y2="256" stroke="#10131a" stroke-width="32"/>
-  <circle cx="256" cy="256" r="72" fill="#10131a"/>
-  <circle cx="256" cy="256" r="40" fill="#10b981"/>
+  <line x1="32" y1="256" x2="477" y2="256" stroke="#10131a" stroke-width="40"/>
+  <circle cx="256" cy="256" r="97" fill="#10131a"/>
+  <circle cx="256" cy="256" r="57" fill="#10b981"/>
 </svg>
