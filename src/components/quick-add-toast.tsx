@@ -51,7 +51,7 @@ export function QuickAddToast({ data, className }: QuickAddToastProps) {
         />
         <span className="inline-flex min-w-0 flex-wrap items-center justify-center gap-x-1.5 gap-y-0.5">
           <span className="shrink-0 font-semibold tabular-nums text-emerald-300/90">
-            #{data.number}
+            {data.number}
           </span>
           <span className="min-w-0 truncate font-medium text-white">
             {data.name}
