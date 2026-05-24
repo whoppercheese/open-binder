@@ -1,4 +1,5 @@
 import {
+  boolean,
   customType,
   index,
   integer,
@@ -150,6 +151,7 @@ export const userCards = pgTable(
     language: languageEnum("language").notNull().default("de"),
     notes: text("notes"),
     purchasePrice: numeric("purchase_price", { precision: 12, scale: 2 }),
+    flagged: boolean("flagged").notNull().default(false),
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()
       .defaultNow(),

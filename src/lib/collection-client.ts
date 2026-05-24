@@ -21,6 +21,7 @@ export type AddToCollectionInput = {
   language?: string;
   notes?: string | null;
   purchasePrice?: number | null;
+  flagged?: boolean;
 };
 
 export async function addToCollection({
@@ -30,6 +31,7 @@ export async function addToCollection({
   language = "de",
   notes = null,
   purchasePrice = null,
+  flagged = false,
 }: AddToCollectionInput): Promise<void> {
   const response = await fetch("/api/collection", {
     method: "POST",
@@ -41,6 +43,7 @@ export async function addToCollection({
       language,
       notes,
       purchasePrice,
+      flagged,
     }),
   });
 

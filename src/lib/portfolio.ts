@@ -133,6 +133,7 @@ export async function getSetWithCards(setId: string) {
       variantType: cardVariants.variantType,
       cardmarketProductId: cardVariants.cardmarketProductId,
       ownedQuantity: sql<number>`coalesce(sum(${userCards.quantity}), 0)::int`,
+      flagged: sql<boolean>`coalesce(bool_or(${userCards.flagged}), false)`,
       trendEur: cardPrices.trendEur,
       lowEur: cardPrices.lowEur,
     })
@@ -166,6 +167,7 @@ export async function getSetWithCards(setId: string) {
       imageUrl: string | null;
       owned: boolean;
       ownedQuantity: number;
+      flagged: boolean;
       variants: Array<{
         id: string;
         variantType: string;
@@ -185,12 +187,14 @@ export async function getSetWithCards(setId: string) {
       imageUrl: row.imageUrl,
       owned: false,
       ownedQuantity: 0,
+      flagged: false,
       variants: [],
     };
 
     const ownedQuantity = Number(row.ownedQuantity);
     existing.ownedQuantity += ownedQuantity;
     existing.owned = existing.owned || ownedQuantity > 0;
+    existing.flagged = existing.flagged || Boolean(row.flagged);
     existing.variants.push({
       id: row.variantId,
       variantType: row.variantType,

@@ -75,6 +75,7 @@ type SetDetailResponse = {
     imageUrl: string | null;
     owned: boolean;
     ownedQuantity: number;
+    flagged: boolean;
     variants: Array<{
       id: string;
       variantType: string;
@@ -322,7 +323,7 @@ export default function SetDetailPage() {
                 Für dieses Set wurden noch keine Kartendaten geladen.
               </p>
               {loadError ? (
-                <p className="mt-3 text-sm text-amber-400">{loadError}</p>
+                <p className="mt-3 text-sm text-red-400">{loadError}</p>
               ) : null}
               <button
                 type="button"
@@ -432,6 +433,7 @@ export default function SetDetailPage() {
               imageUrl: card.imageUrl,
               owned: card.owned,
               ownedQuantity: card.ownedQuantity,
+              flagged: card.flagged,
               price: card.variants.find((variant) => variant.price != null)?.price,
             }}
             compact

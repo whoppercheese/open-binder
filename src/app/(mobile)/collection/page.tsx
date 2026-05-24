@@ -3,6 +3,7 @@
 import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Minus, Plus, Trash2, X } from "lucide-react";
+import { CardFlagBadge } from "@/components/card-flag-badge";
 import { CardFrame } from "@/components/card-frame";
 import { CardImage } from "@/components/card-image";
 import { CardImageLightbox } from "@/components/card-image-lightbox";
@@ -25,6 +26,7 @@ type CollectionItem = {
   language: string;
   notes: string | null;
   purchasePrice: string | null;
+  flagged: boolean;
   variantType: string;
   cardId: string;
   nameDe: string;
@@ -323,7 +325,10 @@ function CollectionPageContent() {
                     </CardFrame>
                   </button>
                   <div className="min-w-0 flex-1">
-                    <p className="truncate font-medium text-white">{item.nameDe}</p>
+                    <p className="flex min-w-0 items-center gap-1.5 font-medium text-white">
+                      {item.flagged ? <CardFlagBadge size="sm" /> : null}
+                      <span className="truncate">{item.nameDe}</span>
+                    </p>
                     <p className="text-xs text-zinc-500">#{item.number}</p>
                     <p className="mt-1 text-xs text-zinc-400">
                       {VARIANT_LABELS[item.variantType] ?? item.variantType} ·{" "}

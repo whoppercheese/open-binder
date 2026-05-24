@@ -29,6 +29,7 @@ export async function PATCH(
           body.purchasePrice != null
             ? body.purchasePrice.toString()
             : existing.purchasePrice,
+        flagged: body.flagged ?? existing.flagged,
         updatedAt: new Date(),
       })
       .where(eq(userCards.id, id))

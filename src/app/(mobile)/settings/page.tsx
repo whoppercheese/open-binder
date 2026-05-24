@@ -127,7 +127,7 @@ export default function SettingsPage() {
           Set-Liste. Der Worker muss laufen.
         </p>
         {syncError ? (
-          <p className="text-sm text-amber-400">{syncError}</p>
+          <p className="text-sm text-red-400">{syncError}</p>
         ) : null}
         <div className="grid grid-cols-1 gap-2">
           <button
@@ -182,9 +182,9 @@ export default function SettingsPage() {
                     job.status === "running"
                       ? "text-emerald-400"
                       : job.status === "failed"
-                        ? "text-amber-400"
+                        ? "text-red-400"
                         : issueSummary
-                          ? "text-amber-400"
+                          ? "text-yellow-400"
                           : "text-zinc-400"
                   }
                 >
@@ -195,17 +195,17 @@ export default function SettingsPage() {
                 <p className="mt-1 text-zinc-500">{job.message}</p>
               ) : null}
               {issueSummary ? (
-                <details className="mt-2 rounded-lg border border-amber-500/20 bg-amber-500/5">
-                  <summary className="flex cursor-pointer list-none items-center justify-between gap-2 px-3 py-2 text-amber-200 [&::-webkit-details-marker]:hidden">
+                <details className="mt-2 rounded-lg border border-yellow-500/20 bg-yellow-500/5">
+                  <summary className="flex cursor-pointer list-none items-center justify-between gap-2 px-3 py-2 text-yellow-200 [&::-webkit-details-marker]:hidden">
                     <span>
                       Probleme: {issueSummary}
                     </span>
                     <ChevronDown className="h-4 w-4 shrink-0 opacity-70" />
                   </summary>
-                  <ul className="space-y-2 border-t border-amber-500/10 px-3 py-2">
+                  <ul className="space-y-2 border-t border-yellow-500/10 px-3 py-2">
                     {issues.map((issue, index) => (
                       <li key={`${issue.kind}-${issue.title}-${index}`}>
-                        <p className="font-medium text-amber-100/90">
+                        <p className="font-medium text-yellow-100/90">
                           {issue.kind === "set"
                             ? "Set"
                             : issue.kind === "card"
@@ -213,7 +213,7 @@ export default function SettingsPage() {
                               : "Job"}
                           : {issue.title}
                         </p>
-                        <p className="text-xs text-amber-100/60">{issue.detail}</p>
+                        <p className="text-xs text-yellow-100/60">{issue.detail}</p>
                       </li>
                     ))}
                   </ul>

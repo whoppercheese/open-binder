@@ -1,6 +1,7 @@
 "use client";
 
 import { CheckCircle2 } from "lucide-react";
+import { CardFlagBadge } from "@/components/card-flag-badge";
 import { CardFrame } from "@/components/card-frame";
 import { CardImage } from "@/components/card-image";
 import { LongPressIndicator } from "@/components/long-press-indicator";
@@ -15,6 +16,7 @@ export type CardPreview = {
   imageUrl?: string | null;
   owned?: boolean;
   ownedQuantity?: number;
+  flagged?: boolean;
   setName?: string;
   price?: number | null;
 };
@@ -66,6 +68,9 @@ export function CardTile({
           alt={card.nameDe}
           className="h-full w-full"
         />
+        {card.flagged ? (
+          <CardFlagBadge className="pointer-events-none absolute left-1 top-1 z-10" />
+        ) : null}
         {card.owned ? (
           <div
             className="pointer-events-none absolute inset-0 flex items-center justify-center"

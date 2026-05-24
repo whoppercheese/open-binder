@@ -21,6 +21,7 @@ const collectionSelect = {
   language: userCards.language,
   notes: userCards.notes,
   purchasePrice: userCards.purchasePrice,
+  flagged: userCards.flagged,
   updatedAt: userCards.updatedAt,
   variantId: cardVariants.id,
   variantType: cardVariants.variantType,
@@ -165,6 +166,7 @@ export async function POST(request: Request) {
       language = "de",
       notes = null,
       purchasePrice = null,
+      flagged = false,
     } = body;
 
     if (!variantId) {
@@ -187,12 +189,14 @@ export async function POST(request: Request) {
     const normalizedNotes = notes || null;
     const normalizedPurchasePrice =
       purchasePrice != null ? purchasePrice.toString() : null;
+    const normalizedFlagged = Boolean(flagged);
 
     const existing = await db.query.userCards.findFirst({
       where: and(
         eq(userCards.variantId, variantId),
         eq(userCards.condition, condition),
         eq(userCards.language, language),
+        eq(userCards.flagged, normalizedFlagged),
         normalizedNotes != null
           ? eq(userCards.notes, normalizedNotes)
           : isNull(userCards.notes),
@@ -224,6 +228,7 @@ export async function POST(request: Request) {
         language,
         notes: normalizedNotes,
         purchasePrice: normalizedPurchasePrice,
+        flagged: normalizedFlagged,
         updatedAt: new Date(),
       })
       .returning();

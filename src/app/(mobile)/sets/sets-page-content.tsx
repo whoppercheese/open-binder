@@ -352,7 +352,7 @@ export function SetsPageContent({ initialSets }: SetsPageContentProps) {
       ) : null}
 
       {loadError ? (
-        <p className="text-sm text-amber-400">{loadError}</p>
+        <p className="text-sm text-red-400">{loadError}</p>
       ) : null}
 
       {sets.length === 0 ? (
