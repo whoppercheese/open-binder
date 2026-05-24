@@ -6,6 +6,7 @@ export type SetSummary = {
 
 export type SetListEntry = SetSummary & {
   seriesName: string;
+  releaseDate: string | null;
   cardsSyncedAt: string | null;
   progress: {
     owned: number;
@@ -28,6 +29,7 @@ export function areSetListsEqual(
       a.name !== b.name ||
       a.officialCode !== b.officialCode ||
       a.seriesName !== b.seriesName ||
+      a.releaseDate !== b.releaseDate ||
       a.cardsSyncedAt !== b.cardsSyncedAt ||
       a.progress?.owned !== b.progress?.owned ||
       a.progress?.total !== b.progress?.total ||

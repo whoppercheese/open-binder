@@ -5,6 +5,7 @@ import {
   type TcgdexLanguage,
 } from "@/lib/catalog-languages";
 import { runWithConcurrency } from "@/lib/concurrency";
+import { UI_LOCALES } from "@/lib/i18n/locale";
 import { getTcgdexClient } from "@/lib/tcgdex-client";
 
 export type TcgdexSetSummary = {
@@ -101,11 +102,11 @@ export async function fetchSets(
   return summaries as TcgdexSetSummary[];
 }
 
-/** Union of set IDs across all TCGdex catalog languages. */
+/** Union of set IDs across app-supported catalog languages (en, de). */
 export async function fetchCatalogSets(): Promise<TcgdexSetSummary[]> {
   const byId = new Map<string, TcgdexSetSummary>();
 
-  for (const lang of TCGDEX_CATALOG_LANGUAGES) {
+  for (const lang of UI_LOCALES) {
     const langSets = await fetchSets(lang);
     for (const set of langSets) {
       if (!byId.has(set.id)) {

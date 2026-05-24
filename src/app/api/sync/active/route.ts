@@ -2,6 +2,7 @@ import { count } from "drizzle-orm";
 import { NextResponse } from "next/server";
 import { db } from "@/db/client";
 import { sets } from "@/db/schema";
+import { supportedCatalogSetsWhere } from "@/lib/sets-list-catalog";
 import {
   findActiveSyncJob,
   getActiveSetCardsJobs,
@@ -12,7 +13,10 @@ export async function GET() {
     const [setCardsJobs, catalogJob, setCountRow] = await Promise.all([
       getActiveSetCardsJobs(),
       findActiveSyncJob("catalog"),
-      db.select({ count: count() }).from(sets),
+      db
+        .select({ count: count() })
+        .from(sets)
+        .where(supportedCatalogSetsWhere()),
     ]);
 
     return NextResponse.json({

@@ -18,6 +18,7 @@ import {
   areSetListsEqual,
   type SetListEntry,
 } from "@/lib/sets-list";
+import { groupSetsBySeries } from "@/lib/sets-list-sort";
 import type { ActiveSetCardsJob } from "@/jobs/sync-job-utils";
 import { cn } from "@/lib/utils";
 
@@ -46,18 +47,18 @@ type SetsPageState = {
   filters: SetListFilter[];
 };
 
-function readSavedState(): SetsPageState {
-  if (typeof window === "undefined") {
-    return { query: "", filters: [] };
+const DEFAULT_PAGE_STATE: SetsPageState = {
+  query: "",
+  filters: [],
+};
+
+function parseSavedState(raw: string | null): SetsPageState {
+  if (!raw) {
+    return DEFAULT_PAGE_STATE;
   }
 
   try {
-    const saved = sessionStorage.getItem(SETS_PAGE_STATE_KEY);
-    if (!saved) {
-      return { query: "", filters: [] };
-    }
-
-    const parsed = JSON.parse(saved) as {
+    const parsed = JSON.parse(raw) as {
       query?: string;
       filters?: unknown;
     };
@@ -73,7 +74,7 @@ function readSavedState(): SetsPageState {
       filters,
     };
   } catch {
-    return { query: "", filters: [] };
+    return DEFAULT_PAGE_STATE;
   }
 }
 
@@ -185,12 +186,14 @@ function catalogJobEqual(
 export function SetsPageContent({ initialSets }: SetsPageContentProps) {
   const { locale } = useLocale();
   const t = useTranslations();
-  const savedState = readSavedState();
   const [sets, setSets] = useState(initialSets);
   const setsRef = useRef(initialSets);
   const knownSetCountRef = useRef(initialSets.length);
-  const [query, setQuery] = useState(savedState.query);
-  const [filters, setFilters] = useState<SetListFilter[]>(savedState.filters);
+  const [query, setQuery] = useState(DEFAULT_PAGE_STATE.query);
+  const [filters, setFilters] = useState<SetListFilter[]>(
+    DEFAULT_PAGE_STATE.filters,
+  );
+  const pageStateRestoredRef = useRef(false);
   const [activeJobs, setActiveJobs] = useState<ActiveSetCardsJob[]>([]);
   const [catalogJob, setCatalogJob] = useState<ActiveCatalogJob | null>(null);
   const [loadingSetId, setLoadingSetId] = useState<string | null>(null);
@@ -204,6 +207,19 @@ export function SetsPageContent({ initialSets }: SetsPageContentProps) {
   }, [sets]);
 
   useEffect(() => {
+    const saved = parseSavedState(
+      sessionStorage.getItem(SETS_PAGE_STATE_KEY),
+    );
+    setQuery(saved.query);
+    setFilters(saved.filters);
+    pageStateRestoredRef.current = true;
+  }, []);
+
+  useEffect(() => {
+    if (!pageStateRestoredRef.current) {
+      return;
+    }
+
     sessionStorage.setItem(
       SETS_PAGE_STATE_KEY,
       JSON.stringify({ query, filters }),
@@ -350,21 +366,10 @@ export function SetsPageContent({ initialSets }: SetsPageContentProps) {
     [sets, query, activeFilters],
   );
 
-  const grouped = useMemo(() => {
-    const groups = new Map<string, SetListEntry[]>();
-
-    for (const set of filteredSets) {
-      const series = set.seriesName || t("sets.seriesOther");
-      const existing = groups.get(series);
-      if (existing) {
-        existing.push(set);
-      } else {
-        groups.set(series, [set]);
-      }
-    }
-
-    return Array.from(groups.entries());
-  }, [filteredSets, t]);
+  const grouped = useMemo(
+    () => groupSetsBySeries(filteredSets, t("sets.seriesOther")),
+    [filteredSets, t],
+  );
 
   async function handleLoadCards(setId: string) {
     setLoadError(null);
