@@ -7,8 +7,10 @@ import {
   localizedCardNameSql,
   localizedSetNameSql,
 } from "@/lib/localized-names";
+import { getLocalizedString } from "@/lib/catalog-languages";
+import { buildCardVariantEntry } from "@/lib/card-variants.server";
 import type { UiLocale } from "@/lib/i18n/locale";
-import { getPricePreference, pickPrice } from "@/lib/settings";
+import { getPricePreference } from "@/lib/settings";
 
 export type CardSearchResult = {
   id: string;
@@ -86,11 +88,8 @@ export async function loadCardSearchResults(
     const ownedQuantity = row.ownedQuantity ?? 0;
     existing.owned = existing.owned || ownedQuantity > 0;
     existing.variants.push({
-      id: row.variantId,
-      variantType: row.variantType,
+      ...buildCardVariantEntry(row, preference, ownedQuantity),
       ownedQuantity: row.ownedQuantity,
-      price: pickPrice(row, preference),
-      cardmarketProductId: row.cardmarketProductId,
     });
     grouped.set(row.id, existing);
   }
@@ -127,7 +126,7 @@ export async function loadCardSearchResults(
       imageUrl: overrideImage ?? null,
       setId,
       setName: setMeta
-        ? (setMeta.names[locale] ?? setMeta.names.en ?? setId)
+        ? (getLocalizedString(setMeta.names, locale) ?? setId)
         : setId,
       officialCode: setMeta?.officialCode ?? null,
       owned: false,

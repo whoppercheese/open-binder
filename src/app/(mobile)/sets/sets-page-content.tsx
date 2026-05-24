@@ -18,15 +18,8 @@ import {
   areSetListsEqual,
   type SetListEntry,
 } from "@/lib/sets-list";
+import type { ActiveSetCardsJob } from "@/jobs/sync-job-utils";
 import { cn } from "@/lib/utils";
-
-type ActiveSetCardsJob = {
-  id: string;
-  setId: string;
-  setName: string;
-  status: string;
-  message: string | null;
-};
 
 type ActiveCatalogJob = {
   id: string;

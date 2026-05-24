@@ -14,6 +14,8 @@ import {
   UNKNOWN_LABEL,
 } from "@/lib/localized-names";
 import type { UiLocale } from "@/lib/i18n/locale";
+import { getLocalizedString } from "@/lib/catalog-languages";
+import { buildCardVariantEntry } from "@/lib/card-variants.server";
 import { getSetCollectionEntryCount } from "@/lib/set-cards";
 import { getPricePreference, pickPrice } from "@/lib/settings";
 
@@ -232,13 +234,9 @@ export async function getSetWithCards(setId: string, locale: UiLocale = "en") {
     existing.ownedQuantity += ownedQuantity;
     existing.owned = existing.owned || ownedQuantity > 0;
     existing.flagged = existing.flagged || Boolean(row.flagged);
-    existing.variants.push({
-      id: row.variantId,
-      variantType: row.variantType,
-      ownedQuantity,
-      price: pickPrice(row, preference),
-      cardmarketProductId: row.cardmarketProductId,
-    });
+    existing.variants.push(
+      buildCardVariantEntry(row, preference, ownedQuantity),
+    );
     grouped.set(row.id, existing);
   }
 
@@ -250,12 +248,12 @@ export async function getSetWithCards(setId: string, locale: UiLocale = "en") {
   return {
     set: {
       id: set.id,
-      name: getLocalizedSetName(set, locale),
+      name: getLocalizedString(set.names, locale) ?? UNKNOWN_LABEL,
       officialCode: set.officialCode,
       cardsSyncedAt: set.cardsSyncedAt?.toISOString() ?? null,
       cardCountTotal: set.cardCountTotal,
       cardCountOfficial: set.cardCountOfficial,
-      seriesName: getLocalizedSeriesName(set, locale),
+      seriesName: getLocalizedString(set.seriesNames, locale) ?? UNKNOWN_LABEL,
     },
     cards: cardsList,
     progress: {
@@ -266,20 +264,6 @@ export async function getSetWithCards(setId: string, locale: UiLocale = "en") {
     },
     collectionEntryCount,
   };
-}
-
-function getLocalizedSetName(
-  set: { names: Record<string, string> | null },
-  locale: UiLocale,
-): string {
-  return set.names?.[locale] ?? set.names?.en ?? UNKNOWN_LABEL;
-}
-
-function getLocalizedSeriesName(
-  set: { seriesNames: Record<string, string> | null },
-  locale: UiLocale,
-): string {
-  return set.seriesNames?.[locale] ?? set.seriesNames?.en ?? UNKNOWN_LABEL;
 }
 
 export async function getCardWithVariants(
@@ -333,13 +317,9 @@ export async function getCardWithVariants(
   }
 
   const first = rows[0];
-  const variants = rows.map((row) => ({
-    id: row.variantId,
-    variantType: row.variantType,
-    ownedQuantity: Number(row.ownedQuantity),
-    price: pickPrice(row, preference),
-    cardmarketProductId: row.cardmarketProductId,
-  }));
+  const variants = rows.map((row) =>
+    buildCardVariantEntry(row, preference, Number(row.ownedQuantity)),
+  );
 
   return {
     id: first.id,

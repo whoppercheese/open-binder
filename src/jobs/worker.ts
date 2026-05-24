@@ -1,4 +1,3 @@
-import { eq } from "drizzle-orm";
 import { db } from "@/db/client";
 import { syncJobs } from "@/db/schema";
 import { loadEnvFile } from "@/lib/load-env";
@@ -92,10 +91,3 @@ main().catch(async (error) => {
   console.error("[worker] Fatal error", error);
   process.exit(1);
 });
-
-export async function getLatestSyncJob(jobType: "catalog" | "prices") {
-  return db.query.syncJobs.findFirst({
-    where: eq(syncJobs.jobType, jobType),
-    orderBy: (table, { desc }) => [desc(table.createdAt)],
-  });
-}

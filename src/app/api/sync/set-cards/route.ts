@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { createSetCardsSyncJob } from "@/jobs/sync-catalog";
+import { createSetCardsSyncJob } from "@/lib/sync-set-cards.server";
 import { getSetCardsSyncStatuses } from "@/jobs/sync-job-utils";
 import { db } from "@/db/client";
 import { sets } from "@/db/schema";

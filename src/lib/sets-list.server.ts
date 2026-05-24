@@ -5,7 +5,7 @@ import { db } from "@/db/client";
 import { sets } from "@/db/schema";
 import { getLocalizedString } from "@/lib/catalog-languages";
 import { getRequestLocale } from "@/lib/i18n/server";
-import { getPortfolioSummary } from "@/lib/portfolio";
+import { buildSetProgressMap } from "@/lib/set-progress.server";
 import type { SetListEntry } from "@/lib/sets-list";
 
 export async function getSetListEntries(): Promise<SetListEntry[]> {
@@ -13,10 +13,7 @@ export async function getSetListEntries(): Promise<SetListEntry[]> {
   const allSets = await db.query.sets.findMany({
     orderBy: [asc(sets.releaseDate)],
   });
-  const summary = await getPortfolioSummary(locale);
-  const progressBySet = new Map(
-    summary.setProgress.map((item) => [item.setId, item]),
-  );
+  const progressBySet = await buildSetProgressMap(locale, allSets);
 
   return allSets.map((set) => {
     const cardsSynced = set.cardsSyncedAt != null;

@@ -1,6 +1,6 @@
 import "server-only";
 
-import TCGdex, { Query } from "@tcgdex/sdk";
+import { Query } from "@tcgdex/sdk";
 import { inArray } from "drizzle-orm";
 import { db } from "@/db/client";
 import { sets } from "@/db/schema";
@@ -20,6 +20,7 @@ import {
   numbersMatch,
   parseSearchQuery,
 } from "@/lib/search";
+import { getTcgdexClient } from "@/lib/tcgdex-client";
 import {
   buildImageUrl,
   decodeTcgdexLocalId,
@@ -43,18 +44,6 @@ type SetMetadata = {
   officialCode: string | null;
 };
 
-const clients = new Map<UiLocale, TCGdex>();
-
-function getCatalogClient(locale: UiLocale): TCGdex {
-  let client = clients.get(locale);
-  if (!client) {
-    client = new TCGdex(locale);
-    client.setCacheTTL(0);
-    clients.set(locale, client);
-  }
-  return client;
-}
-
 function mapCardBrief(card: {
   id: string;
   localId: string;
@@ -73,7 +62,7 @@ async function listCatalogCards(
   locale: UiLocale,
   query: Query,
 ): Promise<TcgdexCardBrief[]> {
-  const cards = await getCatalogClient(locale).card.list(query);
+  const cards = await getTcgdexClient(locale).card.list(query);
   return (cards ?? []).map(mapCardBrief);
 }
 
@@ -135,7 +124,7 @@ async function loadSeriesIdsBySetId(
     return seriesBySetId;
   }
 
-  const client = getCatalogClient(locale);
+  const client = getTcgdexClient(locale);
   await Promise.all(
     missingSetIds.map(async (setId) => {
       const set = await client.set.get(setId);

@@ -1,28 +1,11 @@
-import TCGdex, { type SupportedLanguages } from "@tcgdex/sdk";
+import TCGdex, { Query, type SupportedLanguages } from "@tcgdex/sdk";
 import {
   TCGDEX_CATALOG_LANGUAGES,
   type LocalizedStrings,
   type TcgdexLanguage,
 } from "@/lib/catalog-languages";
-
-const ASSETS_BASE = "https://assets.tcgdex.net";
-
-export const CATALOG_FALLBACK_LANG = "en" satisfies SupportedLanguages;
-export const CATALOG_LANG = "de" satisfies SupportedLanguages;
-
-const LANG_FETCH_CONCURRENCY = 5;
-
-const clients = new Map<SupportedLanguages, TCGdex>();
-
-function getClient(lang: SupportedLanguages = CATALOG_LANG): TCGdex {
-  let client = clients.get(lang);
-  if (!client) {
-    client = new TCGdex(lang);
-    client.setCacheTTL(0);
-    clients.set(lang, client);
-  }
-  return client;
-}
+import { runWithConcurrency } from "@/lib/concurrency";
+import { getTcgdexClient } from "@/lib/tcgdex-client";
 
 export type TcgdexSetSummary = {
   id: string;
@@ -84,11 +67,38 @@ export type TcgdexCard = {
   };
 };
 
+const ASSETS_BASE = "https://assets.tcgdex.net";
+
+export const CATALOG_FALLBACK_LANG = "en" satisfies SupportedLanguages;
+export const CATALOG_LANG = "de" satisfies SupportedLanguages;
+
+const LANG_FETCH_CONCURRENCY = 5;
+
+export async function listAllSetSummaries(
+  lang: SupportedLanguages = CATALOG_LANG,
+): Promise<Array<{ id: string; name: string }>> {
+  const client = getTcgdexClient(lang);
+  const summaries: Array<{ id: string; name: string }> = [];
+
+  for (let page = 1; page <= 10; page += 1) {
+    const batch = await client.set.list(Query.create().paginate(page, 100));
+    if (!batch?.length) {
+      break;
+    }
+    summaries.push(...batch.map((set) => ({ id: set.id, name: set.name })));
+    if (batch.length < 100) {
+      break;
+    }
+  }
+
+  return summaries;
+}
+
 export async function fetchSets(
   lang: SupportedLanguages = CATALOG_LANG,
 ): Promise<TcgdexSetSummary[]> {
-  const sets = await getClient(lang).set.list();
-  return (sets ?? []) as TcgdexSetSummary[];
+  const summaries = await listAllSetSummaries(lang);
+  return summaries as TcgdexSetSummary[];
 }
 
 /** Union of set IDs across all TCGdex catalog languages. */
@@ -107,39 +117,21 @@ export async function fetchCatalogSets(): Promise<TcgdexSetSummary[]> {
   return Array.from(byId.values());
 }
 
-async function runWithConcurrency<T>(
-  items: readonly T[],
-  worker: (item: T) => Promise<void>,
-  limit = LANG_FETCH_CONCURRENCY,
-) {
-  let index = 0;
-
-  async function runWorker() {
-    while (index < items.length) {
-      const current = items[index];
-      index += 1;
-      await worker(current);
-    }
-  }
-
-  const workers = Array.from(
-    { length: Math.min(limit, items.length) },
-    () => runWorker(),
-  );
-  await Promise.all(workers);
-}
-
 export async function fetchSetAllLangs(
   setId: string,
 ): Promise<Map<TcgdexLanguage, TcgdexSetDetail>> {
   const results = new Map<TcgdexLanguage, TcgdexSetDetail>();
 
-  await runWithConcurrency(TCGDEX_CATALOG_LANGUAGES, async (lang) => {
-    const detail = await fetchSetOptional(setId, lang);
-    if (detail) {
-      results.set(lang, detail);
-    }
-  });
+  await runWithConcurrency(
+    TCGDEX_CATALOG_LANGUAGES,
+    async (lang) => {
+      const detail = await fetchSetOptional(setId, lang);
+      if (detail) {
+        results.set(lang, detail);
+      }
+    },
+    LANG_FETCH_CONCURRENCY,
+  );
 
   return results;
 }
@@ -198,11 +190,20 @@ export function mergeSetLocalizedFields(
   return { names, seriesNames, seriesId, detail };
 }
 
+export function pickSetImageDetails(
+  details: Map<TcgdexLanguage, TcgdexSetDetail>,
+  detail: TcgdexSetDetail,
+): { deDetail: TcgdexSetDetail; enDetail: TcgdexSetDetail } {
+  const enDetail = details.get(CATALOG_FALLBACK_LANG) ?? detail;
+  const deDetail = details.get("de") ?? enDetail;
+  return { deDetail, enDetail };
+}
+
 export async function fetchSetOptional(
   setId: string,
   lang: SupportedLanguages = CATALOG_LANG,
 ): Promise<TcgdexSetDetail | null> {
-  const set = await getClient(lang).set.get(setId);
+  const set = await getTcgdexClient(lang).set.get(setId);
   return set ? (set as TcgdexSetDetail) : null;
 }
 
@@ -317,7 +318,7 @@ export async function fetchCard(
   cardId: string,
   lang: SupportedLanguages = CATALOG_LANG,
 ): Promise<TcgdexCard> {
-  const card = await fetchCardFromClient(getClient(lang), cardId);
+  const card = await fetchCardFromClient(getTcgdexClient(lang), cardId);
   if (!card) {
     throw new Error(`TCGdex card not found: ${cardId}`);
   }
@@ -329,7 +330,7 @@ export async function fetchCardWithFallback(
   lang: SupportedLanguages = CATALOG_FALLBACK_LANG,
   fallbackLang: SupportedLanguages = CATALOG_LANG,
 ): Promise<FetchedTcgdexCard> {
-  const primary = await fetchCardFromClient(getClient(lang), cardId);
+  const primary = await fetchCardFromClient(getTcgdexClient(lang), cardId);
   if (primary) {
     return { card: primary, lang };
   }
@@ -338,7 +339,7 @@ export async function fetchCardWithFallback(
     throw new Error(`TCGdex card not found: ${cardId}`);
   }
 
-  const fallback = await fetchCardFromClient(getClient(fallbackLang), cardId);
+  const fallback = await fetchCardFromClient(getTcgdexClient(fallbackLang), cardId);
   if (fallback) {
     return { card: fallback, lang: fallbackLang };
   }

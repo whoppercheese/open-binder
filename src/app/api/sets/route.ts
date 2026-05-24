@@ -4,7 +4,7 @@ import { db } from "@/db/client";
 import { sets } from "@/db/schema";
 import { getLocalizedString } from "@/lib/catalog-languages";
 import { getRequestTranslator } from "@/lib/i18n/server";
-import { getPortfolioSummary } from "@/lib/portfolio";
+import { buildSetProgressMap } from "@/lib/set-progress.server";
 
 export async function GET(request: Request) {
   try {
@@ -13,10 +13,7 @@ export async function GET(request: Request) {
       orderBy: [asc(sets.releaseDate)],
     });
 
-    const summary = await getPortfolioSummary(locale);
-    const progressBySet = new Map(
-      summary.setProgress.map((item) => [item.setId, item]),
-    );
+    const progressBySet = await buildSetProgressMap(locale, allSets);
 
     const grouped = allSets.reduce<
       Record<

@@ -8,7 +8,7 @@ import {
 } from "@/jobs/boss";
 import { findActiveSyncJob } from "@/jobs/sync-job-utils";
 import { getRequestTranslator } from "@/lib/i18n/server";
-import { getLocalizedName } from "@/lib/localized-names";
+import { resolveSetDisplayNames } from "@/lib/set-progress.server";
 
 export async function GET(request: Request) {
   try {
@@ -34,9 +34,7 @@ export async function GET(request: Request) {
           })
         : [];
 
-    const setNameById = new Map(
-      setRows.map((set) => [set.id, getLocalizedName(set.names, locale)]),
-    );
+    const setNameById = resolveSetDisplayNames(setRows, locale);
 
     return NextResponse.json({
       jobs: jobs.map((job) => ({

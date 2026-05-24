@@ -1,7 +1,10 @@
-export type SetListEntry = {
+export type SetSummary = {
   id: string;
   name: string;
   officialCode: string | null;
+};
+
+export type SetListEntry = SetSummary & {
   seriesName: string;
   cardsSyncedAt: string | null;
   progress: {

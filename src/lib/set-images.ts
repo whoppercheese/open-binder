@@ -3,7 +3,6 @@ import type { SetImageKind } from "@/lib/image-paths";
 import {
   cacheSetImage,
   getSetImageAbsolutePath,
-  getSetPlaceholderAbsolutePath,
   removeSetPlaceholderImage,
   resolveSetPlaceholderLabel,
   writeSetPlaceholderImage,
@@ -57,15 +56,5 @@ export async function syncSetImages(
       placeholderBase.name,
       "symbol",
     ),
-  );
-}
-
-export function hasSetImageOnDisk(
-  setId: string,
-  kind: SetImageKind = "logo",
-): boolean {
-  return (
-    existsSync(getSetImageAbsolutePath(setId, kind)) ||
-    existsSync(getSetPlaceholderAbsolutePath(setId, kind))
   );
 }

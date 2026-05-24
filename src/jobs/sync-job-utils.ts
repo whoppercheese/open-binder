@@ -1,7 +1,6 @@
 import { and, desc, eq, inArray, lt, or } from "drizzle-orm";
 import { db } from "@/db/client";
 import { sets, syncJobs } from "@/db/schema";
-import { getLocalizedString } from "@/lib/catalog-languages";
 import {
   enqueueCatalogSync,
   enqueuePriceSync,
@@ -12,8 +11,17 @@ import type {
   SyncJobFailure,
   SyncJobProgress,
 } from "@/lib/sync-job-display";
+import { resolveSetDisplayNames } from "@/lib/set-progress.server";
 
 export type { CatalogCardError, SyncJobFailure, SyncJobProgress };
+
+export type ActiveSetCardsJob = {
+  id: string;
+  setId: string;
+  setName: string;
+  status: string;
+  message: string | null;
+};
 
 const ORPHAN_GRACE_MS = 2 * 60 * 1000;
 
@@ -58,6 +66,76 @@ export async function requeueInterruptedSyncJobs() {
   );
 
   return interrupted.length;
+}
+
+type SyncJobCompletion<T> = {
+  message: string;
+  progress?: SyncJobProgress;
+  result?: T;
+};
+
+export async function withSyncJob<T>({
+  jobId,
+  onStart,
+  run,
+  onComplete,
+  onError,
+}: {
+  jobId?: string;
+  onStart: () => string;
+  run: () => Promise<T>;
+  onComplete: (result: T) => SyncJobCompletion<T>;
+  onError: (error: unknown) => SyncJobCompletion<T>;
+}): Promise<T> {
+  if (jobId) {
+    await db
+      .update(syncJobs)
+      .set({
+        status: "running",
+        startedAt: new Date(),
+        message: onStart(),
+      })
+      .where(eq(syncJobs.id, jobId));
+  }
+
+  try {
+    const result = await run();
+    const completion = onComplete(result);
+
+    if (jobId) {
+      await db
+        .update(syncJobs)
+        .set({
+          status: "completed",
+          finishedAt: new Date(),
+          message: completion.message,
+          ...(completion.progress !== undefined
+            ? { progress: completion.progress }
+            : {}),
+        })
+        .where(eq(syncJobs.id, jobId));
+    }
+
+    return result;
+  } catch (error) {
+    const failure = onError(error);
+
+    if (jobId) {
+      await db
+        .update(syncJobs)
+        .set({
+          status: "failed",
+          finishedAt: new Date(),
+          message: failure.message,
+          ...(failure.progress !== undefined
+            ? { progress: failure.progress }
+            : {}),
+        })
+        .where(eq(syncJobs.id, jobId));
+    }
+
+    throw error;
+  }
 }
 
 export async function findActiveSyncJob(jobType: "catalog" | "prices") {
@@ -146,12 +224,7 @@ export async function getActiveSetCardsJobs() {
         })
       : [];
 
-  const setNameById = new Map(
-    setRows.map((set) => [
-      set.id,
-      getLocalizedString(set.names, "en") ?? set.id,
-    ]),
-  );
+  const setNameById = resolveSetDisplayNames(setRows, "en");
 
   const activeBySetId = new Map<string, (typeof activeJobs)[number]>();
   for (const job of activeJobs) {
