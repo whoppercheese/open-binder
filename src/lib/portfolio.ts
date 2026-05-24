@@ -9,6 +9,7 @@ import {
   userCards,
 } from "@/db/schema";
 import { cardDisplayNameSql } from "@/lib/card-names";
+import { getSetCollectionEntryCount } from "@/lib/set-cards";
 import { getPricePreference, pickPrice } from "@/lib/settings";
 
 export async function getPortfolioSummary() {
@@ -237,6 +238,7 @@ export async function getSetWithCards(setId: string) {
   const cardsList = Array.from(grouped.values());
   const ownedCards = cardsList.filter((card) => card.owned).length;
   const totalCards = cardsList.length;
+  const collectionEntryCount = await getSetCollectionEntryCount(setId);
 
   return {
     set,
@@ -247,5 +249,6 @@ export async function getSetWithCards(setId: string) {
       percent:
         totalCards > 0 ? Math.round((ownedCards / totalCards) * 100) : 0,
     },
+    collectionEntryCount,
   };
 }

@@ -239,6 +239,13 @@ export async function removeSetPlaceholderImage(
   }
 }
 
+export async function deleteCardImage(cardId: string): Promise<void> {
+  const filePath = getCardImageAbsolutePath(cardId);
+  if (existsSync(filePath)) {
+    await unlink(filePath);
+  }
+}
+
 export async function readCardImage(cardId: string): Promise<Buffer | null> {
   const filePath = getCardImageAbsolutePath(cardId);
   if (!existsSync(filePath)) {

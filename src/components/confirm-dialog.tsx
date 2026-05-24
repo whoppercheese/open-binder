@@ -7,7 +7,7 @@ import { cn } from "@/lib/utils";
 type ConfirmDialogProps = {
   open: boolean;
   title: string;
-  message: string;
+  message: string | string[];
   confirmLabel?: string;
   cancelLabel?: string;
   loading?: boolean;
@@ -27,6 +27,8 @@ export function ConfirmDialog({
 }: ConfirmDialogProps) {
   if (!open) return null;
 
+  const messageParts = Array.isArray(message) ? message : [message];
+
   return (
     <Portal>
       <div className="fixed inset-0 z-[70] flex items-end justify-center bg-black/70 p-4 sm:items-center">
@@ -40,9 +42,14 @@ export function ConfirmDialog({
         <h2 id="confirm-dialog-title" className="text-lg font-semibold text-white">
           {title}
         </h2>
-        <p id="confirm-dialog-message" className="mt-2 text-sm text-zinc-400">
-          {message}
-        </p>
+        <div
+          id="confirm-dialog-message"
+          className="mt-2 space-y-2 text-sm text-zinc-400"
+        >
+          {messageParts.map((part, index) => (
+            <p key={index}>{part}</p>
+          ))}
+        </div>
         <div className="mt-4 flex gap-2">
           <button
             type="button"

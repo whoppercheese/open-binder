@@ -2,9 +2,11 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { Loader2, Download } from "lucide-react";
+import { Loader2, Download, Ellipsis, Trash2 } from "lucide-react";
+import { ActionSheet } from "@/components/action-sheet";
 import { CardModal, type CardDetail } from "@/components/card-modal";
 import { CardTile } from "@/components/card-tile";
+import { ConfirmDialog } from "@/components/confirm-dialog";
 import { ProgressBar } from "@/components/progress-bar";
 import { addToCollection, pickDefaultVariantId } from "@/lib/collection-client";
 import { cn } from "@/lib/utils";
@@ -89,6 +91,7 @@ type SetDetailResponse = {
     totalCards: number;
     percent: number;
   };
+  collectionEntryCount: number;
 };
 
 export default function SetDetailPage() {
@@ -110,6 +113,10 @@ export default function SetDetailPage() {
   const [loadingCards, setLoadingCards] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [quickAddMessage, setQuickAddMessage] = useState<string | null>(null);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
+  const [deletingCards, setDeletingCards] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
   const addingCardIdsRef = useRef(new Set<string>());
   const quickAddTimeoutRef = useRef<number | null>(null);
 
@@ -287,6 +294,53 @@ export default function SetDetailPage() {
     setLoadingCards(false);
   }
 
+  async function handleDeleteCardData() {
+    setDeleteError(null);
+    setDeletingCards(true);
+
+    try {
+      const response = await fetch(`/api/sets/${params.id}/cards`, {
+        method: "DELETE",
+      });
+
+      if (!response.ok) {
+        const body = await response.json().catch(() => ({}));
+        setDeleteError(
+          (body.error as string) ?? "Kartendaten konnten nicht gelöscht werden.",
+        );
+        setConfirmDeleteOpen(false);
+        return;
+      }
+
+      setConfirmDeleteOpen(false);
+      setMenuOpen(false);
+      setSelectedCard(null);
+      setOpen(false);
+      await loadSet();
+      router.refresh();
+    } finally {
+      setDeletingCards(false);
+    }
+  }
+
+  const deleteConfirmMessage = useMemo(() => {
+    const entryCount = data?.collectionEntryCount ?? 0;
+    const parts = [
+      "Alle heruntergeladenen Kartendaten dieses Sets werden gelöscht. Karten, Varianten, Preise und zwischengespeicherte Bilder.",
+    ];
+
+    if (entryCount > 0) {
+      parts.push(
+        `Dabei werden auch ${entryCount} ${entryCount === 1 ? "Sammlungseintrag" : "Sammlungseinträge"} aus deiner Sammlung entfernt, die zu diesem Set gehören.`,
+      );
+    } else {
+      parts.push("Es gibt keine Sammlungseinträge für dieses Set.");
+    }
+
+    parts.push("Das Set kann danach erneut synchronisiert werden.");
+    return parts;
+  }, [data?.collectionEntryCount]);
+
   if (loading) {
     return (
       <div className="px-4 pt-6 text-sm text-zinc-400">Set wird geladen…</div>
@@ -348,14 +402,26 @@ export default function SetDetailPage() {
   return (
     <div className="space-y-5 px-4 pt-6">
       <header className="space-y-3">
-        <div>
-          <h1 className="text-2xl font-bold">
+        <div className="flex items-start justify-between gap-2">
+          <h1 className="min-w-0 flex-1 text-2xl font-bold">
             {data.set.nameDe}
             <span className="ml-2 text-base font-normal text-zinc-500">
               {data.set.officialCode ?? data.set.id}
             </span>
           </h1>
+          <button
+            type="button"
+            aria-label="Set-Aktionen"
+            aria-haspopup="menu"
+            onClick={() => setMenuOpen(true)}
+            className="-mr-1 mt-0.5 inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-zinc-500 transition hover:bg-white/5 hover:text-zinc-300 active:bg-white/10"
+          >
+            <Ellipsis className="h-5 w-5" strokeWidth={2} />
+          </button>
         </div>
+        {deleteError ? (
+          <p className="text-sm text-red-400">{deleteError}</p>
+        ) : null}
         <div>
           <div className="mb-1 flex justify-between text-sm text-zinc-400">
             <span>Fortschritt</span>
@@ -469,6 +535,35 @@ export default function SetDetailPage() {
           {quickAddMessage}
         </div>
       ) : null}
+
+      <ActionSheet
+        open={menuOpen}
+        title="Set-Aktionen"
+        items={[
+          {
+            id: "delete-cards",
+            label: "Kartendaten löschen",
+            icon: <Trash2 className="h-4 w-4 shrink-0" />,
+            destructive: true,
+            onSelect: () => setConfirmDeleteOpen(true),
+          },
+        ]}
+        onClose={() => setMenuOpen(false)}
+      />
+
+      <ConfirmDialog
+        open={confirmDeleteOpen}
+        title="Kartendaten löschen?"
+        message={deleteConfirmMessage}
+        confirmLabel="Löschen"
+        loading={deletingCards}
+        onConfirm={() => void handleDeleteCardData()}
+        onCancel={() => {
+          if (!deletingCards) {
+            setConfirmDeleteOpen(false);
+          }
+        }}
+      />
     </div>
   );
 }
