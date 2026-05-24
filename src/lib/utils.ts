@@ -54,13 +54,21 @@ export const VARIANT_LABELS: Record<string, string> = {
   first_edition: "1. Auflage",
 };
 
-export const CONDITION_LABELS: Record<string, string> = {
+export const CARD_CONDITIONS = ["mint", "nm", "lp", "mp", "hp"] as const;
+
+export type CardCondition = (typeof CARD_CONDITIONS)[number];
+
+export const CONDITION_LABELS: Record<CardCondition, string> = {
   mint: "Mint",
   nm: "NM",
   lp: "LP",
   mp: "MP",
   hp: "HP",
 };
+
+export function isCardCondition(value: string): value is CardCondition {
+  return CARD_CONDITIONS.includes(value as CardCondition);
+}
 
 export const LANGUAGE_LABELS: Record<string, string> = {
   de: "Deutsch",

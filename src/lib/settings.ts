@@ -1,6 +1,7 @@
 import { eq } from "drizzle-orm";
 import { db } from "@/db/client";
 import { appSettings } from "@/db/schema";
+import { isCardCondition, type CardCondition } from "@/lib/utils";
 
 export async function getSetting(
   key: string,
@@ -27,6 +28,11 @@ export type PricePreference = "trend" | "low";
 export async function getPricePreference(): Promise<PricePreference> {
   const value = await getSetting("price_preference", "trend");
   return value === "low" ? "low" : "trend";
+}
+
+export async function getDefaultCondition(): Promise<CardCondition> {
+  const value = await getSetting("default_condition", "nm");
+  return isCardCondition(value) ? value : "nm";
 }
 
 export function pickPrice(

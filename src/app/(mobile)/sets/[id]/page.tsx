@@ -8,8 +8,13 @@ import { CardModal, type CardDetail } from "@/components/card-modal";
 import { CardTile } from "@/components/card-tile";
 import { ConfirmDialog } from "@/components/confirm-dialog";
 import { ProgressBar } from "@/components/progress-bar";
+import {
+  QuickAddToast,
+  type QuickAddToastData,
+} from "@/components/quick-add-toast";
 import { addToCollection, pickDefaultVariantId } from "@/lib/collection-client";
-import { cn } from "@/lib/utils";
+import { useDefaultCondition } from "@/lib/use-default-condition";
+import { cn, CONDITION_LABELS } from "@/lib/utils";
 
 const RARITY_ORDER = [
   "Häufig",
@@ -112,7 +117,9 @@ export default function SetDetailPage() {
   );
   const [loadingCards, setLoadingCards] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
-  const [quickAddMessage, setQuickAddMessage] = useState<string | null>(null);
+  const [quickAddToast, setQuickAddToast] = useState<QuickAddToastData | null>(
+    null,
+  );
   const [menuOpen, setMenuOpen] = useState(false);
   const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
   const [deletingCards, setDeletingCards] = useState(false);
@@ -120,6 +127,7 @@ export default function SetDetailPage() {
   const addingCardIdsRef = useRef(new Set<string>());
   const quickAddTimeoutRef = useRef<number | null>(null);
   const hadActiveSyncJobRef = useRef(false);
+  const { defaultCondition } = useDefaultCondition();
 
   const cardsSynced = data?.set.cardsSyncedAt != null;
   const syncActive =
@@ -146,16 +154,19 @@ export default function SetDetailPage() {
 
   const hasActiveFilters = ownershipFilter != null || rarityFilter != null;
 
-  const showQuickAddMessage = useCallback((message: string, duration = 2500) => {
-    setQuickAddMessage(message);
-    if (quickAddTimeoutRef.current != null) {
-      window.clearTimeout(quickAddTimeoutRef.current);
-    }
-    quickAddTimeoutRef.current = window.setTimeout(() => {
-      setQuickAddMessage(null);
-      quickAddTimeoutRef.current = null;
-    }, duration);
-  }, []);
+  const showQuickAddToast = useCallback(
+    (toast: QuickAddToastData, duration = 2500) => {
+      setQuickAddToast(toast);
+      if (quickAddTimeoutRef.current != null) {
+        window.clearTimeout(quickAddTimeoutRef.current);
+      }
+      quickAddTimeoutRef.current = window.setTimeout(() => {
+        setQuickAddToast(null);
+        quickAddTimeoutRef.current = null;
+      }, duration);
+    },
+    [],
+  );
 
   const handleQuickAdd = useCallback(
     async (card: SetDetailResponse["cards"][number]) => {
@@ -166,19 +177,30 @@ export default function SetDetailPage() {
 
       addingCardIdsRef.current.add(card.id);
       try {
-        await addToCollection({ variantId });
+        await addToCollection({ variantId, condition: defaultCondition });
         setRefreshKey((value) => value + 1);
-        showQuickAddMessage(`${card.number} · ${card.nameDe} hinzugefügt`);
+        showQuickAddToast({
+          kind: "success",
+          number: card.number,
+          name: card.nameDe,
+          conditionLabel: CONDITION_LABELS[defaultCondition],
+        });
       } catch (error) {
-        showQuickAddMessage(
-          error instanceof Error ? error.message : "Hinzufügen fehlgeschlagen",
+        showQuickAddToast(
+          {
+            kind: "error",
+            message:
+              error instanceof Error
+                ? error.message
+                : "Hinzufügen fehlgeschlagen",
+          },
           3000,
         );
       } finally {
         addingCardIdsRef.current.delete(card.id);
       }
     },
-    [showQuickAddMessage],
+    [showQuickAddToast, defaultCondition],
   );
 
   useEffect(() => {
@@ -589,11 +611,7 @@ export default function SetDetailPage() {
         onSaved={() => setRefreshKey((value) => value + 1)}
       />
 
-      {quickAddMessage ? (
-        <div className="pointer-events-none fixed inset-x-4 bottom-[calc(4.5rem+env(safe-area-inset-bottom))] z-50 mx-auto max-w-lg rounded-xl border border-emerald-400/50 bg-emerald-950/95 px-4 py-2.5 text-center text-sm text-emerald-50 shadow-lg">
-          {quickAddMessage}
-        </div>
-      ) : null}
+      {quickAddToast ? <QuickAddToast data={quickAddToast} /> : null}
 
       <ActionSheet
         open={menuOpen}

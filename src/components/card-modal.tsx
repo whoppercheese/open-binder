@@ -27,6 +27,8 @@ import {
   hasCardPrice,
 } from "@/lib/utils";
 import { addToCollection, pickDefaultVariantId, updateCollection } from "@/lib/collection-client";
+import { useDefaultCondition } from "@/lib/use-default-condition";
+import type { CardCondition } from "@/lib/utils";
 
 export type CardVariantOption = {
   id: string;
@@ -69,6 +71,7 @@ type CardModalProps = {
 function createInitialFormState(
   card: CardDetail | null,
   entry?: CollectionEntry | null,
+  defaultCondition: CardCondition = "nm",
 ) {
   if (entry) {
     return {
@@ -86,7 +89,7 @@ function createInitialFormState(
     return {
       variantId: "",
       quantity: 1,
-      condition: "nm",
+      condition: defaultCondition,
       language: "de",
       notes: "",
       purchasePrice: "",
@@ -97,7 +100,7 @@ function createInitialFormState(
   return {
     variantId: pickDefaultVariantId(card.variants) ?? "",
     quantity: 1,
-    condition: "nm",
+    condition: defaultCondition,
     language: "de",
     notes: "",
     purchasePrice: "",
@@ -105,21 +108,25 @@ function createInitialFormState(
   };
 }
 
-export function CardModal({
+type CardModalFormProps = {
+  card: CardDetail;
+  onClose: () => void;
+  onSaved?: () => void;
+  entry?: CollectionEntry | null;
+  defaultCondition: CardCondition;
+};
+
+function CardModalForm({
   card,
-  open,
   onClose,
   onSaved,
   entry = null,
-}: CardModalProps) {
+  defaultCondition,
+}: CardModalFormProps) {
   const isEdit = entry != null;
-  const initialForm = useMemo(
-    () => createInitialFormState(card, entry),
-    [card, entry],
-  );
+  const initialForm = createInitialFormState(card, entry, defaultCondition);
 
   const defaultVariant = useMemo(() => {
-    if (!card) return null;
     const variantId = pickDefaultVariantId(card.variants);
     return card.variants.find((variant) => variant.id === variantId) ?? null;
   }, [card]);
@@ -140,8 +147,8 @@ export function CardModal({
     onClose();
   }
 
-  function resetForm(nextCard: CardDetail | null = card) {
-    const initial = createInitialFormState(nextCard, entry);
+  function resetForm() {
+    const initial = createInitialFormState(card, entry, defaultCondition);
     setVariantId(initial.variantId);
     setQuantity(initial.quantity);
     setCondition(initial.condition);
@@ -153,24 +160,21 @@ export function CardModal({
   }
 
   const activeVariantId = variantId || defaultVariant?.id || "";
-  const selectedVariant = card?.variants.find(
+  const selectedVariant = card.variants.find(
     (variant) => variant.id === activeVariantId,
   );
   const availableVariantTypes = useMemo(
-    () =>
-      card?.variants.map((variant) => variant.variantType as VariantType) ?? [],
-    [card?.variants],
+    () => card.variants.map((variant) => variant.variantType as VariantType),
+    [card.variants],
   );
   const ownedCount = useMemo(
     () =>
-      card?.variants.reduce(
+      card.variants.reduce(
         (sum, variant) => sum + (variant.ownedQuantity ?? 0),
         0,
-      ) ?? 0,
+      ),
     [card],
   );
-
-  if (!open || !card) return null;
 
   async function handleSave() {
     if (!activeVariantId) return;
@@ -484,5 +488,28 @@ export function CardModal({
         onClose={() => setImageExpanded(false)}
       />
     </>
+  );
+}
+
+export function CardModal({
+  card,
+  open,
+  onClose,
+  onSaved,
+  entry = null,
+}: CardModalProps) {
+  const { defaultCondition } = useDefaultCondition();
+
+  if (!open || !card) return null;
+
+  return (
+    <CardModalForm
+      key={`${card.id}-${entry?.id ?? "new"}-${defaultCondition}`}
+      card={card}
+      onClose={onClose}
+      onSaved={onSaved}
+      entry={entry}
+      defaultCondition={defaultCondition}
+    />
   );
 }

@@ -10,7 +10,12 @@ import {
   isActiveSyncJob,
   type SyncJobProgress,
 } from "@/lib/sync-job-display";
-import { formatDate } from "@/lib/utils";
+import {
+  CARD_CONDITIONS,
+  CONDITION_LABELS,
+  formatDate,
+  type CardCondition,
+} from "@/lib/utils";
 
 type SyncJob = {
   id: string;
@@ -25,6 +30,7 @@ type SyncJob = {
 
 export default function SettingsPage() {
   const [pricePreference, setPricePreference] = useState<"trend" | "low">("trend");
+  const [defaultCondition, setDefaultCondition] = useState<CardCondition>("nm");
   const [jobs, setJobs] = useState<SyncJob[]>([]);
   const [loading, setLoading] = useState<string | null>(null);
   const [syncError, setSyncError] = useState<string | null>(null);
@@ -37,6 +43,7 @@ export default function SettingsPage() {
     const settings = await settingsRes.json();
     const sync = await syncRes.json();
     setPricePreference(settings.pricePreference ?? "trend");
+    setDefaultCondition(settings.defaultCondition ?? "nm");
     setJobs(sync.jobs ?? []);
   }, []);
 
@@ -71,6 +78,15 @@ export default function SettingsPage() {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ pricePreference: value }),
+    });
+  }
+
+  async function saveDefaultCondition(value: CardCondition) {
+    setDefaultCondition(value);
+    await fetch("/api/settings", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ defaultCondition: value }),
     });
   }
 
@@ -115,6 +131,31 @@ export default function SettingsPage() {
               }`}
             >
               {value === "trend" ? "Trend" : "Low"}
+            </button>
+          ))}
+        </div>
+      </section>
+
+      <section className="space-y-3 rounded-2xl border border-white/10 bg-white/[0.03] p-4">
+        <h2 className="font-medium">Standard-Zustand</h2>
+        <p className="text-sm text-zinc-400">
+          Wird beim Hinzufügen per Long-Press in der Set-Ansicht und als
+          Voreinstellung beim Anlegen neuer Sammlungseinträge im
+          Karten-Dialog verwendet.
+        </p>
+        <div className="grid grid-cols-3 gap-2 sm:grid-cols-5">
+          {CARD_CONDITIONS.map((value) => (
+            <button
+              key={value}
+              type="button"
+              onClick={() => void saveDefaultCondition(value)}
+              className={`rounded-xl px-3 py-2 text-sm font-medium ${
+                defaultCondition === value
+                  ? "bg-emerald-500 text-black"
+                  : "bg-white/5 text-zinc-300"
+              }`}
+            >
+              {CONDITION_LABELS[value]}
             </button>
           ))}
         </div>
