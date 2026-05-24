@@ -5,6 +5,10 @@ import { usePathname } from "next/navigation";
 
 const SCROLL_PREFIX = "scroll:";
 
+function shouldPreserveScroll(pathname: string) {
+  return pathname === "/sets";
+}
+
 function scrollKey(pathname: string) {
   return `${SCROLL_PREFIX}${pathname}`;
 }
@@ -40,9 +44,9 @@ export function MobileScrollShell({ children }: MobileScrollShellProps) {
       return;
     }
 
-    const saved = readScrollPosition(pathname);
-    if (saved != null) {
-      main.scrollTop = saved;
+    if (shouldPreserveScroll(pathname)) {
+      const saved = readScrollPosition(pathname);
+      main.scrollTop = saved ?? 0;
     } else {
       main.scrollTop = 0;
     }
@@ -57,7 +61,11 @@ export function MobileScrollShell({ children }: MobileScrollShellProps) {
     let timeout: ReturnType<typeof setTimeout> | null = null;
 
     const saveNow = () => {
-      saveScrollPosition(pathnameRef.current, main.scrollTop);
+      const currentPath = pathnameRef.current;
+      if (!shouldPreserveScroll(currentPath)) {
+        return;
+      }
+      saveScrollPosition(currentPath, main.scrollTop);
     };
 
     const onScroll = () => {
