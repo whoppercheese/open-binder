@@ -96,21 +96,22 @@ function resolveBriefImageUrl(
   brief: TcgdexCardBrief,
   seriesIdBySetId: ReadonlyMap<string, string>,
 ): string | null {
+  const setId = extractSetIdFromCardId(brief.id);
+  const seriesId = seriesIdBySetId.get(setId);
+  const localId = decodeTcgdexLocalId(brief.localId);
+
+  if (seriesId) {
+    const lang =
+      brief.image?.match(/^https:\/\/assets\.tcgdex\.net\/([^/]+)\//)?.[1] ??
+      "en";
+    return buildImageUrl(seriesId, setId, localId, lang);
+  }
+
   if (brief.image) {
     return resolveTcgdexAssetUrl(brief.image);
   }
 
-  const setId = extractSetIdFromCardId(brief.id);
-  const seriesId = seriesIdBySetId.get(setId);
-  if (!seriesId) {
-    return null;
-  }
-
-  return buildImageUrl(
-    seriesId,
-    setId,
-    decodeTcgdexLocalId(brief.localId),
-  );
+  return null;
 }
 
 async function loadSeriesIdsBySetId(

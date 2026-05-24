@@ -367,6 +367,9 @@ export async function resolveSetCardSummaries(
   return fallbackDetail.cards;
 }
 
+const TCGDEX_ASSETS_HOST = "assets.tcgdex.net";
+const TCGDEX_SET_ASSET_KINDS = new Set(["logo", "symbol"]);
+
 export function buildImageUrl(
   seriesId: string,
   setId: string,
@@ -377,6 +380,25 @@ export function buildImageUrl(
   return `${ASSETS_BASE}/${lang}/${seriesId}/${setId}/${encodeURIComponent(localId)}/${quality}.webp`;
 }
 
+function isTcgdexCardAssetUrl(url: string): boolean {
+  try {
+    const { hostname, pathname } = new URL(url);
+    if (hostname !== TCGDEX_ASSETS_HOST) {
+      return false;
+    }
+
+    const segments = pathname.split("/").filter(Boolean);
+    if (segments.length !== 4) {
+      return false;
+    }
+
+    const lastSegment = segments[3];
+    return !TCGDEX_SET_ASSET_KINDS.has(lastSegment);
+  } catch {
+    return false;
+  }
+}
+
 export function resolveTcgdexAssetUrl(
   url: string,
   extension: "webp" | "png" | "jpg" = "webp",
@@ -384,6 +406,11 @@ export function resolveTcgdexAssetUrl(
   if (/\.(webp|png|jpe?g)$/i.test(url)) {
     return url;
   }
+
+  if (isTcgdexCardAssetUrl(url)) {
+    return `${url}/high.webp`;
+  }
+
   return `${url}.${extension}`;
 }
 

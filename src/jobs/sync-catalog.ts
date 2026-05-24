@@ -27,22 +27,15 @@ import {
   buildMultilangNameHints,
   mergeSetLocalizedFields,
   pricingForVariant,
-  type TcgdexSetDetail,
   type TcgdexSetSummary,
 } from "@/lib/tcgdex";
-import { existsSync } from "node:fs";
-import type { SetImageKind } from "@/lib/image-paths";
 import {
   cacheCardImage,
-  cacheSetImage,
-  getSetImageAbsolutePath,
-  removeSetPlaceholderImage,
-  resolveSetPlaceholderLabel,
-  writeSetPlaceholderImage,
 } from "@/lib/image-storage";
+import { syncSetImages } from "@/lib/set-images";
 import { findActiveSetCardsJob } from "@/jobs/sync-job-utils";
 import { enqueueSetCardsSync } from "@/jobs/boss";
-import { ensureSetMetadata } from "@/lib/set-metadata.server";
+import { ensureSetMetadata } from "@/lib/set-metadata";
 import { encodeSyncJobMessage } from "@/lib/sync-job-messages";
 import type {
   CatalogCardError,
@@ -105,53 +98,6 @@ async function lookupCardmarketName(
   });
 
   return product?.name ?? null;
-}
-
-async function syncSetImageKind(
-  setId: string,
-  kind: SetImageKind,
-  sourceUrl: string | null | undefined,
-  placeholderLabel: string,
-) {
-  if (sourceUrl) {
-    await cacheSetImage(setId, kind, sourceUrl);
-    if (!existsSync(getSetImageAbsolutePath(setId, kind))) {
-      await removeSetPlaceholderImage(setId, kind);
-    }
-    return;
-  }
-
-  await writeSetPlaceholderImage(setId, kind, placeholderLabel);
-}
-
-async function syncSetImages(detail: TcgdexSetDetail, enDetail: TcgdexSetDetail) {
-  const logoUrl = detail.logo ?? enDetail.logo ?? null;
-  const symbolUrl = detail.symbol ?? enDetail.symbol ?? null;
-  const placeholderBase = {
-    officialCode: detail.abbreviation?.official,
-    name: detail.name,
-  };
-
-  await syncSetImageKind(
-    detail.id,
-    "logo",
-    logoUrl,
-    resolveSetPlaceholderLabel(
-      placeholderBase.officialCode,
-      placeholderBase.name,
-      "logo",
-    ),
-  );
-  await syncSetImageKind(
-    detail.id,
-    "symbol",
-    symbolUrl,
-    resolveSetPlaceholderLabel(
-      placeholderBase.officialCode,
-      placeholderBase.name,
-      "symbol",
-    ),
-  );
 }
 
 async function upsertSetMetadata(summary: TcgdexSetSummary) {
