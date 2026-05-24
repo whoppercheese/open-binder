@@ -9,6 +9,7 @@ export type ActionSheetItem = {
   label: string;
   icon?: ReactNode;
   destructive?: boolean;
+  disabled?: boolean;
   onSelect: () => void;
 };
 
@@ -51,14 +52,22 @@ export function ActionSheet({
                 key={item.id}
                 type="button"
                 role="menuitem"
+                disabled={item.disabled}
                 onClick={() => {
+                  if (item.disabled) {
+                    return;
+                  }
                   onClose();
                   item.onSelect();
                 }}
                 className={cn(
-                  "flex w-full items-center justify-center gap-2 bg-transparent px-4 py-3.5 text-sm font-medium transition hover:bg-[#1c212d]",
+                  "flex w-full items-center justify-center gap-2 bg-transparent px-4 py-3.5 text-sm font-medium transition",
                   index > 0 && "border-t border-white/5",
-                  item.destructive ? "text-red-400" : "text-white",
+                  item.disabled
+                    ? "cursor-not-allowed text-zinc-600"
+                    : item.destructive
+                      ? "text-red-400 hover:bg-[#1c212d]"
+                      : "text-white hover:bg-[#1c212d]",
                 )}
               >
                 {item.icon}

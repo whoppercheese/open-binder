@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { Loader2, Download, Ellipsis, Trash2 } from "lucide-react";
+import { Loader2, Download, Ellipsis, RefreshCw, Trash2 } from "lucide-react";
 import { ActionSheet } from "@/components/action-sheet";
 import { CardModal, type CardDetail } from "@/components/card-modal";
 import { CardTile } from "@/components/card-tile";
@@ -119,8 +119,11 @@ export default function SetDetailPage() {
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const addingCardIdsRef = useRef(new Set<string>());
   const quickAddTimeoutRef = useRef<number | null>(null);
+  const hadActiveSyncJobRef = useRef(false);
 
   const cardsSynced = data?.set.cardsSyncedAt != null;
+  const syncActive =
+    syncStatus === "pending" || syncStatus === "running" || loadingCards;
 
   const rarities = useMemo(() => {
     if (!data?.cards) return [];
@@ -218,13 +221,26 @@ export default function SetDetailPage() {
       return;
     }
 
+    const activeJob = status.activeJob;
+    const hasActiveJob =
+      activeJob?.status === "running" || activeJob?.status === "pending";
+
     if (status.cardsSyncedAt && !data?.set.cardsSyncedAt) {
       await loadSet();
       router.refresh();
+      hadActiveSyncJobRef.current = false;
+      setSyncStatus("idle");
+      setSyncMessage(null);
       return;
     }
 
-    const activeJob = status.activeJob;
+    if (hadActiveSyncJobRef.current && !hasActiveJob && data?.set.cardsSyncedAt) {
+      await loadSet();
+      router.refresh();
+    }
+
+    hadActiveSyncJobRef.current = hasActiveJob;
+
     if (activeJob?.status === "running") {
       setSyncStatus("running");
       setSyncMessage(activeJob.message);
@@ -251,16 +267,21 @@ export default function SetDetailPage() {
   }, [loadSet, refreshKey]);
 
   useEffect(() => {
-    if (cardsSynced) {
-      return;
-    }
-
     let cancelled = false;
 
     (async () => {
       await loadSyncStatus();
       if (cancelled) return;
     })();
+
+    const shouldPoll =
+      !cardsSynced || syncStatus === "pending" || syncStatus === "running";
+
+    if (!shouldPoll) {
+      return () => {
+        cancelled = true;
+      };
+    }
 
     const timer = setInterval(() => {
       void loadSyncStatus();
@@ -270,9 +291,9 @@ export default function SetDetailPage() {
       cancelled = true;
       clearInterval(timer);
     };
-  }, [cardsSynced, loadSyncStatus]);
+  }, [cardsSynced, syncStatus, loadSyncStatus]);
 
-  async function handleLoadCards() {
+  const handleLoadCards = useCallback(async () => {
     setLoadError(null);
     setLoadingCards(true);
 
@@ -288,11 +309,13 @@ export default function SetDetailPage() {
         (body.error as string) ?? "Karten-Sync konnte nicht gestartet werden.",
       );
     } else {
+      setSyncStatus("pending");
+      setSyncMessage("Karten-Sync wird vorbereitet…");
       await loadSyncStatus();
     }
 
     setLoadingCards(false);
-  }
+  }, [loadSyncStatus, params.id]);
 
   async function handleDeleteCardData() {
     setDeleteError(null);
@@ -340,6 +363,33 @@ export default function SetDetailPage() {
     parts.push("Das Set kann danach erneut synchronisiert werden.");
     return parts;
   }, [data?.collectionEntryCount]);
+
+  const actionSheetItems = useMemo(
+    () => [
+      {
+        id: "resync",
+        label: syncActive
+          ? "Aktualisierung läuft…"
+          : "Kartendaten erneut laden",
+        icon: syncActive ? (
+          <Loader2 className="h-4 w-4 shrink-0 animate-spin" />
+        ) : (
+          <RefreshCw className="h-4 w-4 shrink-0" />
+        ),
+        disabled: syncActive,
+        onSelect: () => void handleLoadCards(),
+      },
+      {
+        id: "delete-cards",
+        label: "Kartendaten löschen",
+        icon: <Trash2 className="h-4 w-4 shrink-0" />,
+        destructive: true,
+        disabled: syncActive,
+        onSelect: () => setConfirmDeleteOpen(true),
+      },
+    ],
+    [handleLoadCards, syncActive],
+  );
 
   if (loading) {
     return (
@@ -421,6 +471,15 @@ export default function SetDetailPage() {
         </div>
         {deleteError ? (
           <p className="text-sm text-red-400">{deleteError}</p>
+        ) : null}
+        {loadError ? (
+          <p className="text-sm text-red-400">{loadError}</p>
+        ) : null}
+        {syncStatus === "pending" || syncStatus === "running" ? (
+          <div className="flex items-center gap-2 rounded-xl border border-emerald-500/20 bg-emerald-500/10 px-3 py-2 text-sm text-emerald-100">
+            <Loader2 className="h-4 w-4 shrink-0 animate-spin text-emerald-400" />
+            <span>{syncMessage ?? "Kartendaten werden aktualisiert…"}</span>
+          </div>
         ) : null}
         <div>
           <div className="mb-1 flex justify-between text-sm text-zinc-400">
@@ -539,15 +598,7 @@ export default function SetDetailPage() {
       <ActionSheet
         open={menuOpen}
         title="Set-Aktionen"
-        items={[
-          {
-            id: "delete-cards",
-            label: "Kartendaten löschen",
-            icon: <Trash2 className="h-4 w-4 shrink-0" />,
-            destructive: true,
-            onSelect: () => setConfirmDeleteOpen(true),
-          },
-        ]}
+        items={actionSheetItems}
         onClose={() => setMenuOpen(false)}
       />
 
