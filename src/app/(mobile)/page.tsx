@@ -2,6 +2,7 @@ import Link from "next/link";
 import { ArrowRight, RefreshCw, TrendingUp } from "lucide-react";
 import { CardFrame } from "@/components/card-frame";
 import { CardImage } from "@/components/card-image";
+import { MobilePage, MobilePageHeader } from "@/components/mobile-page";
 import { SetListItem } from "@/components/set-list-item";
 import { getServerTranslator } from "@/lib/i18n/server";
 import { getPortfolioSummary } from "@/lib/portfolio";
@@ -16,11 +17,13 @@ export default async function DashboardPage() {
     .slice(0, 6);
 
   return (
-    <div className="space-y-6 px-4 pt-6">
-      <header className="space-y-1">
-        <h1 className="text-2xl font-bold text-white">{t("dashboard.title")}</h1>
-        <p className="text-xs text-zinc-500">{t("dashboard.subtitle")}</p>
-      </header>
+    <MobilePage>
+      <MobilePageHeader
+        title={t("dashboard.title")}
+        subtitle={t("dashboard.subtitle")}
+        subtitleClassName="text-xs text-zinc-500"
+        className="space-y-1"
+      />
 
       <section className="rounded-3xl border border-emerald-500/20 bg-gradient-to-br from-emerald-500/10 to-transparent p-5">
         <div className="mb-2 flex items-center gap-2 text-emerald-400">
@@ -129,6 +132,6 @@ export default async function DashboardPage() {
           {t("dashboard.startSyncInSettings")}
         </Link>
       </section>
-    </div>
+    </MobilePage>
   );
 }

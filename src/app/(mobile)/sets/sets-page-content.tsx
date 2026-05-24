@@ -9,6 +9,7 @@ import {
   type ReactNode,
 } from "react";
 import { Loader2 } from "lucide-react";
+import { MobilePage, MobilePageHeader } from "@/components/mobile-page";
 import { SearchBar } from "@/components/search-bar";
 import { SetListItem } from "@/components/set-list-item";
 import { apiUrl, useLocale, useTranslations } from "@/lib/i18n/context";
@@ -425,11 +426,8 @@ export function SetsPageContent({ initialSets }: SetsPageContentProps) {
       : t("sets.subtitleBrowse", { total: sets.length });
 
   return (
-    <div className="space-y-6 px-4 pt-6">
-      <header>
-        <h1 className="text-2xl font-bold">{t("sets.title")}</h1>
-        <p className="text-sm text-zinc-400">{subtitle}</p>
-      </header>
+    <MobilePage>
+      <MobilePageHeader title={t("sets.title")} subtitle={subtitle} />
 
       {syncIndicator ? (
         <div className="flex items-start gap-3 rounded-2xl border border-emerald-500/20 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-100">
@@ -553,6 +551,6 @@ export function SetsPageContent({ initialSets }: SetsPageContentProps) {
           </div>
         </section>
       ))}
-    </div>
+    </MobilePage>
   );
 }

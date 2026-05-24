@@ -12,6 +12,7 @@ import {
   type SyncJobProgress,
 } from "@/lib/sync-job-display";
 import { useLocale, useTranslations } from "@/lib/i18n/context";
+import { MobilePage, MobilePageHeader } from "@/components/mobile-page";
 import { UI_LOCALES, type UiLocale } from "@/lib/i18n/locale";
 import {
   CARD_CONDITIONS,
@@ -131,11 +132,11 @@ export default function SettingsPage() {
   }
 
   return (
-    <div className="space-y-6 px-4 pt-6">
-      <header>
-        <h1 className="text-2xl font-bold">{t("settings.title")}</h1>
-        <p className="text-sm text-zinc-400">{t("settings.subtitle")}</p>
-      </header>
+    <MobilePage>
+      <MobilePageHeader
+        title={t("settings.title")}
+        subtitle={t("settings.subtitle")}
+      />
 
       <section className="space-y-3 rounded-2xl border border-white/10 bg-white/[0.03] p-4">
         <h2 className="font-medium">{t("settings.language")}</h2>
@@ -309,6 +310,6 @@ export default function SettingsPage() {
       <p className="text-xs leading-relaxed text-zinc-600">
         {t("settings.disclaimer")}
       </p>
-    </div>
+    </MobilePage>
   );
 }

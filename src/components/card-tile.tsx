@@ -20,6 +20,7 @@ export type CardPreview = {
   ownedQuantity?: number;
   flagged?: boolean;
   setName?: string;
+  officialCode?: string | null;
   price?: number | null;
 };
 
@@ -96,8 +97,10 @@ export function CardTile({
         <p className="truncate text-[11px] font-medium text-zinc-300">
           {card.number} · {card.name}
         </p>
-        {!compact && card.setName ? (
-          <p className="truncate text-[10px] text-zinc-500">{card.setName}</p>
+        {!compact && (card.officialCode ?? card.setName) ? (
+          <p className="truncate text-[10px] text-zinc-500">
+            {card.officialCode ?? card.setName}
+          </p>
         ) : null}
         <p className="text-[10px] tabular-nums">
           {hasCardPrice(card.price) ? (

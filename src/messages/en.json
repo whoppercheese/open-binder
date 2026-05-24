@@ -70,8 +70,7 @@
   },
   "search": {
     "title": "Search",
-    "subtitle": "Name, number, or set + number · downloaded sets only",
-    "subtitleAllSets": "Name, number, or set + number · all sets via TCGdex",
+    "subtitle": "Search downloaded or all sets via TCGdex",
     "allSetsButton": "Search all sets",
     "loading": "Searching…",
     "noResults": "No cards found."
@@ -149,7 +148,7 @@
     "price": "Price",
     "priceUnavailable": "—",
     "added": "added",
-    "searchDefaultPlaceholder": "Pikachu, 4 or Jungle 60",
+    "searchDefaultPlaceholder": "e.g. Pikachu, Jungle 60 or BS 4",
     "variantNormal": "Normal",
     "variantHolo": "Holo",
     "variantReverseHolo": "Reverse Holo",

@@ -70,8 +70,7 @@
   },
   "search": {
     "title": "Suche",
-    "subtitle": "Name, Nummer oder Set + Nummer · nur heruntergeladene Sets",
-    "subtitleAllSets": "Name, Nummer oder Set + Nummer · alle Sets via TCGdex",
+    "subtitle": "Suche in geladenen oder allen Sets via TCGdex",
     "allSetsButton": "Alle Sets durchsuchen",
     "loading": "Suche läuft…",
     "noResults": "Keine Karten gefunden."
@@ -149,7 +148,7 @@
     "price": "Preis",
     "priceUnavailable": "—",
     "added": "hinzugefügt",
-    "searchDefaultPlaceholder": "Pikachu, 4 oder Dschungel 60",
+    "searchDefaultPlaceholder": "z. B. Pikachu, Dschungel 60 oder BS 4",
     "variantNormal": "Normal",
     "variantHolo": "Holo",
     "variantReverseHolo": "Reverse Holo",

@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { CardModal, type CardDetail } from "@/components/card-modal";
 import { CardTile } from "@/components/card-tile";
+import { MobilePage, MobilePageHeader } from "@/components/mobile-page";
 import { SearchBar } from "@/components/search-bar";
 import { apiUrl, useLocale, useTranslations } from "@/lib/i18n/context";
 import { isSearchableQuery } from "@/lib/search";
@@ -56,13 +57,11 @@ export default function SearchPage() {
   }, [query, searchAllSets, runSearch]);
 
   return (
-    <div className="space-y-5 px-4 pt-6">
-      <header>
-        <h1 className="text-2xl font-bold">{t("search.title")}</h1>
-        <p className="text-sm text-zinc-400">
-          {searchAllSets ? t("search.subtitleAllSets") : t("search.subtitle")}
-        </p>
-      </header>
+    <MobilePage>
+      <MobilePageHeader
+        title={t("search.title")}
+        subtitle={t("search.subtitle")}
+      />
 
       <div className="space-y-3">
         <SearchBar
@@ -104,6 +103,7 @@ export default function SearchPage() {
               imageUrl: card.imageUrl,
               remoteImageUrl: searchAllSets ? card.imageUrl : null,
               setName: card.setName,
+              officialCode: card.officialCode,
               owned: card.owned,
               price: card.variants.find((variant) => variant.price != null)?.price,
             }}
@@ -121,6 +121,6 @@ export default function SearchPage() {
         open={open}
         onClose={() => setOpen(false)}
       />
-    </div>
+    </MobilePage>
   );
 }
