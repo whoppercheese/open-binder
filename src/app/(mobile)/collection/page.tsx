@@ -42,7 +42,6 @@ type CollectionItem = {
   condition: string;
   language: string;
   notes: string | null;
-  purchasePrice: string | null;
   flagged: boolean;
   variantId: string;
   variantType: string;
@@ -306,7 +305,6 @@ function CollectionPageContent() {
         condition: item.condition,
         language: item.language,
         notes: item.notes,
-        purchasePrice: item.purchasePrice,
         flagged: item.flagged,
       });
       setEditOpen(true);

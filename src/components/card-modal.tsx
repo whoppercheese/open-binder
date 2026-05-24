@@ -15,6 +15,7 @@ import { ConditionBadgeButton } from "@/components/condition-badge";
 import { CardFrame } from "@/components/card-frame";
 import { CardImage } from "@/components/card-image";
 import { CardImageLightbox } from "@/components/card-image-lightbox";
+import { InfoTooltip } from "@/components/info-tooltip";
 import { Portal } from "@/components/portal";
 import { getCardmarketProductUrl } from "@/lib/cardmarket";
 import {
@@ -61,7 +62,6 @@ export type CollectionEntry = {
   condition: string;
   language: string;
   notes: string | null;
-  purchasePrice: string | null;
   flagged: boolean;
 };
 
@@ -97,7 +97,6 @@ function createInitialFormState(
       condition: entry.condition,
       language: entry.language,
       notes: entry.notes ?? "",
-      purchasePrice: entry.purchasePrice ?? "",
       flagged: entry.flagged,
     };
   }
@@ -109,7 +108,6 @@ function createInitialFormState(
       condition: defaultCondition,
       language: "de",
       notes: "",
-      purchasePrice: "",
       flagged: false,
     };
   }
@@ -120,7 +118,6 @@ function createInitialFormState(
     condition: defaultCondition,
     language: "de",
     notes: "",
-    purchasePrice: "",
     flagged: false,
   };
 }
@@ -155,7 +152,6 @@ function CardModalForm({
   const [condition, setCondition] = useState(initialForm.condition);
   const [language, setLanguage] = useState(initialForm.language);
   const [notes, setNotes] = useState(initialForm.notes);
-  const [purchasePrice, setPurchasePrice] = useState(initialForm.purchasePrice);
   const [flagged, setFlagged] = useState(initialForm.flagged);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -178,7 +174,6 @@ function CardModalForm({
     setCondition(initial.condition);
     setLanguage(initial.language);
     setNotes(initial.notes);
-    setPurchasePrice(initial.purchasePrice);
     setFlagged(initial.flagged);
     setError(null);
   }
@@ -216,7 +211,6 @@ function CardModalForm({
           condition,
           language,
           notes: notes || null,
-          purchasePrice: purchasePrice ? Number(purchasePrice) : null,
           flagged,
         });
       } else {
@@ -226,7 +220,6 @@ function CardModalForm({
           condition,
           language,
           notes: notes || null,
-          purchasePrice: purchasePrice ? Number(purchasePrice) : null,
           flagged,
         });
       }
@@ -410,42 +403,31 @@ function CardModalForm({
               />
                 </label>
 
-                <label className="block space-y-1">
-                  <span className="text-zinc-400">{t("cardModal.purchasePrice")}</span>
-                  <input
-                    type="number"
-                    min={0}
-                    step="0.01"
-                    value={purchasePrice}
-                    onChange={(event) => setPurchasePrice(event.target.value)}
-                    className="w-full rounded-xl border border-white/10 bg-black/30 px-3 py-2 text-white"
-                  />
-                </label>
-
-                <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-white/10 bg-black/30 px-3 py-2.5">
-                  <input
-                    type="checkbox"
-                    checked={flagged}
-                    onChange={(event) => setFlagged(event.target.checked)}
-                    className="sr-only"
-                  />
-                  {flagged ? (
-                    <CardFlagBadge size="sm" className="mt-0.5" />
-                  ) : (
-                    <span
-                      className="mt-0.5 inline-flex size-5 shrink-0 rounded border border-white/20 bg-black/40"
-                      aria-hidden
+                <div className="flex items-center gap-2 rounded-xl border border-white/10 bg-black/30 px-3 py-2.5">
+                  <label className="flex min-w-0 flex-1 cursor-pointer items-center gap-3">
+                    <input
+                      type="checkbox"
+                      checked={flagged}
+                      onChange={(event) => setFlagged(event.target.checked)}
+                      className="sr-only"
                     />
-                  )}
-                  <span className="space-y-0.5">
-                    <span className="block text-sm font-medium text-white">
+                    {flagged ? (
+                      <CardFlagBadge size="sm" />
+                    ) : (
+                      <span
+                        className="inline-flex size-5 shrink-0 rounded border border-white/20 bg-black/40"
+                        aria-hidden
+                      />
+                    )}
+                    <span className="text-sm font-medium text-white">
                       {t("cardModal.flag")}
                     </span>
-                    <span className="block text-xs text-zinc-400">
-                      {t("cardModal.flagHelp")}
-                    </span>
-                  </span>
-                </label>
+                  </label>
+                  <InfoTooltip
+                    content={t("cardModal.flagHelp")}
+                    label={t("cardModal.flagHelpLabel")}
+                  />
+                </div>
               </div>
               ) : null}
             </div>
