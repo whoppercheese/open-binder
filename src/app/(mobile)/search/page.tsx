@@ -1,8 +1,13 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { CardModal, type CardDetail } from "@/components/card-modal";
 import { CardTile } from "@/components/card-tile";
+import {
+  clearSavedScrollPosition,
+  restoreScrollPosition,
+  scrollMainToTop,
+} from "@/components/mobile-scroll-shell";
 import { MobilePage, MobilePageHeader } from "@/components/mobile-page";
 import { SearchBar } from "@/components/search-bar";
 import { apiUrl, useLocale, useTranslations } from "@/lib/i18n/context";
@@ -14,15 +19,50 @@ type SearchResult = CardDetail & {
   owned: boolean;
 };
 
+const SEARCH_PAGE_STATE_KEY = "search-page-state";
+
+type SearchPageState = {
+  query: string;
+  searchAllSets: boolean;
+  results: SearchResult[];
+};
+
+function readSavedState(): SearchPageState {
+  if (typeof window === "undefined") {
+    return { query: "", searchAllSets: false, results: [] };
+  }
+
+  try {
+    const saved = sessionStorage.getItem(SEARCH_PAGE_STATE_KEY);
+    if (!saved) {
+      return { query: "", searchAllSets: false, results: [] };
+    }
+
+    const parsed = JSON.parse(saved) as Partial<SearchPageState>;
+    return {
+      query: typeof parsed.query === "string" ? parsed.query : "",
+      searchAllSets: parsed.searchAllSets === true,
+      results: Array.isArray(parsed.results) ? parsed.results : [],
+    };
+  } catch {
+    return { query: "", searchAllSets: false, results: [] };
+  }
+}
+
 export default function SearchPage() {
   const { locale } = useLocale();
   const t = useTranslations();
-  const [query, setQuery] = useState("");
-  const [searchAllSets, setSearchAllSets] = useState(false);
-  const [results, setResults] = useState<SearchResult[]>([]);
+  const savedState = readSavedState();
+  const [query, setQuery] = useState(savedState.query);
+  const [searchAllSets, setSearchAllSets] = useState(savedState.searchAllSets);
+  const [results, setResults] = useState<SearchResult[]>(savedState.results);
   const [loading, setLoading] = useState(false);
   const [selectedCard, setSelectedCard] = useState<CardDetail | null>(null);
   const [open, setOpen] = useState(false);
+  const skipNextSearchRef = useRef(isSearchableQuery(savedState.query));
+
+  const hasActiveSearch =
+    query.trim().length > 0 || results.length > 0 || searchAllSets;
 
   const runSearch = useCallback(async (searchQuery: string, allSets: boolean) => {
     if (!searchQuery.trim()) {
@@ -45,8 +85,32 @@ export default function SearchPage() {
     }
   }, [locale]);
 
+  const resetSearch = useCallback(() => {
+    skipNextSearchRef.current = false;
+    setQuery("");
+    setSearchAllSets(false);
+    setResults([]);
+    setSelectedCard(null);
+    setOpen(false);
+    sessionStorage.removeItem(SEARCH_PAGE_STATE_KEY);
+    clearSavedScrollPosition("/search");
+    scrollMainToTop();
+  }, []);
+
+  useEffect(() => {
+    sessionStorage.setItem(
+      SEARCH_PAGE_STATE_KEY,
+      JSON.stringify({ query, searchAllSets, results }),
+    );
+  }, [query, searchAllSets, results]);
+
   useEffect(() => {
     const timer = setTimeout(() => {
+      if (skipNextSearchRef.current) {
+        skipNextSearchRef.current = false;
+        return;
+      }
+
       if (isSearchableQuery(query)) {
         void runSearch(query, searchAllSets);
       } else {
@@ -55,6 +119,12 @@ export default function SearchPage() {
     }, 300);
     return () => clearTimeout(timer);
   }, [query, searchAllSets, runSearch]);
+
+  useLayoutEffect(() => {
+    if (!loading && isSearchableQuery(query)) {
+      restoreScrollPosition("/search");
+    }
+  }, [loading, query, results.length]);
 
   return (
     <MobilePage>
@@ -68,6 +138,8 @@ export default function SearchPage() {
           value={query}
           onChange={setQuery}
           onSubmit={() => void runSearch(query, searchAllSets)}
+          onClear={resetSearch}
+          showClear={hasActiveSearch}
         />
         <button
           type="button"
@@ -91,10 +163,11 @@ export default function SearchPage() {
         <p className="text-sm text-zinc-500">{t("search.noResults")}</p>
       ) : null}
 
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-3 gap-3 sm:grid-cols-4">
         {results.map((card) => (
           <CardTile
             key={card.id}
+            compact
             card={{
               id: card.id,
               number: card.number,

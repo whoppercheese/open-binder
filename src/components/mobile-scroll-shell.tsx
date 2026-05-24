@@ -6,7 +6,7 @@ import { usePathname } from "next/navigation";
 const SCROLL_PREFIX = "scroll:";
 
 function shouldPreserveScroll(pathname: string) {
-  return pathname === "/sets";
+  return pathname === "/sets" || pathname === "/search";
 }
 
 function scrollKey(pathname: string) {
@@ -25,6 +25,29 @@ function readScrollPosition(pathname: string) {
 
   const scrollTop = Number(saved);
   return Number.isFinite(scrollTop) ? scrollTop : null;
+}
+
+export function clearSavedScrollPosition(pathname: string) {
+  sessionStorage.removeItem(scrollKey(pathname));
+}
+
+export function restoreScrollPosition(pathname: string) {
+  const main = document.querySelector("main.app-scroll");
+  if (!(main instanceof HTMLElement) || !shouldPreserveScroll(pathname)) {
+    return;
+  }
+
+  const saved = readScrollPosition(pathname);
+  if (saved != null) {
+    main.scrollTop = saved;
+  }
+}
+
+export function scrollMainToTop() {
+  const main = document.querySelector("main.app-scroll");
+  if (main instanceof HTMLElement) {
+    main.scrollTop = 0;
+  }
 }
 
 type MobileScrollShellProps = {
