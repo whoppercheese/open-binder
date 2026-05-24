@@ -1,6 +1,13 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ReactNode,
+} from "react";
 import { Loader2 } from "lucide-react";
 import { SearchBar } from "@/components/search-bar";
 import { SetListItem } from "@/components/set-list-item";
@@ -8,6 +15,7 @@ import {
   areSetListsEqual,
   type SetListEntry,
 } from "@/lib/sets-list";
+import { cn } from "@/lib/utils";
 
 type ActiveSetCardsJob = {
   id: string;
@@ -35,22 +43,67 @@ type SetsPageContentProps = {
 
 const SETS_PAGE_STATE_KEY = "sets-page-state";
 
-function readSavedQuery() {
+type SetListFilter = "downloaded" | "collection";
+
+type SetsPageState = {
+  query: string;
+  filters: SetListFilter[];
+};
+
+function readSavedState(): SetsPageState {
   if (typeof window === "undefined") {
-    return "";
+    return { query: "", filters: [] };
   }
 
   try {
     const saved = sessionStorage.getItem(SETS_PAGE_STATE_KEY);
     if (!saved) {
-      return "";
+      return { query: "", filters: [] };
     }
 
-    const parsed = JSON.parse(saved) as { query?: string };
-    return typeof parsed.query === "string" ? parsed.query : "";
+    const parsed = JSON.parse(saved) as {
+      query?: string;
+      filters?: unknown;
+    };
+    const filters = Array.isArray(parsed.filters)
+      ? parsed.filters.filter(
+          (filter): filter is SetListFilter =>
+            filter === "downloaded" || filter === "collection",
+        )
+      : [];
+
+    return {
+      query: typeof parsed.query === "string" ? parsed.query : "",
+      filters,
+    };
   } catch {
-    return "";
+    return { query: "", filters: [] };
   }
+}
+
+function FilterChip({
+  active,
+  onClick,
+  children,
+}: {
+  active: boolean;
+  onClick: () => void;
+  children: ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={cn(
+        "shrink-0 cursor-pointer rounded-full border px-3 py-1.5 text-xs font-medium transition-colors",
+        active
+          ? "border-emerald-400/50 bg-emerald-500/15 text-emerald-200"
+          : "border-white/10 bg-white/5 text-zinc-400 hover:border-white/20 hover:text-zinc-200",
+      )}
+    >
+      {children}
+    </button>
+  );
 }
 
 function matchesSetQuery(set: SetListEntry, query: string) {
@@ -63,6 +116,34 @@ function matchesSetQuery(set: SetListEntry, query: string) {
     set.nameDe.toLowerCase().includes(normalized) ||
     (set.officialCode?.toLowerCase().includes(normalized) ?? false)
   );
+}
+
+function matchesSetFilters(
+  set: SetListEntry,
+  filters: ReadonlySet<SetListFilter>,
+) {
+  if (filters.size === 0) {
+    return true;
+  }
+
+  if (filters.has("downloaded") && set.cardsSyncedAt == null) {
+    return false;
+  }
+
+  if (filters.has("collection") && (set.progress?.owned ?? 0) <= 0) {
+    return false;
+  }
+
+  return true;
+}
+
+function toggleFilter(
+  current: SetListFilter[],
+  filter: SetListFilter,
+): SetListFilter[] {
+  return current.includes(filter)
+    ? current.filter((entry) => entry !== filter)
+    : [...current, filter];
 }
 
 function activeJobsEqual(
@@ -106,10 +187,12 @@ function catalogJobEqual(
 }
 
 export function SetsPageContent({ initialSets }: SetsPageContentProps) {
+  const savedState = readSavedState();
   const [sets, setSets] = useState(initialSets);
   const setsRef = useRef(initialSets);
   const knownSetCountRef = useRef(initialSets.length);
-  const [query, setQuery] = useState(readSavedQuery);
+  const [query, setQuery] = useState(savedState.query);
+  const [filters, setFilters] = useState<SetListFilter[]>(savedState.filters);
   const [activeJobs, setActiveJobs] = useState<ActiveSetCardsJob[]>([]);
   const [catalogJob, setCatalogJob] = useState<ActiveCatalogJob | null>(null);
   const [loadingSetId, setLoadingSetId] = useState<string | null>(null);
@@ -125,9 +208,12 @@ export function SetsPageContent({ initialSets }: SetsPageContentProps) {
   useEffect(() => {
     sessionStorage.setItem(
       SETS_PAGE_STATE_KEY,
-      JSON.stringify({ query }),
+      JSON.stringify({ query, filters }),
     );
-  }, [query]);
+  }, [query, filters]);
+
+  const activeFilters = useMemo(() => new Set(filters), [filters]);
+  const hasActiveFilters = filters.length > 0;
 
   const stopPolling = useCallback(() => {
     if (pollTimeoutRef.current) {
@@ -252,8 +338,12 @@ export function SetsPageContent({ initialSets }: SetsPageContentProps) {
   }, [activeJobs, catalogJob]);
 
   const filteredSets = useMemo(
-    () => sets.filter((set) => matchesSetQuery(set, query)),
-    [sets, query],
+    () =>
+      sets.filter(
+        (set) =>
+          matchesSetQuery(set, query) && matchesSetFilters(set, activeFilters),
+      ),
+    [sets, query, activeFilters],
   );
 
   const grouped = useMemo(() => {
@@ -318,8 +408,9 @@ export function SetsPageContent({ initialSets }: SetsPageContentProps) {
   }
 
   const trimmedQuery = query.trim();
+  const hasSearch = trimmedQuery.length > 0;
   const subtitle =
-    trimmedQuery.length > 0
+    hasSearch || hasActiveFilters
       ? `${filteredSets.length} von ${sets.length} Sets`
       : `${sets.length} Sets durchsuchen`;
 
@@ -371,11 +462,31 @@ export function SetsPageContent({ initialSets }: SetsPageContentProps) {
       ) : null}
 
       {sets.length > 0 ? (
-        <SearchBar
-          value={query}
-          onChange={setQuery}
-          placeholder="Name oder Kürzel (z.B. Base Set, BS)"
-        />
+        <div className="space-y-3">
+          <SearchBar
+            value={query}
+            onChange={setQuery}
+            placeholder="Name oder Kürzel (z.B. Base Set, BS)"
+          />
+          <div className="flex flex-wrap gap-2">
+            <FilterChip
+              active={filters.includes("downloaded")}
+              onClick={() =>
+                setFilters((current) => toggleFilter(current, "downloaded"))
+              }
+            >
+              Karten geladen
+            </FilterChip>
+            <FilterChip
+              active={filters.includes("collection")}
+              onClick={() =>
+                setFilters((current) => toggleFilter(current, "collection"))
+              }
+            >
+              Mit Sammelfortschritt
+            </FilterChip>
+          </div>
+        </div>
       ) : null}
 
       {loadError ? (
@@ -388,9 +499,13 @@ export function SetsPageContent({ initialSets }: SetsPageContentProps) {
         </div>
       ) : null}
 
-      {sets.length > 0 && trimmedQuery && filteredSets.length === 0 ? (
+      {sets.length > 0 && (hasSearch || hasActiveFilters) && filteredSets.length === 0 ? (
         <div className="rounded-2xl border border-dashed border-white/10 p-8 text-center text-sm text-zinc-500">
-          Keine Sets für diese Suche.
+          {hasSearch && hasActiveFilters
+            ? "Keine Sets für diese Suche und Filter."
+            : hasSearch
+              ? "Keine Sets für diese Suche."
+              : "Keine Sets für diese Filter."}
         </div>
       ) : null}
 
