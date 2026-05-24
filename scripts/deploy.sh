@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-# Initial setup and updates: stop app, pull main, prepare env, rebuild & start via Docker Compose.
+# Initial setup and updates: pull main, prepare env, rebuild & start via Docker Compose.
+# Pass targets to rebuild only specific services (faster for app-only changes).
 set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -9,12 +10,98 @@ GITHUB_REMOTE="${GITHUB_REMOTE:-origin}"
 GITHUB_BRANCH="${GITHUB_BRANCH:-main}"
 REPO_URL="${REPO_URL:-https://github.com/whoppercheese/open-binder.git}"
 
+VALID_TARGETS=(full app worker migrate postgres)
+IMAGE_TARGETS=(app worker migrate)
+
 log() { printf '[OpenBinder] %s\n' "$*"; }
 die() { printf '[OpenBinder] ERROR: %s\n' "$*" >&2; exit 1; }
+
+usage() {
+  cat <<EOF
+Usage: $(basename "$0") [TARGET...]
+
+Targets:
+  full (default)  Stop stack, pull, rebuild and start everything.
+  app             Pull, rebuild app image, restart app only.
+  worker          Pull, rebuild image, restart worker only.
+  migrate         Pull, rebuild image, run database migrations.
+  postgres        Pull postgres image and recreate postgres (data volume kept).
+
+Examples:
+  $(basename "$0")              # full deploy
+  $(basename "$0") app          # fast app-only update
+  $(basename "$0") app worker   # rebuild image, restart app and worker
+  $(basename "$0") migrate app  # migrate, then restart app
+EOF
+}
 
 require_cmd() {
   command -v "$1" >/dev/null 2>&1 || die "'$1' is required but not installed."
 }
+
+is_valid_target() {
+  local target="$1"
+  local valid
+  for valid in "${VALID_TARGETS[@]}"; do
+    [[ "$target" == "$valid" ]] && return 0
+  done
+  return 1
+}
+
+parse_targets() {
+  TARGETS=()
+  if [[ $# -eq 0 ]]; then
+    TARGETS=(full)
+    return
+  fi
+
+  for arg in "$@"; do
+    case "$arg" in
+      -h | --help)
+        usage
+        exit 0
+        ;;
+      full | all)
+        TARGETS=(full)
+        return
+        ;;
+    esac
+
+    if ! is_valid_target "$arg"; then
+      die "Unknown target '${arg}'. Valid targets: ${VALID_TARGETS[*]}"
+    fi
+
+    if [[ "$arg" == "full" ]]; then
+      TARGETS=(full)
+      return
+    fi
+
+    local existing
+    for existing in "${TARGETS[@]:-}"; do
+      [[ "$existing" == "$arg" ]] && continue 2
+    done
+    TARGETS+=("$arg")
+  done
+}
+
+target_selected() {
+  local wanted="$1"
+  local target
+  for target in "${TARGETS[@]}"; do
+    [[ "$target" == "$wanted" ]] && return 0
+  done
+  return 1
+}
+
+needs_image_build() {
+  local target
+  for target in "${IMAGE_TARGETS[@]}"; do
+    target_selected "$target" && return 0
+  done
+  return 1
+}
+
+parse_targets "$@"
 
 require_cmd docker
 require_cmd git
@@ -75,21 +162,79 @@ pull_latest() {
   git merge --ff-only "${GITHUB_REMOTE}/${GITHUB_BRANCH}"
 }
 
-start_compose() {
+ensure_postgres_running() {
+  if docker compose ps --status running postgres 2>/dev/null | grep -q postgres; then
+    return
+  fi
+
+  die "Postgres is not running. Run a full deploy first: ./scripts/deploy.sh full"
+}
+
+build_app_image() {
+  log "Building application image…"
+  docker compose build app
+}
+
+run_migrate() {
+  log "Running database migrations…"
+  docker compose run --rm migrate
+}
+
+start_full_compose() {
   log "Building images and starting services (migrate runs automatically)…"
   docker compose up -d --build --pull always
-  log "Deploy finished."
-  log "App: http://localhost:3000"
-  log "First catalog sync can take 15–30 minutes (see README)."
+}
+
+start_partial_compose() {
+  local up_targets=()
+
+  if target_selected postgres; then
+    log "Recreating postgres…"
+    docker compose up -d --pull always postgres
+  fi
+
+  if needs_image_build; then
+    build_app_image
+  fi
+
+  if target_selected migrate; then
+    run_migrate
+  fi
+
+  if target_selected app; then
+    up_targets+=(app)
+  fi
+
+  if target_selected worker; then
+    up_targets+=(worker)
+  fi
+
+  if ((${#up_targets[@]} > 0)); then
+    log "Restarting: ${up_targets[*]}…"
+    docker compose up -d --no-deps "${up_targets[@]}"
+  fi
 }
 
 main() {
   log "Repository: ${REPO_ROOT}"
   ensure_git_repo
-  stop_compose
-  pull_latest
   ensure_env_file
-  start_compose
+
+  if target_selected full; then
+    stop_compose
+    pull_latest
+    start_full_compose
+  else
+    pull_latest
+    ensure_postgres_running
+    start_partial_compose
+  fi
+
+  log "Deploy finished."
+  log "App: http://localhost:3000"
+  if target_selected full || target_selected worker; then
+    log "First catalog sync can take 15–30 minutes (see README)."
+  fi
 }
 
-main "$@"
+main
