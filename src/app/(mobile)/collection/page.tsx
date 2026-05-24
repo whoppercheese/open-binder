@@ -44,6 +44,14 @@ type CollectionGroup = {
   items: CollectionItem[];
 };
 
+type FilterCard = {
+  cardId: string;
+  nameDe: string;
+  number: string;
+  setId: string;
+  setName: string;
+};
+
 function groupBySet(items: CollectionItem[]): CollectionGroup[] {
   const groups = new Map<string, CollectionGroup>();
 
@@ -69,6 +77,7 @@ function CollectionPageContent() {
   const cardId = searchParams.get("cardId")?.trim() ?? "";
 
   const [items, setItems] = useState<CollectionItem[]>([]);
+  const [filterCard, setFilterCard] = useState<FilterCard | null>(null);
   const [total, setTotal] = useState(0);
   const [totalValue, setTotalValue] = useState(0);
   const [hasMore, setHasMore] = useState(false);
@@ -93,6 +102,9 @@ function CollectionPageContent() {
       if (reset) {
         setLoading(true);
         offsetRef.current = 0;
+        if (filterCardId) {
+          setFilterCard(null);
+        }
       } else {
         setLoadingMore(true);
       }
@@ -118,6 +130,11 @@ function CollectionPageContent() {
           setItems(newItems);
           setTotal(payload.total ?? newItems.length);
           setTotalValue(payload.totalValue ?? 0);
+          if (filterCardId) {
+            setFilterCard(payload.filterCard ?? null);
+          } else {
+            setFilterCard(null);
+          }
         } else {
           setItems((current) => [...current, ...newItems]);
         }
@@ -164,8 +181,8 @@ function CollectionPageContent() {
   }, [hasMore, loading, loadingMore, query, cardId, loadPage, items.length]);
 
   const groups = useMemo(() => groupBySet(items), [items]);
-  const filterLabel = items[0]
-    ? `${items[0].nameDe} · ${items[0].setName} · #${items[0].number}`
+  const filterLabel = filterCard
+    ? `${filterCard.nameDe} · ${filterCard.setName} · #${filterCard.number}`
     : null;
 
   async function removeItem(item: CollectionItem) {

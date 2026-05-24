@@ -141,11 +141,36 @@ export async function GET(request: Request) {
     const hasMore =
       offset === 0 ? loadedCount < total : items.length === limit;
 
+    let filterCard: {
+      cardId: string;
+      nameDe: string;
+      number: string;
+      setId: string;
+      setName: string;
+    } | null = null;
+    if (cardId && offset === 0) {
+      const [cardRow] = await db
+        .select({
+          cardId: cards.id,
+          nameDe: cardDisplayNameSql,
+          number: cards.number,
+          setId: sets.id,
+          setName: sets.nameDe,
+        })
+        .from(cards)
+        .innerJoin(sets, eq(cards.setId, sets.id))
+        .where(eq(cards.id, cardId))
+        .limit(1);
+
+      filterCard = cardRow ?? null;
+    }
+
     return NextResponse.json({
       items,
       total: offset === 0 ? total : undefined,
       totalValue: offset === 0 ? totalValue : undefined,
       hasMore,
+      filterCard,
     });
   } catch (error) {
     console.error(error);
