@@ -30,6 +30,39 @@ export function parseSearchQuery(raw: string): ParsedSearchQuery {
   return { text: trimmed, setHint: null, number: null };
 }
 
+export function isSearchableQuery(raw: string): boolean {
+  const parsed = parseSearchQuery(raw);
+  if (!parsed.text) {
+    return false;
+  }
+  if (parsed.number && !parsed.setHint) {
+    return true;
+  }
+  return parsed.text.length >= 2;
+}
+
+function setMetadataBlobExpr(locale: UiLocale) {
+  return sql`lower(
+    coalesce(s.names->>${locale}, s.names->>'en', '') || ' ' ||
+    coalesce(s.official_code, '') || ' ' ||
+    s.id
+  )`;
+}
+
+function buildSetHintMatchSql(setHint: string, locale: UiLocale) {
+  const tokens = setHint.toLowerCase().split(/\s+/).filter(Boolean);
+  if (tokens.length === 0) {
+    return sql`TRUE`;
+  }
+
+  const blob = setMetadataBlobExpr(locale);
+  const conditions = tokens.map(
+    (token) => sql`${blob} LIKE ${`%${token}%`}`,
+  );
+
+  return sql.join(conditions, sql` AND `);
+}
+
 export function buildSearchSql(
   parsed: ParsedSearchQuery,
   locale: UiLocale = "en",
@@ -47,11 +80,7 @@ export function buildSearchSql(
       SELECT c.id
       FROM cards c
       INNER JOIN sets s ON s.id = c.set_id
-      WHERE (
-        lower(${setNameExpr}) LIKE ${`%${parsed.setHint.toLowerCase()}%`}
-        OR lower(coalesce(s.official_code, '')) = ${parsed.setHint.toLowerCase()}
-        OR lower(s.id) = ${parsed.setHint.toLowerCase()}
-      )
+      WHERE ${buildSetHintMatchSql(parsed.setHint, locale)}
       AND c.number = ${parsed.number}
       ORDER BY s.release_date DESC NULLS LAST, c.number
       LIMIT ${limit}

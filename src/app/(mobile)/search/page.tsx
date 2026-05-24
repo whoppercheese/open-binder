@@ -5,6 +5,7 @@ import { CardModal, type CardDetail } from "@/components/card-modal";
 import { CardTile } from "@/components/card-tile";
 import { SearchBar } from "@/components/search-bar";
 import { apiUrl, useLocale, useTranslations } from "@/lib/i18n/context";
+import { isSearchableQuery } from "@/lib/search";
 
 type SearchResult = CardDetail & {
   setName: string;
@@ -39,7 +40,7 @@ export default function SearchPage() {
 
   useEffect(() => {
     const timer = setTimeout(() => {
-      if (query.trim().length >= 2) {
+      if (isSearchableQuery(query)) {
         void runSearch(query);
       } else {
         setResults([]);
@@ -65,7 +66,7 @@ export default function SearchPage() {
         <p className="text-sm text-zinc-400">{t("search.loading")}</p>
       ) : null}
 
-      {!loading && query.trim().length >= 2 && results.length === 0 ? (
+      {!loading && isSearchableQuery(query) && results.length === 0 ? (
         <p className="text-sm text-zinc-500">{t("search.noResults")}</p>
       ) : null}
 
