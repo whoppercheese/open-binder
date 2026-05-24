@@ -1,4 +1,7 @@
+"use client";
+
 import { Check } from "lucide-react";
+import { useTranslations } from "@/lib/i18n/context";
 import { cn } from "@/lib/utils";
 
 export type QuickAddToastData =
@@ -16,6 +19,8 @@ type QuickAddToastProps = {
 };
 
 export function QuickAddToast({ data, className }: QuickAddToastProps) {
+  const t = useTranslations();
+
   if (data.kind === "error") {
     return (
       <div
@@ -54,7 +59,7 @@ export function QuickAddToast({ data, className }: QuickAddToastProps) {
           <span className="shrink-0 rounded-md border border-white/10 bg-white/5 px-1.5 py-0.5 text-xs font-semibold tracking-wide text-emerald-200">
             {data.conditionLabel}
           </span>
-          <span className="shrink-0 text-emerald-400/75">hinzugefügt</span>
+          <span className="shrink-0 text-emerald-400/75">{t("common.added")}</span>
         </span>
       </p>
     </div>

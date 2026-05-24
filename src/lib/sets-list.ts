@@ -1,6 +1,6 @@
 export type SetListEntry = {
   id: string;
-  nameDe: string;
+  name: string;
   officialCode: string | null;
   seriesName: string;
   cardsSyncedAt: string | null;
@@ -11,24 +11,24 @@ export type SetListEntry = {
   } | null;
 };
 
-export function areSetListsEqual(a: SetListEntry[], b: SetListEntry[]) {
-  if (a.length !== b.length) {
-    return false;
-  }
+export function areSetListsEqual(
+  left: SetListEntry[],
+  right: SetListEntry[],
+): boolean {
+  if (left.length !== right.length) return false;
 
-  for (let index = 0; index < a.length; index += 1) {
-    const left = a[index];
-    const right = b[index];
-
+  for (let index = 0; index < left.length; index += 1) {
+    const a = left[index];
+    const b = right[index];
     if (
-      left.id !== right.id ||
-      left.nameDe !== right.nameDe ||
-      left.officialCode !== right.officialCode ||
-      left.seriesName !== right.seriesName ||
-      left.cardsSyncedAt !== right.cardsSyncedAt ||
-      left.progress?.owned !== right.progress?.owned ||
-      left.progress?.total !== right.progress?.total ||
-      left.progress?.percent !== right.progress?.percent
+      a.id !== b.id ||
+      a.name !== b.name ||
+      a.officialCode !== b.officialCode ||
+      a.seriesName !== b.seriesName ||
+      a.cardsSyncedAt !== b.cardsSyncedAt ||
+      a.progress?.owned !== b.progress?.owned ||
+      a.progress?.total !== b.progress?.total ||
+      a.progress?.percent !== b.progress?.percent
     ) {
       return false;
     }

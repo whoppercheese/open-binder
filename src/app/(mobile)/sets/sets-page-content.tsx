@@ -11,6 +11,8 @@ import {
 import { Loader2 } from "lucide-react";
 import { SearchBar } from "@/components/search-bar";
 import { SetListItem } from "@/components/set-list-item";
+import { apiUrl, useLocale, useTranslations } from "@/lib/i18n/context";
+import { formatSyncJobMessage } from "@/lib/sync-job-display";
 import {
   areSetListsEqual,
   type SetListEntry,
@@ -113,7 +115,7 @@ function matchesSetQuery(set: SetListEntry, query: string) {
   }
 
   return (
-    set.nameDe.toLowerCase().includes(normalized) ||
+    set.name.toLowerCase().includes(normalized) ||
     (set.officialCode?.toLowerCase().includes(normalized) ?? false)
   );
 }
@@ -187,6 +189,8 @@ function catalogJobEqual(
 }
 
 export function SetsPageContent({ initialSets }: SetsPageContentProps) {
+  const { locale } = useLocale();
+  const t = useTranslations();
   const savedState = readSavedState();
   const [sets, setSets] = useState(initialSets);
   const setsRef = useRef(initialSets);
@@ -243,7 +247,7 @@ export function SetsPageContent({ initialSets }: SetsPageContentProps) {
   }, []);
 
   const loadSetsList = useCallback(async () => {
-    const response = await fetch("/api/sets/list");
+    const response = await fetch(apiUrl("/api/sets/list", locale));
     if (!response.ok) {
       return false;
     }
@@ -257,13 +261,15 @@ export function SetsPageContent({ initialSets }: SetsPageContentProps) {
 
     knownSetCountRef.current = nextSets.length;
     return true;
-  }, []);
+  }, [locale]);
+
+  const runPollRef = useRef<(() => Promise<void>) | null>(null);
 
   const runPoll = useCallback(async () => {
     const payload = await loadActiveJobs();
     if (!payload) {
       pollTimeoutRef.current = setTimeout(() => {
-        void runPoll();
+        void runPollRef.current?.();
       }, 3000);
       return;
     }
@@ -293,10 +299,14 @@ export function SetsPageContent({ initialSets }: SetsPageContentProps) {
     if (!isIdle) {
       stopPolling();
       pollTimeoutRef.current = setTimeout(() => {
-        void runPoll();
+        void runPollRef.current?.();
       }, 3000);
     }
   }, [loadActiveJobs, loadSetsList, stopPolling]);
+
+  useEffect(() => {
+    runPollRef.current = runPoll;
+  }, [runPoll]);
 
   useEffect(() => {
     void runPoll();
@@ -350,7 +360,7 @@ export function SetsPageContent({ initialSets }: SetsPageContentProps) {
     const groups = new Map<string, SetListEntry[]>();
 
     for (const set of filteredSets) {
-      const series = set.seriesName || "Sonstige";
+      const series = set.seriesName || t("sets.seriesOther");
       const existing = groups.get(series);
       if (existing) {
         existing.push(set);
@@ -360,13 +370,13 @@ export function SetsPageContent({ initialSets }: SetsPageContentProps) {
     }
 
     return Array.from(groups.entries());
-  }, [filteredSets]);
+  }, [filteredSets, t]);
 
   async function handleLoadCards(setId: string) {
     setLoadError(null);
     setLoadingSetId(setId);
 
-    const setName = sets.find((set) => set.id === setId)?.nameDe ?? setId;
+    const setName = sets.find((set) => set.id === setId)?.name ?? setId;
     setActiveJobs((current) => {
       if (current.some((job) => job.setId === setId)) {
         return current;
@@ -391,10 +401,7 @@ export function SetsPageContent({ initialSets }: SetsPageContentProps) {
     });
 
     if (!response.ok) {
-      const body = await response.json().catch(() => ({}));
-      setLoadError(
-        (body.error as string) ?? "Karten-Sync konnte nicht gestartet werden.",
-      );
+      setLoadError(t("errors.cardSyncStartFailed"));
       setActiveJobs((current) => current.filter((job) => job.setId !== setId));
     } else {
       await loadActiveJobs();
@@ -411,13 +418,16 @@ export function SetsPageContent({ initialSets }: SetsPageContentProps) {
   const hasSearch = trimmedQuery.length > 0;
   const subtitle =
     hasSearch || hasActiveFilters
-      ? `${filteredSets.length} von ${sets.length} Sets`
-      : `${sets.length} Sets durchsuchen`;
+      ? t("sets.subtitleFiltered", {
+          filtered: filteredSets.length,
+          total: sets.length,
+        })
+      : t("sets.subtitleBrowse", { total: sets.length });
 
   return (
     <div className="space-y-6 px-4 pt-6">
       <header>
-        <h1 className="text-2xl font-bold">Sets</h1>
+        <h1 className="text-2xl font-bold">{t("sets.title")}</h1>
         <p className="text-sm text-zinc-400">{subtitle}</p>
       </header>
 
@@ -428,33 +438,31 @@ export function SetsPageContent({ initialSets }: SetsPageContentProps) {
             {syncIndicator.catalogActive && !syncIndicator.runningSetName ? (
               <p className="font-medium">
                 {syncIndicator.catalogStatus === "running"
-                  ? "Set-Liste wird synchronisiert…"
-                  : "Set-Liste wartet in der Queue…"}
+                  ? t("sets.catalogSyncRunning")
+                  : t("sets.catalogSyncPending")}
               </p>
             ) : null}
             {syncIndicator.runningSetName ? (
               <p className="font-medium">
-                Karten werden geladen: {syncIndicator.runningSetName}
+                {t("sets.cardsLoadingNamed", {
+                  setName: syncIndicator.runningSetName,
+                })}
               </p>
             ) : syncIndicator.pendingCount > 0 ? (
               <p className="font-medium">
-                {syncIndicator.pendingCount}{" "}
-                {syncIndicator.pendingCount === 1 ? "Set" : "Sets"} in der
-                Warteschlange
+                {t("sets.setsInQueue", { count: syncIndicator.pendingCount })}
               </p>
             ) : null}
             {syncIndicator.runningMessage ? (
               <p className="truncate text-xs text-emerald-200/70">
-                {syncIndicator.runningMessage}
+                {formatSyncJobMessage(syncIndicator.runningMessage, t)}
               </p>
             ) : null}
             {syncIndicator.runningSetName && syncIndicator.pendingCount > 0 ? (
               <p className="text-xs text-emerald-200/70">
-                {syncIndicator.pendingCount}{" "}
-                {syncIndicator.pendingCount === 1
-                  ? "weiteres Set wartet"
-                  : "weitere Sets warten"}{" "}
-                in der Queue
+                {t("sets.additionalSetsWaiting", {
+                  count: syncIndicator.pendingCount,
+                })}
               </p>
             ) : null}
           </div>
@@ -466,7 +474,7 @@ export function SetsPageContent({ initialSets }: SetsPageContentProps) {
           <SearchBar
             value={query}
             onChange={setQuery}
-            placeholder="Name oder Kürzel (z.B. Base Set, BS)"
+            placeholder={t("sets.searchPlaceholder")}
           />
           <div className="flex flex-wrap gap-2">
             <FilterChip
@@ -475,7 +483,7 @@ export function SetsPageContent({ initialSets }: SetsPageContentProps) {
                 setFilters((current) => toggleFilter(current, "downloaded"))
               }
             >
-              Karten geladen
+              {t("sets.filterDownloaded")}
             </FilterChip>
             <FilterChip
               active={filters.includes("collection")}
@@ -483,7 +491,7 @@ export function SetsPageContent({ initialSets }: SetsPageContentProps) {
                 setFilters((current) => toggleFilter(current, "collection"))
               }
             >
-              Mit Sammelfortschritt
+              {t("sets.filterCollection")}
             </FilterChip>
           </div>
         </div>
@@ -495,17 +503,17 @@ export function SetsPageContent({ initialSets }: SetsPageContentProps) {
 
       {sets.length === 0 ? (
         <div className="rounded-2xl border border-dashed border-white/10 p-8 text-center text-sm text-zinc-500">
-          Noch keine Sets vorhanden. Der Worker lädt die Set-Liste beim Start.
+          {t("sets.emptyNoSets")}
         </div>
       ) : null}
 
       {sets.length > 0 && (hasSearch || hasActiveFilters) && filteredSets.length === 0 ? (
         <div className="rounded-2xl border border-dashed border-white/10 p-8 text-center text-sm text-zinc-500">
           {hasSearch && hasActiveFilters
-            ? "Keine Sets für diese Suche und Filter."
+            ? t("sets.emptySearchAndFilter")
             : hasSearch
-              ? "Keine Sets für diese Suche."
-              : "Keine Sets für diese Filter."}
+              ? t("sets.emptySearch")
+              : t("sets.emptyFilter")}
         </div>
       ) : null}
 
@@ -529,7 +537,7 @@ export function SetsPageContent({ initialSets }: SetsPageContentProps) {
                 <SetListItem
                   key={set.id}
                   id={set.id}
-                  nameDe={set.nameDe}
+                  name={set.name}
                   officialCode={set.officialCode}
                   cardsSynced={cardsSynced}
                   syncStatus={syncState}

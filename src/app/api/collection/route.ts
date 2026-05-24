@@ -8,44 +8,40 @@ import {
   sets,
   userCards,
 } from "@/db/schema";
+import {
+  localizedCardNameSql,
+  localizedSetNameSql,
+} from "@/lib/localized-names";
+import { getRequestTranslator } from "@/lib/i18n/server";
 import { getPricePreference, pickPrice } from "@/lib/settings";
-import { cardDisplayNameSql } from "@/lib/card-names";
 
 const DEFAULT_LIMIT = 20;
 const MAX_LIMIT = 100;
 
-const collectionSelect = {
-  id: userCards.id,
-  quantity: userCards.quantity,
-  condition: userCards.condition,
-  language: userCards.language,
-  notes: userCards.notes,
-  purchasePrice: userCards.purchasePrice,
-  flagged: userCards.flagged,
-  updatedAt: userCards.updatedAt,
-  variantId: cardVariants.id,
-  variantType: cardVariants.variantType,
-  cardId: cards.id,
-  number: cards.number,
-  nameDe: cardDisplayNameSql,
-  imageUrl: cards.imageUrl,
-  setId: sets.id,
-  setName: sets.nameDe,
-  trendEur: cardPrices.trendEur,
-  lowEur: cardPrices.lowEur,
-};
-
-function collectionFrom() {
-  return db
-    .select(collectionSelect)
-    .from(userCards)
-    .innerJoin(cardVariants, eq(userCards.variantId, cardVariants.id))
-    .innerJoin(cards, eq(cardVariants.cardId, cards.id))
-    .innerJoin(sets, eq(cards.setId, sets.id))
-    .leftJoin(cardPrices, eq(cardPrices.variantId, cardVariants.id));
+function collectionSelect(locale: "en" | "de") {
+  return {
+    id: userCards.id,
+    quantity: userCards.quantity,
+    condition: userCards.condition,
+    language: userCards.language,
+    notes: userCards.notes,
+    purchasePrice: userCards.purchasePrice,
+    flagged: userCards.flagged,
+    updatedAt: userCards.updatedAt,
+    variantId: cardVariants.id,
+    variantType: cardVariants.variantType,
+    cardId: cards.id,
+    number: cards.number,
+    name: localizedCardNameSql(locale),
+    imageUrl: cards.imageUrl,
+    setId: sets.id,
+    setName: localizedSetNameSql(locale),
+    trendEur: cardPrices.trendEur,
+    lowEur: cardPrices.lowEur,
+  };
 }
 
-function buildSearchFilter(query: string): SQL | undefined {
+function buildSearchFilter(query: string, locale: "en" | "de"): SQL | undefined {
   const trimmed = query.trim();
   if (!trimmed) {
     return undefined;
@@ -53,17 +49,20 @@ function buildSearchFilter(query: string): SQL | undefined {
 
   const pattern = `%${trimmed}%`;
   return or(
-    ilike(cards.nameDe, pattern),
-    ilike(cards.nameEn, pattern),
+    sql`coalesce(${cards.names}->>${locale}, ${cards.names}->>'en', '') ILIKE ${pattern}`,
     ilike(cards.number, pattern),
-    ilike(sets.nameDe, pattern),
+    sql`coalesce(${sets.names}->>${locale}, ${sets.names}->>'en', '') ILIKE ${pattern}`,
     ilike(sets.officialCode, pattern),
   );
 }
 
-function buildWhereClause(query: string, cardId: string): SQL | undefined {
+function buildWhereClause(
+  query: string,
+  cardId: string,
+  locale: "en" | "de",
+): SQL | undefined {
   const filters = [
-    buildSearchFilter(query),
+    buildSearchFilter(query, locale),
     cardId.trim() ? eq(cards.id, cardId.trim()) : undefined,
   ].filter((filter): filter is SQL => filter != null);
 
@@ -75,7 +74,12 @@ function buildWhereClause(query: string, cardId: string): SQL | undefined {
 }
 
 function mapCollectionRow(
-  row: Awaited<ReturnType<typeof collectionFrom>>[number],
+  row: {
+    quantity: number;
+    trendEur: string | null;
+    lowEur: string | null;
+    [key: string]: unknown;
+  },
   preference: Awaited<ReturnType<typeof getPricePreference>>,
 ) {
   const price = pickPrice(row, preference);
@@ -88,6 +92,7 @@ function mapCollectionRow(
 
 export async function GET(request: Request) {
   try {
+    const { locale } = getRequestTranslator(request);
     const { searchParams } = new URL(request.url);
     const limit = Math.min(
       Math.max(Number.parseInt(searchParams.get("limit") ?? "", 10) || DEFAULT_LIMIT, 1),
@@ -99,7 +104,8 @@ export async function GET(request: Request) {
     );
     const query = searchParams.get("q")?.trim() ?? "";
     const cardId = searchParams.get("cardId")?.trim() ?? "";
-    const whereClause = buildWhereClause(query, cardId);
+    const whereClause = buildWhereClause(query, cardId, locale);
+    const selectFields = collectionSelect(locale);
 
     const preference = await getPricePreference();
 
@@ -126,10 +132,17 @@ export async function GET(request: Request) {
       }, 0);
     }
 
-    const rows = await collectionFrom()
+    const setNameOrder = localizedSetNameSql(locale);
+    const rows = await db
+      .select(selectFields)
+      .from(userCards)
+      .innerJoin(cardVariants, eq(userCards.variantId, cardVariants.id))
+      .innerJoin(cards, eq(cardVariants.cardId, cards.id))
+      .innerJoin(sets, eq(cards.setId, sets.id))
+      .leftJoin(cardPrices, eq(cardPrices.variantId, cardVariants.id))
       .where(whereClause)
       .orderBy(
-        asc(sets.nameDe),
+        asc(setNameOrder),
         sql`lpad(${cards.number}, 4, '0')`,
         desc(userCards.updatedAt),
       )
@@ -143,7 +156,7 @@ export async function GET(request: Request) {
 
     let filterCard: {
       cardId: string;
-      nameDe: string;
+      name: string;
       number: string;
       setId: string;
       setName: string;
@@ -152,10 +165,10 @@ export async function GET(request: Request) {
       const [cardRow] = await db
         .select({
           cardId: cards.id,
-          nameDe: cardDisplayNameSql,
+          name: localizedCardNameSql(locale),
           number: cards.number,
           setId: sets.id,
-          setName: sets.nameDe,
+          setName: localizedSetNameSql(locale),
         })
         .from(cards)
         .innerJoin(sets, eq(cards.setId, sets.id))
@@ -175,7 +188,7 @@ export async function GET(request: Request) {
   } catch (error) {
     console.error(error);
     return NextResponse.json(
-      { error: "Sammlung konnte nicht geladen werden." },
+      { errorCode: "COLLECTION_LOAD_FAILED" },
       { status: 500 },
     );
   }
@@ -196,7 +209,7 @@ export async function POST(request: Request) {
 
     if (!variantId) {
       return NextResponse.json(
-        { error: "variantId ist erforderlich." },
+        { errorCode: "VARIANT_ID_REQUIRED" },
         { status: 400 },
       );
     }
@@ -206,7 +219,7 @@ export async function POST(request: Request) {
     });
     if (!variant) {
       return NextResponse.json(
-        { error: "Variante nicht gefunden." },
+        { errorCode: "VARIANT_NOT_FOUND" },
         { status: 404 },
       );
     }
@@ -262,7 +275,7 @@ export async function POST(request: Request) {
   } catch (error) {
     console.error(error);
     return NextResponse.json(
-      { error: "Karte konnte nicht hinzugefügt werden." },
+      { errorCode: "COLLECTION_ADD_FAILED" },
       { status: 500 },
     );
   }

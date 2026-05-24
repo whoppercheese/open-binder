@@ -1,21 +1,23 @@
 import { NextResponse } from "next/server";
 import { getSetWithCards } from "@/lib/portfolio";
+import { getRequestTranslator } from "@/lib/i18n/server";
 
 export async function GET(
-  _request: Request,
+  request: Request,
   context: { params: Promise<{ id: string }> },
 ) {
   try {
+    const { locale } = getRequestTranslator(request);
     const { id } = await context.params;
-    const data = await getSetWithCards(id);
+    const data = await getSetWithCards(id, locale);
     if (!data) {
-      return NextResponse.json({ error: "Set nicht gefunden." }, { status: 404 });
+      return NextResponse.json({ errorCode: "SET_NOT_FOUND" }, { status: 404 });
     }
     return NextResponse.json(data);
   } catch (error) {
     console.error(error);
     return NextResponse.json(
-      { error: "Set konnte nicht geladen werden." },
+      { errorCode: "SET_LOAD_FAILED" },
       { status: 500 },
     );
   }

@@ -3,18 +3,20 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Home, Layers, Search, Settings, WalletCards } from "lucide-react";
+import { useTranslations } from "@/lib/i18n/context";
 import { cn } from "@/lib/utils";
-
-const items = [
-  { href: "/", label: "Dashboard", icon: Home },
-  { href: "/sets", label: "Sets", icon: Layers },
-  { href: "/search", label: "Suche", icon: Search },
-  { href: "/collection", label: "Sammlung", icon: WalletCards },
-  { href: "/settings", label: "Einstellungen", icon: Settings },
-];
 
 export function BottomNav() {
   const pathname = usePathname();
+  const t = useTranslations();
+
+  const items = [
+    { href: "/", label: t("nav.dashboard"), icon: Home },
+    { href: "/sets", label: t("nav.sets"), icon: Layers },
+    { href: "/search", label: t("nav.search"), icon: Search },
+    { href: "/collection", label: t("nav.collection"), icon: WalletCards },
+    { href: "/settings", label: t("nav.settings"), icon: Settings },
+  ];
 
   return (
     <nav className="shrink-0 border-t border-white/10 bg-[#10131a]/95 backdrop-blur-md">

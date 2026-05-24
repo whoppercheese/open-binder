@@ -15,6 +15,7 @@ import {
   pricingForVariant,
   type VariantType,
 } from "@/lib/tcgdex";
+import { encodeSyncJobMessage } from "@/lib/sync-job-messages";
 
 const BATCH_DELAY_MS = 150;
 const MAX_CARDS_PER_RUN = 500;
@@ -98,7 +99,10 @@ async function importCardmarketCatalog(jobId?: string) {
       await db
         .update(syncJobs)
         .set({
-          message: `Cardmarket Katalog: ${Math.min(i + chunkSize, catalog.products.length)}/${catalog.products.length}`,
+          message: encodeSyncJobMessage("cardmarketCatalogProgress", {
+            current: Math.min(i + chunkSize, catalog.products.length),
+            total: catalog.products.length,
+          }),
         })
         .where(eq(syncJobs.id, jobId));
     }
@@ -111,7 +115,11 @@ export async function runPriceSync(jobId?: string) {
   if (jobId) {
     await db
       .update(syncJobs)
-      .set({ status: "running", startedAt: new Date(), message: "Starte Preis-Sync…" })
+      .set({
+        status: "running",
+        startedAt: new Date(),
+        message: encodeSyncJobMessage("pricesStarting"),
+      })
       .where(eq(syncJobs.id, jobId));
   }
 
@@ -134,7 +142,7 @@ export async function runPriceSync(jobId?: string) {
           .set({
             status: "completed",
             finishedAt: new Date(),
-            message: "Preis-Sync abgeschlossen (keine Karten in der Sammlung).",
+            message: encodeSyncJobMessage("pricesCompletedEmpty"),
           })
           .where(eq(syncJobs.id, jobId));
       }
@@ -151,7 +159,10 @@ export async function runPriceSync(jobId?: string) {
         await db
           .update(syncJobs)
           .set({
-            message: `Preise aktualisiert: ${updated}/${cardIds.length}`,
+            message: encodeSyncJobMessage("pricesUpdatedProgress", {
+              updated,
+              total: cardIds.length,
+            }),
           })
           .where(eq(syncJobs.id, jobId));
       }
@@ -163,7 +174,7 @@ export async function runPriceSync(jobId?: string) {
         .set({
           status: "completed",
           finishedAt: new Date(),
-          message: `Preis-Sync abgeschlossen (${updated} Karten).`,
+          message: encodeSyncJobMessage("pricesCompleted", { count: updated }),
         })
         .where(eq(syncJobs.id, jobId));
     }

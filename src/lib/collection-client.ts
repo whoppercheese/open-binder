@@ -1,3 +1,5 @@
+import type { TranslateFn } from "@/lib/i18n/messages";
+
 export type CollectionVariantOption = {
   id: string;
   ownedQuantity?: number | null;
@@ -24,6 +26,26 @@ export type AddToCollectionInput = {
   flagged?: boolean;
 };
 
+const COLLECTION_ERROR_KEYS: Record<string, string> = {
+  COLLECTION_ADD_FAILED: "errors.collectionAddFailed",
+  COLLECTION_LOAD_FAILED: "errors.collectionLoadFailed",
+  VARIANT_ID_REQUIRED: "errors.variantIdRequired",
+  VARIANT_NOT_FOUND: "errors.variantNotFound",
+  CARD_LOAD_FAILED: "errors.cardLoadFailed",
+  CARD_NOT_FOUND: "errors.cardNotFound",
+  SAVE_FAILED: "errors.saveFailed",
+  ADD_FAILED: "errors.addFailed",
+};
+
+export function translateCollectionError(
+  code: string | undefined,
+  t: TranslateFn,
+  fallback = "errors.saveFailed",
+): string {
+  const key = (code && COLLECTION_ERROR_KEYS[code]) ?? fallback;
+  return t(key);
+}
+
 export async function addToCollection({
   variantId,
   quantity = 1,
@@ -48,8 +70,8 @@ export async function addToCollection({
   });
 
   if (!response.ok) {
-    const payload = (await response.json()) as { error?: string };
-    throw new Error(payload.error ?? "Speichern fehlgeschlagen");
+    const payload = (await response.json()) as { errorCode?: string };
+    throw new Error(payload.errorCode ?? "SAVE_FAILED");
   }
 }
 
@@ -73,7 +95,7 @@ export async function updateCollection(
   });
 
   if (!response.ok) {
-    const payload = (await response.json()) as { error?: string };
-    throw new Error(payload.error ?? "Speichern fehlgeschlagen");
+    const payload = (await response.json()) as { errorCode?: string };
+    throw new Error(payload.errorCode ?? "SAVE_FAILED");
   }
 }

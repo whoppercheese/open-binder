@@ -16,19 +16,23 @@ import { CardImage } from "@/components/card-image";
 import { CardImageLightbox } from "@/components/card-image-lightbox";
 import { Portal } from "@/components/portal";
 import { getCardmarketProductUrl } from "@/lib/cardmarket";
-import { cardmarketIsFoilForVariant, type VariantType } from "@/lib/tcgdex";
 import {
-  CONDITION_LABELS,
-  LANGUAGE_LABELS,
-  VARIANT_LABELS,
+  addToCollection,
+  pickDefaultVariantId,
+  translateCollectionError,
+  updateCollection,
+} from "@/lib/collection-client";
+import { useLocale, useTranslations } from "@/lib/i18n/context";
+import { cardmarketIsFoilForVariant, type VariantType } from "@/lib/tcgdex";
+import { useDefaultCondition } from "@/lib/use-default-condition";
+import {
+  CARD_CONDITIONS,
   cn,
   formatCardPriceLabel,
   formatCurrency,
   hasCardPrice,
+  type CardCondition,
 } from "@/lib/utils";
-import { addToCollection, pickDefaultVariantId, updateCollection } from "@/lib/collection-client";
-import { useDefaultCondition } from "@/lib/use-default-condition";
-import type { CardCondition } from "@/lib/utils";
 
 export type CardVariantOption = {
   id: string;
@@ -41,7 +45,7 @@ export type CardVariantOption = {
 export type CardDetail = {
   id: string;
   number: string;
-  nameDe: string;
+  name: string;
   imageUrl?: string | null;
   setId?: string;
   setName?: string;
@@ -66,6 +70,26 @@ type CardModalProps = {
   onClose: () => void;
   onSaved?: () => void;
   entry?: CollectionEntry | null;
+};
+
+const VARIANT_KEYS: Record<string, string> = {
+  normal: "common.variantNormal",
+  holo: "common.variantHolo",
+  reverse_holo: "common.variantReverseHolo",
+  first_edition: "common.variantFirstEdition",
+};
+
+const CONDITION_KEYS: Record<CardCondition, string> = {
+  mint: "common.conditionMint",
+  nm: "common.conditionNm",
+  lp: "common.conditionLp",
+  mp: "common.conditionMp",
+  hp: "common.conditionHp",
+};
+
+const LANGUAGE_KEYS: Record<string, string> = {
+  de: "common.languageDe",
+  en: "common.languageEn",
 };
 
 function createInitialFormState(
@@ -123,6 +147,8 @@ function CardModalForm({
   entry = null,
   defaultCondition,
 }: CardModalFormProps) {
+  const { locale } = useLocale();
+  const t = useTranslations();
   const isEdit = entry != null;
   const initialForm = createInitialFormState(card, entry, defaultCondition);
 
@@ -141,6 +167,11 @@ function CardModalForm({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [imageExpanded, setImageExpanded] = useState(false);
+
+  function variantLabel(type: string) {
+    const key = VARIANT_KEYS[type];
+    return key ? t(key) : type;
+  }
 
   function handleClose() {
     setImageExpanded(false);
@@ -206,9 +237,10 @@ function CardModalForm({
       handleClose();
     } catch (saveError) {
       setError(
-        saveError instanceof Error
-          ? saveError.message
-          : "Speichern fehlgeschlagen",
+        translateCollectionError(
+          saveError instanceof Error ? saveError.message : undefined,
+          t,
+        ),
       );
     } finally {
       setLoading(false);
@@ -247,7 +279,7 @@ function CardModalForm({
                   </span>
                 </div>
                 <h2 className="text-lg font-semibold text-white">
-                  {card.nameDe}
+                  {card.name}
                 </h2>
               </div>
               <button
@@ -264,21 +296,21 @@ function CardModalForm({
                 type="button"
                 onClick={() => setImageExpanded(true)}
                 className="relative aspect-card w-24 shrink-0 self-start cursor-pointer transition hover:opacity-90 active:scale-[0.98]"
-                aria-label="Kartenbild vergrößern"
+                aria-label={t("cardModal.expandImage")}
               >
                 <CardFrame className="size-full">
                   <CardImage
                     cardId={card.id}
                     setId={card.setId}
                     number={card.number}
-                    alt={card.nameDe}
+                    alt={card.name}
                     className="h-full w-full"
                   />
                 </CardFrame>
               </button>
               <div className="flex-1 space-y-3 text-sm">
                 <label className="block space-y-1">
-                  <span className="text-zinc-400">Variante</span>
+                  <span className="text-zinc-400">{t("cardModal.variant")}</span>
                   <select
                     value={activeVariantId}
                     onChange={(event) => setVariantId(event.target.value)}
@@ -287,9 +319,8 @@ function CardModalForm({
                   >
                     {card.variants.map((variant) => (
                       <option key={variant.id} value={variant.id}>
-                        {VARIANT_LABELS[variant.variantType] ??
-                          variant.variantType}
-                        {` · ${formatCardPriceLabel(variant.price)}`}
+                        {variantLabel(variant.variantType)}
+                        {` · ${formatCardPriceLabel(variant.price, t("common.price"), locale)}`}
                       </option>
                     ))}
                   </select>
@@ -297,7 +328,7 @@ function CardModalForm({
 
                 <div className="grid grid-cols-2 gap-2">
                   <div className="block space-y-1">
-                    <span className="text-zinc-400">Anzahl</span>
+                    <span className="text-zinc-400">{t("cardModal.quantity")}</span>
                     <div className="flex items-center gap-0.5 rounded-xl border border-white/10 bg-black/30 p-0.5">
                       <button
                         type="button"
@@ -306,7 +337,7 @@ function CardModalForm({
                           setQuantity((current) => Math.max(1, current - 1))
                         }
                         className="rounded-lg p-2 text-zinc-400 hover:bg-white/5 hover:text-white disabled:opacity-40"
-                        aria-label="Anzahl verringern"
+                        aria-label={t("cardModal.decreaseQuantity")}
                       >
                         <Minus className="h-4 w-4" />
                       </button>
@@ -320,47 +351,45 @@ function CardModalForm({
                           setQuantity((current) => Math.min(999, current + 1))
                         }
                         className="rounded-lg p-2 text-zinc-400 hover:bg-white/5 hover:text-white disabled:opacity-40"
-                        aria-label="Anzahl erhöhen"
+                        aria-label={t("cardModal.increaseQuantity")}
                       >
                         <Plus className="h-4 w-4" />
                       </button>
                     </div>
                   </div>
                   <label className="block space-y-1">
-                    <span className="text-zinc-400">Zustand</span>
+                    <span className="text-zinc-400">{t("cardModal.condition")}</span>
                     <select
                       value={condition}
                       onChange={(event) => setCondition(event.target.value)}
                       className="w-full rounded-xl border border-white/10 bg-black/30 px-3 py-2 text-white"
                     >
-                      {Object.entries(CONDITION_LABELS).map(
-                        ([value, label]) => (
-                          <option key={value} value={value}>
-                            {label}
-                          </option>
-                        ),
-                      )}
+                      {CARD_CONDITIONS.map((value) => (
+                        <option key={value} value={value}>
+                          {t(CONDITION_KEYS[value])}
+                        </option>
+                      ))}
                     </select>
                   </label>
                 </div>
 
                 <label className="block space-y-1">
-                  <span className="text-zinc-400">Sprache</span>
+                  <span className="text-zinc-400">{t("cardModal.language")}</span>
                   <select
                     value={language}
                     onChange={(event) => setLanguage(event.target.value)}
                     className="w-full rounded-xl border border-white/10 bg-black/30 px-3 py-2 text-white"
                   >
-                    {Object.entries(LANGUAGE_LABELS).map(([value, label]) => (
+                    {Object.entries(LANGUAGE_KEYS).map(([value, key]) => (
                       <option key={value} value={value}>
-                        {label}
+                        {t(key)}
                       </option>
                     ))}
                   </select>
                 </label>
 
                 <label className="block space-y-1">
-                  <span className="text-zinc-400">Notiz</span>
+                  <span className="text-zinc-400">{t("cardModal.notes")}</span>
               <textarea
                 value={notes}
                 onChange={(event) => setNotes(event.target.value)}
@@ -370,7 +399,7 @@ function CardModalForm({
                 </label>
 
                 <label className="block space-y-1">
-                  <span className="text-zinc-400">Kaufpreis (EUR)</span>
+                  <span className="text-zinc-400">{t("cardModal.purchasePrice")}</span>
                   <input
                     type="number"
                     min={0}
@@ -398,11 +427,10 @@ function CardModalForm({
                   )}
                   <span className="space-y-0.5">
                     <span className="block text-sm font-medium text-white">
-                      Markieren
+                      {t("cardModal.flag")}
                     </span>
                     <span className="block text-xs text-zinc-400">
-                      Für verschiedene Zwecke markierbar. Der Grund kann in der
-                      Notiz hinterlegt werden.
+                      {t("cardModal.flagHelp")}
                     </span>
                   </span>
                 </label>
@@ -421,13 +449,16 @@ function CardModalForm({
                           selectedVariant.variantType as VariantType,
                           availableVariantTypes,
                         ),
+                        locale,
                       },
                     )}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="inline-flex items-center gap-1 font-medium text-emerald-400 transition hover:text-emerald-300 hover:underline"
                   >
-                    Cardmarket: {formatCurrency(selectedVariant.price)}
+                    {t("cardModal.cardmarketLink", {
+                      price: formatCurrency(selectedVariant.price, "EUR", locale),
+                    })}
                     <ExternalLink
                       className="h-3.5 w-3.5 shrink-0 opacity-80"
                       aria-hidden
@@ -435,13 +466,15 @@ function CardModalForm({
                   </a>
                 ) : (
                   <span className="text-zinc-400 tabular-nums">
-                    Cardmarket-Preis{" "}
+                    {t("cardModal.cardmarketPrice")}{" "}
                     {hasCardPrice(selectedVariant.price) ? (
                       <span className="font-medium text-emerald-400">
-                        {formatCurrency(selectedVariant.price)}
+                        {formatCurrency(selectedVariant.price, "EUR", locale)}
                       </span>
                     ) : (
-                      <span className="font-semibold">—</span>
+                      <span className="font-semibold">
+                        {t("common.priceUnavailable")}
+                      </span>
                     )}
                   </span>
                 )}
@@ -459,7 +492,7 @@ function CardModalForm({
                 className="mb-3 flex w-full items-center justify-center gap-2 rounded-2xl border border-white/10 px-4 py-3 text-sm font-medium text-white transition hover:bg-white/5"
               >
                 <WalletCards className="h-4 w-4" />
-                In Sammlung anzeigen ({ownedCount})
+                {t("cardModal.viewInCollection", { count: ownedCount })}
               </Link>
             ) : null}
 
@@ -473,7 +506,7 @@ function CardModalForm({
               )}
             >
               {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-              {isEdit ? "Speichern" : "Zur Sammlung hinzufügen"}
+              {isEdit ? t("cardModal.save") : t("cardModal.addToCollection")}
             </button>
           </div>
         </div>
@@ -484,7 +517,7 @@ function CardModalForm({
         cardId={card.id}
         setId={card.setId}
         number={card.number}
-        alt={card.nameDe}
+        alt={card.name}
         onClose={() => setImageExpanded(false)}
       />
     </>

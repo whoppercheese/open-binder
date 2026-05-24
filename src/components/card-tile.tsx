@@ -5,13 +5,14 @@ import { CardFlagBadge } from "@/components/card-flag-badge";
 import { CardFrame } from "@/components/card-frame";
 import { CardImage } from "@/components/card-image";
 import { LongPressIndicator } from "@/components/long-press-indicator";
+import { useLocale, useTranslations } from "@/lib/i18n/context";
 import { useLongPress } from "@/lib/use-long-press";
 import { cn, formatCurrency, hasCardPrice } from "@/lib/utils";
 
 export type CardPreview = {
   id: string;
   number: string;
-  nameDe: string;
+  name: string;
   setId?: string;
   imageUrl?: string | null;
   owned?: boolean;
@@ -34,6 +35,8 @@ export function CardTile({
   onLongPress,
   compact = false,
 }: CardTileProps) {
+  const { locale } = useLocale();
+  const t = useTranslations();
   const longPress = useLongPress<HTMLButtonElement>(() => onLongPress?.(), {
     disabled: !onLongPress,
     onTap: onLongPress ? onClick : undefined,
@@ -65,7 +68,7 @@ export function CardTile({
           cardId={card.id}
           setId={card.setId}
           number={card.number}
-          alt={card.nameDe}
+          alt={card.name}
           className="h-full w-full"
         />
         {card.flagged ? (
@@ -89,7 +92,7 @@ export function CardTile({
       </CardFrame>
       <div className="px-0.5">
         <p className="truncate text-[11px] font-medium text-zinc-300">
-          {card.number} · {card.nameDe}
+          {card.number} · {card.name}
         </p>
         {!compact && card.setName ? (
           <p className="truncate text-[10px] text-zinc-500">{card.setName}</p>
@@ -97,12 +100,12 @@ export function CardTile({
         <p className="text-[10px] tabular-nums">
           {hasCardPrice(card.price) ? (
             <span className="font-semibold text-emerald-400">
-              {formatCurrency(card.price)}
+              {formatCurrency(card.price, "EUR", locale)}
             </span>
           ) : (
             <span className="text-zinc-500">
-              <span className="font-normal">Preis </span>
-              <span className="font-semibold">—</span>
+              <span className="font-normal">{t("common.price")} </span>
+              <span className="font-semibold">{t("common.priceUnavailable")}</span>
             </span>
           )}
         </p>

@@ -6,6 +6,7 @@ import { CardFrame } from "@/components/card-frame";
 import { CardImage } from "@/components/card-image";
 import { LightboxZoomViewport } from "@/components/lightbox-zoom-viewport";
 import { Portal } from "@/components/portal";
+import { useTranslations } from "@/lib/i18n/context";
 
 type CardImageLightboxProps = {
   open: boolean;
@@ -24,6 +25,8 @@ export function CardImageLightbox({
   alt,
   onClose,
 }: CardImageLightboxProps) {
+  const t = useTranslations();
+
   useEffect(() => {
     if (!open) {
       return;
@@ -53,7 +56,7 @@ export function CardImageLightbox({
           type="button"
           onClick={onClose}
           className="absolute right-4 top-4 z-10 rounded-full p-2 text-zinc-300 transition hover:bg-white/10 hover:text-white"
-          aria-label="Vergrößertes Bild schließen"
+          aria-label={t("common.closeLightbox")}
         >
           <X className="h-6 w-6" />
         </button>

@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { CardModal, type CardDetail } from "@/components/card-modal";
 import { CardTile } from "@/components/card-tile";
 import { SearchBar } from "@/components/search-bar";
+import { apiUrl, useLocale, useTranslations } from "@/lib/i18n/context";
 
 type SearchResult = CardDetail & {
   setName: string;
@@ -11,6 +12,8 @@ type SearchResult = CardDetail & {
 };
 
 export default function SearchPage() {
+  const { locale } = useLocale();
+  const t = useTranslations();
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<SearchResult[]>([]);
   const [loading, setLoading] = useState(false);
@@ -24,12 +27,15 @@ export default function SearchPage() {
     }
     setLoading(true);
     const response = await fetch(
-      `/api/cards/search?q=${encodeURIComponent(searchQuery.trim())}`,
+      apiUrl(
+        `/api/cards/search?q=${encodeURIComponent(searchQuery.trim())}`,
+        locale,
+      ),
     );
     const payload = await response.json();
     setResults(payload.results ?? []);
     setLoading(false);
-  }, []);
+  }, [locale]);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -45,10 +51,8 @@ export default function SearchPage() {
   return (
     <div className="space-y-5 px-4 pt-6">
       <header>
-        <h1 className="text-2xl font-bold">Suche</h1>
-        <p className="text-sm text-zinc-400">
-          Name, Nummer oder Set + Nummer
-        </p>
+        <h1 className="text-2xl font-bold">{t("search.title")}</h1>
+        <p className="text-sm text-zinc-400">{t("search.subtitle")}</p>
       </header>
 
       <SearchBar
@@ -58,11 +62,11 @@ export default function SearchPage() {
       />
 
       {loading ? (
-        <p className="text-sm text-zinc-400">Suche läuft…</p>
+        <p className="text-sm text-zinc-400">{t("search.loading")}</p>
       ) : null}
 
       {!loading && query.trim().length >= 2 && results.length === 0 ? (
-        <p className="text-sm text-zinc-500">Keine Karten gefunden.</p>
+        <p className="text-sm text-zinc-500">{t("search.noResults")}</p>
       ) : null}
 
       <div className="grid grid-cols-2 gap-3">
@@ -72,7 +76,7 @@ export default function SearchPage() {
             card={{
               id: card.id,
               number: card.number,
-              nameDe: card.nameDe,
+              name: card.name,
               setId: card.setId,
               imageUrl: card.imageUrl,
               setName: card.setName,

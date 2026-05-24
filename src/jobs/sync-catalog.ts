@@ -1,4 +1,4 @@
-import { eq, isNotNull, sql } from "drizzle-orm";
+import { eq, isNotNull } from "drizzle-orm";
 import { db } from "@/db/client";
 import {
   cardPrices,
@@ -8,16 +8,24 @@ import {
   sets,
   syncJobs,
 } from "@/db/schema";
-import { resolveCardNames } from "@/lib/card-names";
+import { rebuildCardSearchVectors } from "@/lib/catalog-search";
+import {
+  mergeLocalized,
+  getLocalizedString,
+  type LocalizedStrings,
+} from "@/lib/catalog-languages";
+import { normalizeRarity } from "@/lib/rarity";
 import {
   buildImageUrl,
-  CATALOG_LANG,
+  CATALOG_FALLBACK_LANG,
   decodeTcgdexLocalId,
   delay,
   deriveVariantTypes,
   fetchCardWithFallback,
   fetchCatalogSets,
-  fetchSetBundle,
+  fetchSetAllLangs,
+  buildMultilangNameHints,
+  mergeSetLocalizedFields,
   pricingForVariant,
   type TcgdexSetDetail,
   type TcgdexSetSummary,
@@ -34,6 +42,7 @@ import {
 } from "@/lib/image-storage";
 import { findActiveSetCardsJob } from "@/jobs/sync-job-utils";
 import { enqueueSetCardsSync } from "@/jobs/boss";
+import { encodeSyncJobMessage } from "@/lib/sync-job-messages";
 import type {
   CatalogCardError,
   SyncJobFailure,
@@ -145,20 +154,35 @@ async function syncSetImages(detail: TcgdexSetDetail, enDetail: TcgdexSetDetail)
 }
 
 async function upsertSetMetadata(summary: TcgdexSetSummary) {
-  const { deDetail, enDetail } = await fetchSetBundle(summary.id);
-  const detail = deDetail ?? enDetail;
-  const seriesId = detail.serie?.id ?? summary.serie?.id ?? "unknown";
-  const seriesName = detail.serie?.name ?? summary.serie?.name ?? "Unbekannt";
+  const details = await fetchSetAllLangs(summary.id);
+  const { names, seriesNames, seriesId, detail } = mergeSetLocalizedFields(
+    details,
+    summary,
+  );
+  const enDetail =
+    details.get(CATALOG_FALLBACK_LANG) ?? detail;
+  const deDetail = details.get("de") ?? enDetail;
 
-  await syncSetImages(detail, enDetail);
+  await syncSetImages(deDetail, enDetail);
+
+  const existing = await db.query.sets.findFirst({
+    where: eq(sets.id, detail.id),
+    columns: { names: true, seriesNames: true },
+  });
+
+  const mergedNames = mergeLocalized(existing?.names ?? {}, names);
+  const mergedSeriesNames = mergeLocalized(
+    existing?.seriesNames ?? {},
+    seriesNames,
+  );
 
   await db
     .insert(sets)
     .values({
       id: detail.id,
-      nameDe: detail.name,
+      names: mergedNames,
       seriesId,
-      seriesName,
+      seriesNames: mergedSeriesNames,
       releaseDate: detail.releaseDate ?? null,
       logoUrl: detail.logo ?? null,
       symbolUrl: detail.symbol ?? null,
@@ -170,9 +194,9 @@ async function upsertSetMetadata(summary: TcgdexSetSummary) {
     .onConflictDoUpdate({
       target: sets.id,
       set: {
-        nameDe: detail.name,
+        names: mergedNames,
         seriesId,
-        seriesName,
+        seriesNames: mergedSeriesNames,
         releaseDate: detail.releaseDate ?? null,
         logoUrl: detail.logo ?? null,
         symbolUrl: detail.symbol ?? null,
@@ -186,11 +210,33 @@ async function upsertSetMetadata(summary: TcgdexSetSummary) {
   return detail;
 }
 
+function resolveCardNamesFromHints(
+  hints: LocalizedStrings | undefined,
+  cardmarketName: string | null,
+  fetchedName: string | null,
+  fetchedLang: "de" | "en",
+): LocalizedStrings {
+  const names: LocalizedStrings = { ...(hints ?? {}) };
+
+  if (cardmarketName && !names.en) {
+    names.en = cardmarketName;
+  }
+
+  if (fetchedName) {
+    const lang = fetchedLang === "de" ? "de" : "en";
+    if (!names[lang]) {
+      names[lang] = fetchedName;
+    }
+  }
+
+  return names;
+}
+
 async function syncCard(
   cardId: string,
   seriesId: string,
   setId: string,
-  hints?: { de?: string; en?: string },
+  hints?: LocalizedStrings,
 ) {
   const { card, lang } = await fetchCardWithFallback(cardId);
   const imageUrl = buildImageUrl(seriesId, setId, card.localId);
@@ -199,13 +245,22 @@ async function syncCard(
   const cardmarketName = await lookupCardmarketName(
     card.pricing?.cardmarket?.idProduct,
   );
-  const names = resolveCardNames({
-    deName: hints?.de,
-    enName: hints?.en,
+  const incomingNames = resolveCardNamesFromHints(
+    hints,
     cardmarketName,
-    fetchedName: card.name,
-    fetchedLang: lang === CATALOG_LANG ? "de" : "en",
+    card.name,
+    lang === "de" ? "de" : "en",
+  );
+
+  const existing = await db.query.cards.findFirst({
+    where: eq(cards.id, card.id),
+    columns: { names: true },
   });
+  const mergedNames = mergeLocalized(existing?.names ?? {}, incomingNames);
+  const canonicalRarity = normalizeRarity(
+    card.rarity ?? null,
+    lang === CATALOG_FALLBACK_LANG ? "en" : (lang as "de"),
+  );
 
   await db
     .insert(cards)
@@ -213,10 +268,8 @@ async function syncCard(
       id: card.id,
       setId,
       number: card.localId,
-      nameDe: names.nameDe,
-      nameEn: names.nameEn,
-      nameSource: names.nameSource,
-      rarity: card.rarity ?? null,
+      names: mergedNames,
+      rarity: canonicalRarity,
       imageUrl,
       updatedAt: new Date(),
     })
@@ -225,29 +278,14 @@ async function syncCard(
       set: {
         setId,
         number: card.localId,
-        nameDe: names.nameDe,
-        nameEn: names.nameEn,
-        nameSource: names.nameSource,
-        rarity: card.rarity ?? null,
+        names: mergedNames,
+        rarity: canonicalRarity,
         imageUrl,
         updatedAt: new Date(),
       },
     });
 
-  await db.execute(sql`
-    UPDATE cards c
-    SET search_vector = to_tsvector(
-      'german',
-      coalesce(c.name_de, '') || ' ' ||
-      coalesce(c.name_en, '') || ' ' ||
-      coalesce(c.number, '') || ' ' ||
-      coalesce(s.name_de, '') || ' ' ||
-      coalesce(s.official_code, '')
-    )
-    FROM sets s
-    WHERE c.id = ${card.id}
-      AND s.id = c.set_id
-  `);
+  await rebuildCardSearchVectors(card.id);
 
   const variantTypes = deriveVariantTypes(card.variants);
   const pricing = card.pricing?.cardmarket;
@@ -300,10 +338,18 @@ async function syncSetCards(
   cardErrors: CatalogCardError[],
   onProgress?: (message: string) => Promise<void>,
 ) {
-  const { deDetail, enDetail, nameHints, cardSummaries } =
-    await fetchSetBundle(setId);
-  const detail = deDetail ?? enDetail;
+  const details = await fetchSetAllLangs(setId);
+  const { detail, names: setNames } = mergeSetLocalizedFields(details);
   const seriesId = detail.serie?.id ?? "unknown";
+  const nameHints = buildMultilangNameHints(details);
+  const enDetail = details.get(CATALOG_FALLBACK_LANG);
+  const deDetail = details.get("de");
+  const cardSummaries =
+    deDetail?.cards.length
+      ? deDetail.cards
+      : enDetail?.cards.length
+        ? enDetail.cards
+        : detail.cards;
 
   const cardLimit = getCatalogSetCardLimit();
   const cardsToSync =
@@ -329,7 +375,7 @@ async function syncSetCards(
         error instanceof Error ? error.message : "Unbekannter Kartenfehler";
       cardErrors.push({
         setId: detail.id,
-        setName: detail.name,
+        setName: getLocalizedString(setNames, "en") ?? detail.name,
         cardId: cardSummary.id,
         error: message,
       });
@@ -340,7 +386,11 @@ async function syncSetCards(
 
     if (onProgress) {
       await onProgress(
-        `Karte ${index + 1}/${totalCards}: ${detail.name}`,
+        encodeSyncJobMessage("setCardsProgress", {
+          current: index + 1,
+          total: totalCards,
+          name: detail.name,
+        }),
       );
     }
 
@@ -360,21 +410,6 @@ function buildJobProgress(
   };
 }
 
-function buildSetsCompletionMessage(setCount: number): string {
-  return `Sets-Sync abgeschlossen (${setCount} Sets).`;
-}
-
-function buildSetCardsCompletionMessage(
-  setName: string,
-  cardErrors: CatalogCardError[],
-): string {
-  if (cardErrors.length === 0) {
-    return `Karten-Sync abgeschlossen (${setName}).`;
-  }
-
-  return `Karten-Sync abgeschlossen (${setName}, ${cardErrors.length} Karte(n) übersprungen).`;
-}
-
 export async function runSetsSync(jobId?: string) {
   if (jobId) {
     await db
@@ -382,7 +417,7 @@ export async function runSetsSync(jobId?: string) {
       .set({
         status: "running",
         startedAt: new Date(),
-        message: "Starte Sets-Sync…",
+        message: encodeSyncJobMessage("catalogStarting"),
       })
       .where(eq(syncJobs.id, jobId));
   }
@@ -401,7 +436,9 @@ export async function runSetsSync(jobId?: string) {
         await db
           .update(syncJobs)
           .set({
-            message: `Sets-Sync für ${allSets.length} Set(s)…`,
+            message: encodeSyncJobMessage("catalogForSetsCount", {
+              count: allSets.length,
+            }),
           })
           .where(eq(syncJobs.id, jobId));
       }
@@ -441,7 +478,11 @@ export async function runSetsSync(jobId?: string) {
         await db
           .update(syncJobs)
           .set({
-            message: `Set ${index + 1}/${allSets.length}: ${setSummary.name}`,
+            message: encodeSyncJobMessage("catalogSetProgress", {
+              current: index + 1,
+              total: allSets.length,
+              name: setSummary.name,
+            }),
           })
           .where(eq(syncJobs.id, jobId));
       }
@@ -454,7 +495,9 @@ export async function runSetsSync(jobId?: string) {
           status: "completed",
           finishedAt: new Date(),
           progress: buildJobProgress([]),
-          message: buildSetsCompletionMessage(allSets.length),
+          message: encodeSyncJobMessage("catalogCompleted", {
+            count: allSets.length,
+          }),
         })
         .where(eq(syncJobs.id, jobId));
     }
@@ -490,13 +533,18 @@ export async function runSetCardsSync(setId: string, jobId?: string) {
     throw new Error(`Set not found: ${setId}`);
   }
 
+  const setDisplayName =
+    getLocalizedString(set.names, "en") ?? set.id;
+
   if (jobId) {
     await db
       .update(syncJobs)
       .set({
         status: "running",
         startedAt: new Date(),
-        message: `Starte Karten-Sync für ${set.nameDe}…`,
+        message: encodeSyncJobMessage("setCardsStarting", {
+          setName: setDisplayName,
+        }),
       })
       .where(eq(syncJobs.id, jobId));
   }
@@ -527,7 +575,15 @@ export async function runSetCardsSync(setId: string, jobId?: string) {
           status: "completed",
           finishedAt,
           progress: buildJobProgress(cardErrors),
-          message: buildSetCardsCompletionMessage(detail.name, cardErrors),
+          message:
+            cardErrors.length === 0
+              ? encodeSyncJobMessage("setCardsCompleted", {
+                  setName: detail.name,
+                })
+              : encodeSyncJobMessage("setCardsCompletedWithSkips", {
+                  setName: detail.name,
+                  skipped: cardErrors.length,
+                }),
         })
         .where(eq(syncJobs.id, jobId));
     }
@@ -553,7 +609,7 @@ export async function runSetCardsSync(setId: string, jobId?: string) {
           progress: buildJobProgress(cardErrors, {
             kind: "job",
             setId,
-            setName: set.nameDe,
+            setName: setDisplayName,
             error: message,
           }),
           message,
@@ -569,7 +625,7 @@ export async function runWeeklyCatalogRefresh() {
 
   const syncedSets = await db.query.sets.findMany({
     where: isNotNull(sets.cardsSyncedAt),
-    columns: { id: true, nameDe: true },
+    columns: { id: true, names: true },
   });
 
   let enqueued = 0;
@@ -586,7 +642,9 @@ export async function runWeeklyCatalogRefresh() {
         jobType: "set_cards",
         setId: set.id,
         status: "pending",
-        message: `Wöchentlicher Karten-Refresh für ${set.nameDe}`,
+        message: encodeSyncJobMessage("weeklySetCardsRefresh", {
+          setName: getLocalizedString(set.names, "en") ?? set.id,
+        }),
       })
       .returning();
 

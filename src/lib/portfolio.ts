@@ -8,20 +8,27 @@ import {
   syncJobs,
   userCards,
 } from "@/db/schema";
-import { cardDisplayNameSql } from "@/lib/card-names";
+import {
+  localizedCardNameSql,
+  localizedSetNameSql,
+  UNKNOWN_LABEL,
+} from "@/lib/localized-names";
+import type { UiLocale } from "@/lib/i18n/locale";
 import { getSetCollectionEntryCount } from "@/lib/set-cards";
 import { getPricePreference, pickPrice } from "@/lib/settings";
 
-export async function getPortfolioSummary() {
+export async function getPortfolioSummary(locale: UiLocale = "en") {
   const preference = await getPricePreference();
+  const cardNameSql = localizedCardNameSql(locale);
+  const setNameSql = localizedSetNameSql(locale);
 
   const collectionRows = await db
     .select({
       quantity: userCards.quantity,
       trendEur: cardPrices.trendEur,
       lowEur: cardPrices.lowEur,
-      cardName: cardDisplayNameSql,
-      setName: sets.nameDe,
+      cardName: cardNameSql,
+      setName: setNameSql,
       updatedAt: userCards.updatedAt,
     })
     .from(userCards)
@@ -51,14 +58,14 @@ export async function getPortfolioSummary() {
   }>(sql`
     SELECT
       s.id AS set_id,
-      s.name_de AS set_name,
+      coalesce(s.names->>${locale}, s.names->>'en', ${UNKNOWN_LABEL}) AS set_name,
       COUNT(DISTINCT CASE WHEN uc.id IS NOT NULL THEN c.id END)::int AS owned,
       COUNT(DISTINCT c.id)::int AS total
     FROM sets s
     INNER JOIN cards c ON c.set_id = s.id
     INNER JOIN card_variants cv ON cv.card_id = c.id
     LEFT JOIN user_cards uc ON uc.variant_id = cv.id
-    GROUP BY s.id, s.name_de, s.release_date
+    GROUP BY s.id, s.names, s.release_date
     ORDER BY s.release_date DESC NULLS LAST
   `);
 
@@ -79,9 +86,9 @@ export async function getPortfolioSummary() {
       SELECT DISTINCT ON (c.id)
         uc.id,
         c.id AS card_id,
-        coalesce(c.name_de, c.name_en, 'Unbekannt') AS card_name,
+        coalesce(c.names->>${locale}, c.names->>'en', ${UNKNOWN_LABEL}) AS card_name,
         s.id AS set_id,
-        s.name_de AS set_name,
+        coalesce(s.names->>${locale}, s.names->>'en', ${UNKNOWN_LABEL}) AS set_name,
         s.official_code AS set_code,
         c.number,
         c.image_url,
@@ -144,19 +151,20 @@ export async function getPortfolioSummary() {
   };
 }
 
-export async function getSetWithCards(setId: string) {
+export async function getSetWithCards(setId: string, locale: UiLocale = "en") {
   const set = await db.query.sets.findFirst({
     where: eq(sets.id, setId),
   });
   if (!set) return null;
 
   const preference = await getPricePreference();
+  const cardNameSql = localizedCardNameSql(locale);
 
   const setCards = await db
     .select({
       id: cards.id,
       number: cards.number,
-      nameDe: cardDisplayNameSql,
+      name: cardNameSql,
       rarity: cards.rarity,
       imageUrl: cards.imageUrl,
       variantId: cardVariants.id,
@@ -175,8 +183,7 @@ export async function getSetWithCards(setId: string) {
     .groupBy(
       cards.id,
       cards.number,
-      cards.nameDe,
-      cards.nameEn,
+      cards.names,
       cards.rarity,
       cards.imageUrl,
       cardVariants.id,
@@ -192,7 +199,7 @@ export async function getSetWithCards(setId: string) {
     {
       id: string;
       number: string;
-      nameDe: string;
+      name: string;
       rarity: string | null;
       imageUrl: string | null;
       owned: boolean;
@@ -212,7 +219,7 @@ export async function getSetWithCards(setId: string) {
     const existing = grouped.get(row.id) ?? {
       id: row.id,
       number: row.number,
-      nameDe: row.nameDe,
+      name: row.name,
       rarity: row.rarity,
       imageUrl: row.imageUrl,
       owned: false,
@@ -241,7 +248,11 @@ export async function getSetWithCards(setId: string) {
   const collectionEntryCount = await getSetCollectionEntryCount(setId);
 
   return {
-    set,
+    set: {
+      ...set,
+      name: getLocalizedSetName(set, locale),
+      seriesName: getLocalizedSeriesName(set, locale),
+    },
     cards: cardsList,
     progress: {
       ownedCards,
@@ -253,17 +264,36 @@ export async function getSetWithCards(setId: string) {
   };
 }
 
-export async function getCardWithVariants(cardId: string) {
+function getLocalizedSetName(
+  set: { names: Record<string, string> | null },
+  locale: UiLocale,
+): string {
+  return set.names?.[locale] ?? set.names?.en ?? UNKNOWN_LABEL;
+}
+
+function getLocalizedSeriesName(
+  set: { seriesNames: Record<string, string> | null },
+  locale: UiLocale,
+): string {
+  return set.seriesNames?.[locale] ?? set.seriesNames?.en ?? UNKNOWN_LABEL;
+}
+
+export async function getCardWithVariants(
+  cardId: string,
+  locale: UiLocale = "en",
+) {
   const preference = await getPricePreference();
+  const cardNameSql = localizedCardNameSql(locale);
+  const setNameSql = localizedSetNameSql(locale);
 
   const rows = await db
     .select({
       id: cards.id,
       number: cards.number,
-      nameDe: cardDisplayNameSql,
+      name: cardNameSql,
       imageUrl: cards.imageUrl,
       setId: sets.id,
-      setName: sets.nameDe,
+      setName: setNameSql,
       officialCode: sets.officialCode,
       variantId: cardVariants.id,
       variantType: cardVariants.variantType,
@@ -281,11 +311,10 @@ export async function getCardWithVariants(cardId: string) {
     .groupBy(
       cards.id,
       cards.number,
-      cards.nameDe,
-      cards.nameEn,
+      cards.names,
       cards.imageUrl,
       sets.id,
-      sets.nameDe,
+      sets.names,
       sets.officialCode,
       cardVariants.id,
       cardVariants.variantType,
@@ -311,7 +340,7 @@ export async function getCardWithVariants(cardId: string) {
   return {
     id: first.id,
     number: first.number,
-    nameDe: first.nameDe,
+    name: first.name,
     imageUrl: first.imageUrl,
     setId: first.setId,
     setName: first.setName,

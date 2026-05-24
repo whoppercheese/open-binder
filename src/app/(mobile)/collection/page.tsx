@@ -14,15 +14,34 @@ import {
 } from "@/components/card-modal";
 import { ConfirmDialog } from "@/components/confirm-dialog";
 import { SearchBar } from "@/components/search-bar";
+import { apiUrl, useLocale, useTranslations } from "@/lib/i18n/context";
 import {
-  CONDITION_LABELS,
-  LANGUAGE_LABELS,
-  VARIANT_LABELS,
   formatCardPriceLabel,
   formatCurrency,
+  type CardCondition,
 } from "@/lib/utils";
 
 const PAGE_SIZE = 20;
+
+const VARIANT_KEYS: Record<string, string> = {
+  normal: "common.variantNormal",
+  holo: "common.variantHolo",
+  reverse_holo: "common.variantReverseHolo",
+  first_edition: "common.variantFirstEdition",
+};
+
+const CONDITION_KEYS: Record<CardCondition, string> = {
+  mint: "common.conditionMint",
+  nm: "common.conditionNm",
+  lp: "common.conditionLp",
+  mp: "common.conditionMp",
+  hp: "common.conditionHp",
+};
+
+const LANGUAGE_KEYS: Record<string, string> = {
+  de: "common.languageDe",
+  en: "common.languageEn",
+};
 
 type CollectionItem = {
   id: string;
@@ -35,7 +54,7 @@ type CollectionItem = {
   variantId: string;
   variantType: string;
   cardId: string;
-  nameDe: string;
+  name: string;
   number: string;
   setId: string;
   setName: string;
@@ -52,7 +71,7 @@ type CollectionGroup = {
 
 type FilterCard = {
   cardId: string;
-  nameDe: string;
+  name: string;
   number: string;
   setId: string;
   setName: string;
@@ -81,6 +100,8 @@ function CollectionPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const cardId = searchParams.get("cardId")?.trim() ?? "";
+  const { locale } = useLocale();
+  const t = useTranslations();
 
   const [items, setItems] = useState<CollectionItem[]>([]);
   const [filterCard, setFilterCard] = useState<FilterCard | null>(null);
@@ -98,7 +119,7 @@ function CollectionPageContent() {
     cardId: string;
     setId: string;
     number: string;
-    nameDe: string;
+    name: string;
   } | null>(null);
   const [editEntry, setEditEntry] = useState<CollectionEntry | null>(null);
   const [editCard, setEditCard] = useState<CardDetail | null>(null);
@@ -106,6 +127,11 @@ function CollectionPageContent() {
   const [editLoadingId, setEditLoadingId] = useState<string | null>(null);
   const offsetRef = useRef(0);
   const sentinelRef = useRef<HTMLDivElement>(null);
+
+  function variantLabel(type: string) {
+    const key = VARIANT_KEYS[type];
+    return key ? t(key) : type;
+  }
 
   const loadPage = useCallback(
     async (reset: boolean, searchQuery: string, filterCardId: string) => {
@@ -132,7 +158,9 @@ function CollectionPageContent() {
       }
 
       try {
-        const response = await fetch(`/api/collection?${params}`);
+        const response = await fetch(
+          apiUrl(`/api/collection?${params}`, locale),
+        );
         const payload = await response.json();
         const newItems: CollectionItem[] = payload.items ?? [];
 
@@ -156,7 +184,7 @@ function CollectionPageContent() {
         setLoadingMore(false);
       }
     },
-    [],
+    [locale],
   );
 
   useEffect(() => {
@@ -192,7 +220,7 @@ function CollectionPageContent() {
 
   const groups = useMemo(() => groupBySet(items), [items]);
   const filterLabel = filterCard
-    ? `${filterCard.nameDe} · ${filterCard.setName} · #${filterCard.number}`
+    ? `${filterCard.name} · ${filterCard.setName} · #${filterCard.number}`
     : null;
 
   async function removeItem(item: CollectionItem) {
@@ -271,10 +299,10 @@ function CollectionPageContent() {
 
     setEditLoadingId(item.id);
     try {
-      const response = await fetch(`/api/cards/${item.cardId}`);
-      const payload = (await response.json()) as CardDetail & { error?: string };
+      const response = await fetch(apiUrl(`/api/cards/${item.cardId}`, locale));
+      const payload = (await response.json()) as CardDetail & { errorCode?: string };
       if (!response.ok) {
-        throw new Error(payload.error ?? "Karte konnte nicht geladen werden.");
+        throw new Error(payload.errorCode ?? "CARD_LOAD_FAILED");
       }
 
       setEditCard(payload);
@@ -303,17 +331,20 @@ function CollectionPageContent() {
   }
 
   const emptyMessage = cardId
-    ? "Keine Einträge für diese Karte."
+    ? t("collection.emptyForCard")
     : query.trim()
-      ? "Keine Einträge für diese Suche."
-      : "Noch keine Karten gespeichert. Suche eine Karte oder öffne ein Set.";
+      ? t("collection.emptyForSearch")
+      : t("collection.emptyDefault");
 
   return (
     <div className="space-y-5 px-4 pt-6">
       <header>
-        <h1 className="text-2xl font-bold">Sammlung</h1>
+        <h1 className="text-2xl font-bold">{t("collection.title")}</h1>
         <p className="text-sm text-zinc-400">
-          {total} Einträge · {formatCurrency(totalValue)}
+          {t("collection.entriesSummary", {
+            count: total,
+            value: formatCurrency(totalValue, "EUR", locale),
+          })}
         </p>
       </header>
 
@@ -321,17 +352,17 @@ function CollectionPageContent() {
         <div className="flex items-center gap-2 rounded-2xl border border-emerald-500/20 bg-emerald-500/10 px-3 py-2 text-sm text-emerald-100">
           <div className="min-w-0 flex-1">
             <p className="text-xs uppercase tracking-wide text-emerald-300/80">
-              Gefiltert nach Karte
+              {t("collection.filteredByCard")}
             </p>
             <p className="truncate font-medium">
-              {filterLabel ?? "Karte wird geladen…"}
+              {filterLabel ?? t("collection.loadingCard")}
             </p>
           </div>
           <button
             type="button"
             onClick={clearCardFilter}
             className="shrink-0 rounded-lg p-2 text-emerald-200 hover:bg-emerald-500/10"
-            aria-label="Kartenfilter zurücksetzen"
+            aria-label={t("collection.clearCardFilter")}
           >
             <X className="h-4 w-4" />
           </button>
@@ -341,11 +372,11 @@ function CollectionPageContent() {
       <SearchBar
         value={query}
         onChange={setQuery}
-        placeholder="Name, Nummer oder Set"
+        placeholder={t("collection.searchPlaceholder")}
       />
 
       {loading ? (
-        <p className="text-sm text-zinc-400">Sammlung wird geladen…</p>
+        <p className="text-sm text-zinc-400">{t("collection.loading")}</p>
       ) : null}
 
       {!loading && items.length === 0 ? (
@@ -371,18 +402,18 @@ function CollectionPageContent() {
                         cardId: item.cardId,
                         setId: item.setId,
                         number: item.number,
-                        nameDe: item.nameDe,
+                        name: item.name,
                       })
                     }
                     className="relative aspect-card w-16 shrink-0 cursor-pointer transition hover:opacity-90 active:scale-[0.98]"
-                    aria-label="Kartenbild vergrößern"
+                    aria-label={t("collection.expandImage")}
                   >
                     <CardFrame className="size-full">
                       <CardImage
                         cardId={item.cardId}
                         setId={item.setId}
                         number={item.number}
-                        alt={item.nameDe}
+                        alt={item.name}
                         className="h-full w-full"
                       />
                     </CardFrame>
@@ -395,13 +426,13 @@ function CollectionPageContent() {
                   >
                     <p className="flex min-w-0 items-center gap-1.5 font-medium text-white">
                       {item.flagged ? <CardFlagBadge size="sm" /> : null}
-                      <span className="truncate">{item.nameDe}</span>
+                      <span className="truncate">{item.name}</span>
                     </p>
                     <p className="text-xs text-zinc-500">#{item.number}</p>
                     <p className="mt-1 text-xs text-zinc-400">
-                      {VARIANT_LABELS[item.variantType] ?? item.variantType} ·{" "}
-                      {CONDITION_LABELS[item.condition]} ·{" "}
-                      {LANGUAGE_LABELS[item.language]}
+                      {variantLabel(item.variantType)} ·{" "}
+                      {t(CONDITION_KEYS[item.condition as CardCondition] ?? "common.unknown")} ·{" "}
+                      {t(LANGUAGE_KEYS[item.language] ?? "common.unknown")}
                     </p>
                     {item.notes ? (
                       <p className="mt-1 text-xs text-zinc-500">{item.notes}</p>
@@ -410,8 +441,8 @@ function CollectionPageContent() {
                       className={`mt-1 text-sm font-semibold ${item.value != null ? "text-emerald-400" : "text-zinc-500"}`}
                     >
                       {item.value != null
-                        ? formatCurrency(item.value)
-                        : formatCardPriceLabel(null, "Wert")}
+                        ? formatCurrency(item.value, "EUR", locale)
+                        : formatCardPriceLabel(null, t("collection.valueLabel"), locale)}
                     </p>
                   </button>
                   <div
@@ -424,7 +455,7 @@ function CollectionPageContent() {
                         disabled={updatingId === item.id}
                         onClick={() => void adjustQuantity(item, -1)}
                         className="rounded-lg p-2 text-zinc-400 hover:bg-white/5 hover:text-white disabled:opacity-40"
-                        aria-label="Anzahl verringern"
+                        aria-label={t("collection.decreaseQuantity")}
                       >
                         <Minus className="h-4 w-4" />
                       </button>
@@ -436,7 +467,7 @@ function CollectionPageContent() {
                         disabled={updatingId === item.id || item.quantity >= 999}
                         onClick={() => void adjustQuantity(item, 1)}
                         className="rounded-lg p-2 text-zinc-400 hover:bg-white/5 hover:text-white disabled:opacity-40"
-                        aria-label="Anzahl erhöhen"
+                        aria-label={t("collection.increaseQuantity")}
                       >
                         <Plus className="h-4 w-4" />
                       </button>
@@ -446,7 +477,7 @@ function CollectionPageContent() {
                       disabled={updatingId === item.id}
                       onClick={() => requestDelete(item)}
                       className="rounded-lg p-2 text-zinc-500 hover:bg-white/5 hover:text-red-400 disabled:opacity-40"
-                      aria-label="Eintrag löschen"
+                      aria-label={t("collection.deleteEntry")}
                     >
                       <Trash2 className="h-4 w-4" />
                     </button>
@@ -463,7 +494,7 @@ function CollectionPageContent() {
           ref={sentinelRef}
           className="py-4 text-center text-sm text-zinc-500"
         >
-          {loadingMore ? "Weitere Einträge werden geladen…" : null}
+          {loadingMore ? t("collection.loadingMore") : null}
         </div>
       ) : null}
 
@@ -472,7 +503,7 @@ function CollectionPageContent() {
         cardId={expandedImage?.cardId ?? ""}
         setId={expandedImage?.setId}
         number={expandedImage?.number}
-        alt={expandedImage?.nameDe ?? ""}
+        alt={expandedImage?.name ?? ""}
         onClose={() => setExpandedImage(null)}
       />
 
@@ -487,10 +518,10 @@ function CollectionPageContent() {
 
       <ConfirmDialog
         open={deleteCandidate != null}
-        title="Eintrag löschen?"
+        title={t("collection.deleteTitle")}
         message={
           deleteCandidate
-            ? `${deleteCandidate.nameDe} wirklich aus der Sammlung entfernen?`
+            ? t("collection.deleteMessage", { name: deleteCandidate.name })
             : ""
         }
         loading={deleteCandidate != null && updatingId === deleteCandidate.id}
@@ -502,11 +533,13 @@ function CollectionPageContent() {
 }
 
 export default function CollectionPage() {
+  const t = useTranslations();
+
   return (
     <Suspense
       fallback={
         <div className="px-4 pt-6 text-sm text-zinc-400">
-          Sammlung wird geladen…
+          {t("collection.loading")}
         </div>
       }
     >

@@ -35,6 +35,11 @@ export async function getDefaultCondition(): Promise<CardCondition> {
   return isCardCondition(value) ? value : "nm";
 }
 
+export async function getUiLanguage(): Promise<"en" | "de"> {
+  const value = await getSetting("ui_language", "en");
+  return value === "de" ? "de" : "en";
+}
+
 export function pickPrice(
   price: { trendEur?: string | null; lowEur?: string | null } | null | undefined,
   preference: PricePreference,

@@ -2,6 +2,7 @@
 
 import { type ReactNode } from "react";
 import { Portal } from "@/components/portal";
+import { useTranslations } from "@/lib/i18n/context";
 import { cn } from "@/lib/utils";
 
 export type ActionSheetItem = {
@@ -26,6 +27,8 @@ export function ActionSheet({
   items,
   onClose,
 }: ActionSheetProps) {
+  const t = useTranslations();
+
   if (!open) return null;
 
   return (
@@ -33,7 +36,7 @@ export function ActionSheet({
       <div className="fixed inset-0 z-[60] flex flex-col justify-end">
         <button
           type="button"
-          aria-label="Schließen"
+          aria-label={t("common.close")}
           className="absolute inset-0 bg-black/70"
           onClick={onClose}
         />
@@ -80,7 +83,7 @@ export function ActionSheet({
             onClick={onClose}
             className="mt-2 w-full rounded-2xl border border-white/10 bg-[#151922] px-4 py-3.5 text-sm font-semibold text-white transition hover:bg-[#1c212d]"
           >
-            Abbrechen
+            {t("common.cancel")}
           </button>
         </div>
       </div>

@@ -1,4 +1,7 @@
+"use client";
+
 import { Flag } from "lucide-react";
+import { useTranslations } from "@/lib/i18n/context";
 import { cn } from "@/lib/utils";
 
 type CardFlagBadgeProps = {
@@ -7,6 +10,8 @@ type CardFlagBadgeProps = {
 };
 
 export function CardFlagBadge({ size = "md", className }: CardFlagBadgeProps) {
+  const t = useTranslations();
+
   return (
     <span
       className={cn(
@@ -14,7 +19,7 @@ export function CardFlagBadge({ size = "md", className }: CardFlagBadgeProps) {
         size === "sm" ? "p-0.5" : "p-1",
         className,
       )}
-      aria-label="Markiert"
+      aria-label={t("common.flagged")}
     >
       <Flag
         className={cn("text-black", size === "sm" ? "h-4 w-4" : "h-5 w-5")}

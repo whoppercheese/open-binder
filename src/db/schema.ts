@@ -53,9 +53,12 @@ export const syncJobStatusEnum = pgEnum("sync_job_status", [
 
 export const sets = pgTable("sets", {
   id: text("id").primaryKey(),
-  nameDe: text("name_de").notNull(),
+  names: jsonb("names").$type<Record<string, string>>().notNull().default({}),
   seriesId: text("series_id").notNull(),
-  seriesName: text("series_name").notNull(),
+  seriesNames: jsonb("series_names")
+    .$type<Record<string, string>>()
+    .notNull()
+    .default({}),
   releaseDate: text("release_date"),
   logoUrl: text("logo_url"),
   symbolUrl: text("symbol_url"),
@@ -79,12 +82,9 @@ export const cards = pgTable(
       .notNull()
       .references(() => sets.id, { onDelete: "cascade" }),
     number: text("number").notNull(),
-    nameDe: text("name_de"),
-    nameEn: text("name_en"),
-    nameSource: text("name_source").notNull().default("de"),
+    names: jsonb("names").$type<Record<string, string>>().notNull().default({}),
     rarity: text("rarity"),
     imageUrl: text("image_url"),
-    searchVector: tsvector("search_vector"),
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()
       .defaultNow(),
@@ -96,7 +96,19 @@ export const cards = pgTable(
     index("cards_set_id_idx").on(table.setId),
     index("cards_number_idx").on(table.number),
     uniqueIndex("cards_set_number_idx").on(table.setId, table.number),
-    index("cards_search_vector_idx").using("gin", table.searchVector),
+  ],
+);
+
+export const catalogSearchVectors = pgTable(
+  "catalog_search_vectors",
+  {
+    entityType: text("entity_type").notNull(),
+    entityId: text("entity_id").notNull(),
+    locale: text("locale").notNull(),
+    searchVector: tsvector("search_vector").notNull(),
+  },
+  (table) => [
+    index("catalog_search_vectors_gin").using("gin", table.searchVector),
   ],
 );
 
@@ -226,4 +238,3 @@ export const userCardsRelations = relations(userCards, ({ one }) => ({
   }),
 }));
 
-export const searchVectorExpression = sql`to_tsvector('german', coalesce(${cards.nameDe}, '') || ' ' || coalesce(${cards.nameEn}, '') || ' ' || coalesce(${cards.number}, '') || ' ' || coalesce(${sets.nameDe}, '') || ' ' || coalesce(${sets.officialCode}, ''))`;

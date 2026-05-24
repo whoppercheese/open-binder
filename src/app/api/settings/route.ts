@@ -3,8 +3,11 @@ import {
   getDefaultCondition,
   getPricePreference,
   getSetting,
+  getUiLanguage,
   setSetting,
 } from "@/lib/settings";
+import { UI_LANGUAGE_COOKIE } from "@/lib/i18n/constants";
+import { isUiLocale } from "@/lib/i18n/locale";
 import { isCardCondition } from "@/lib/utils";
 
 export async function GET() {
@@ -13,12 +16,12 @@ export async function GET() {
     return NextResponse.json({
       pricePreference,
       defaultCondition: await getDefaultCondition(),
-      uiLanguage: await getSetting("ui_language", "de"),
+      uiLanguage: await getUiLanguage(),
     });
   } catch (error) {
     console.error(error);
     return NextResponse.json(
-      { error: "Einstellungen konnten nicht geladen werden." },
+      { errorCode: "SETTINGS_LOAD_FAILED" },
       { status: 500 },
     );
   }
@@ -43,15 +46,26 @@ export async function PATCH(request: Request) {
       await setSetting("default_condition", body.defaultCondition);
     }
 
-    return NextResponse.json({
+    const uiLanguage = await getUiLanguage();
+    const response = NextResponse.json({
       pricePreference: await getPricePreference(),
       defaultCondition: await getDefaultCondition(),
-      uiLanguage: await getSetting("ui_language", "de"),
+      uiLanguage,
     });
+
+    if (body.uiLanguage && isUiLocale(body.uiLanguage)) {
+      response.cookies.set(UI_LANGUAGE_COOKIE, body.uiLanguage, {
+        path: "/",
+        maxAge: 60 * 60 * 24 * 365,
+        sameSite: "lax",
+      });
+    }
+
+    return response;
   } catch (error) {
     console.error(error);
     return NextResponse.json(
-      { error: "Einstellungen konnten nicht gespeichert werden." },
+      { errorCode: "SETTINGS_SAVE_FAILED" },
       { status: 500 },
     );
   }

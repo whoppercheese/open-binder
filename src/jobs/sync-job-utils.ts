@@ -1,6 +1,7 @@
 import { and, desc, eq, inArray, lt, or } from "drizzle-orm";
 import { db } from "@/db/client";
 import { sets, syncJobs } from "@/db/schema";
+import { getLocalizedString } from "@/lib/catalog-languages";
 import {
   enqueueCatalogSync,
   enqueuePriceSync,
@@ -141,11 +142,16 @@ export async function getActiveSetCardsJobs() {
     setIds.length > 0
       ? await db.query.sets.findMany({
           where: inArray(sets.id, setIds),
-          columns: { id: true, nameDe: true },
+          columns: { id: true, names: true },
         })
       : [];
 
-  const setNameById = new Map(setRows.map((set) => [set.id, set.nameDe]));
+  const setNameById = new Map(
+    setRows.map((set) => [
+      set.id,
+      getLocalizedString(set.names, "en") ?? set.id,
+    ]),
+  );
 
   const activeBySetId = new Map<string, (typeof activeJobs)[number]>();
   for (const job of activeJobs) {

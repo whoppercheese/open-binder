@@ -1,20 +1,51 @@
-import { desc } from "drizzle-orm";
+import { desc, inArray } from "drizzle-orm";
 import { NextResponse } from "next/server";
 import { db } from "@/db/client";
-import { syncJobs } from "@/db/schema";
+import { sets, syncJobs } from "@/db/schema";
 import {
   enqueueCatalogSync,
   enqueuePriceSync,
 } from "@/jobs/boss";
 import { findActiveSyncJob } from "@/jobs/sync-job-utils";
+import { getRequestTranslator } from "@/lib/i18n/server";
+import { getLocalizedName } from "@/lib/localized-names";
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
+    const { locale } = getRequestTranslator(request);
     const jobs = await db.query.syncJobs.findMany({
       orderBy: [desc(syncJobs.createdAt)],
       limit: 10,
     });
-    return NextResponse.json({ jobs });
+
+    const setIds = [
+      ...new Set(
+        jobs
+          .map((job) => job.setId)
+          .filter((setId): setId is string => setId != null),
+      ),
+    ];
+
+    const setRows =
+      setIds.length > 0
+        ? await db.query.sets.findMany({
+            where: inArray(sets.id, setIds),
+            columns: { id: true, names: true },
+          })
+        : [];
+
+    const setNameById = new Map(
+      setRows.map((set) => [set.id, getLocalizedName(set.names, locale)]),
+    );
+
+    return NextResponse.json({
+      jobs: jobs.map((job) => ({
+        ...job,
+        setName: job.setId
+          ? (setNameById.get(job.setId) ?? job.setId)
+          : null,
+      })),
+    });
   } catch (error) {
     console.error(error);
     return NextResponse.json(

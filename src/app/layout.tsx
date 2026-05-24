@@ -14,9 +14,9 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "OpenBinder — Pokémon TCG Sammlung",
+  title: "OpenBinder — Pokémon TCG Collection",
   description:
-    "Mobile-first, self-hostable Pokémon TCG Sammlungs-Manager mit Cardmarket Preisen.",
+    "Mobile-first, self-hostable Pokémon TCG collection manager with Cardmarket prices.",
   manifest: "/manifest.json",
   icons: {
     icon: [
@@ -48,7 +48,7 @@ export default function RootLayout({
 }>) {
   return (
     <html
-      lang="de"
+      lang="en"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
       <body className="h-full overflow-hidden bg-[#0b0d12] text-white">

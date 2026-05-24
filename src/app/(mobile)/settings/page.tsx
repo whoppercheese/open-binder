@@ -6,13 +6,15 @@ import {
   formatJobStatusLabel,
   formatJobTypeLabel,
   formatSyncJobIssueSummary,
+  formatSyncJobMessage,
   getSyncJobIssues,
   isActiveSyncJob,
   type SyncJobProgress,
 } from "@/lib/sync-job-display";
+import { useLocale, useTranslations } from "@/lib/i18n/context";
+import { UI_LOCALES, type UiLocale } from "@/lib/i18n/locale";
 import {
   CARD_CONDITIONS,
-  CONDITION_LABELS,
   formatDate,
   type CardCondition,
 } from "@/lib/utils";
@@ -21,6 +23,7 @@ type SyncJob = {
   id: string;
   jobType: "catalog" | "set_cards" | "prices";
   setId?: string | null;
+  setName?: string | null;
   status: string;
   message: string | null;
   progress: SyncJobProgress | null;
@@ -28,7 +31,20 @@ type SyncJob = {
   finishedAt: string | null;
 };
 
+function conditionLabel(condition: CardCondition, t: ReturnType<typeof useTranslations>) {
+  const keys: Record<CardCondition, string> = {
+    mint: "common.conditionMint",
+    nm: "common.conditionNm",
+    lp: "common.conditionLp",
+    mp: "common.conditionMp",
+    hp: "common.conditionHp",
+  };
+  return t(keys[condition]);
+}
+
 export default function SettingsPage() {
+  const { locale, setLocale } = useLocale();
+  const t = useTranslations();
   const [pricePreference, setPricePreference] = useState<"trend" | "low">("trend");
   const [defaultCondition, setDefaultCondition] = useState<CardCondition>("nm");
   const [jobs, setJobs] = useState<SyncJob[]>([]);
@@ -90,6 +106,15 @@ export default function SettingsPage() {
     });
   }
 
+  async function saveLanguage(value: UiLocale) {
+    setLocale(value);
+    await fetch("/api/settings", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ uiLanguage: value }),
+    });
+  }
+
   async function triggerSync(type: "catalog" | "prices") {
     setSyncError(null);
     setLoading(type);
@@ -99,11 +124,7 @@ export default function SettingsPage() {
       body: JSON.stringify({ type }),
     });
     if (!response.ok) {
-      const body = await response.json().catch(() => ({}));
-      setSyncError(
-        (body.error as string) ??
-          "Sync konnte nicht gestartet werden.",
-      );
+      setSyncError(t("errors.syncStartFailed"));
     }
     await load();
     setLoading(null);
@@ -112,12 +133,33 @@ export default function SettingsPage() {
   return (
     <div className="space-y-6 px-4 pt-6">
       <header>
-        <h1 className="text-2xl font-bold">Einstellungen</h1>
-        <p className="text-sm text-zinc-400">Single-User · Self-Hosted</p>
+        <h1 className="text-2xl font-bold">{t("settings.title")}</h1>
+        <p className="text-sm text-zinc-400">{t("settings.subtitle")}</p>
       </header>
 
       <section className="space-y-3 rounded-2xl border border-white/10 bg-white/[0.03] p-4">
-        <h2 className="font-medium">Cardmarket Preis</h2>
+        <h2 className="font-medium">{t("settings.language")}</h2>
+        <p className="text-sm text-zinc-400">{t("settings.languageHelp")}</p>
+        <div className="grid grid-cols-2 gap-2">
+          {UI_LOCALES.map((value) => (
+            <button
+              key={value}
+              type="button"
+              onClick={() => void saveLanguage(value)}
+              className={`rounded-xl px-3 py-2 text-sm font-medium ${
+                locale === value
+                  ? "bg-emerald-500 text-black"
+                  : "bg-white/5 text-zinc-300"
+              }`}
+            >
+              {value === "en" ? t("settings.languageEn") : t("settings.languageDe")}
+            </button>
+          ))}
+        </div>
+      </section>
+
+      <section className="space-y-3 rounded-2xl border border-white/10 bg-white/[0.03] p-4">
+        <h2 className="font-medium">{t("settings.cardmarketPrice")}</h2>
         <div className="grid grid-cols-2 gap-2">
           {(["trend", "low"] as const).map((value) => (
             <button
@@ -130,19 +172,15 @@ export default function SettingsPage() {
                   : "bg-white/5 text-zinc-300"
               }`}
             >
-              {value === "trend" ? "Trend" : "Low"}
+              {value === "trend" ? t("settings.priceTrend") : t("settings.priceLow")}
             </button>
           ))}
         </div>
       </section>
 
       <section className="space-y-3 rounded-2xl border border-white/10 bg-white/[0.03] p-4">
-        <h2 className="font-medium">Standard-Zustand</h2>
-        <p className="text-sm text-zinc-400">
-          Wird beim Hinzufügen per Long-Press in der Set-Ansicht und als
-          Voreinstellung beim Anlegen neuer Sammlungseinträge im
-          Karten-Dialog verwendet.
-        </p>
+        <h2 className="font-medium">{t("settings.defaultCondition")}</h2>
+        <p className="text-sm text-zinc-400">{t("settings.defaultConditionHelp")}</p>
         <div className="grid grid-cols-3 gap-2 sm:grid-cols-5">
           {CARD_CONDITIONS.map((value) => (
             <button
@@ -155,18 +193,15 @@ export default function SettingsPage() {
                   : "bg-white/5 text-zinc-300"
               }`}
             >
-              {CONDITION_LABELS[value]}
+              {conditionLabel(value, t)}
             </button>
           ))}
         </div>
       </section>
 
       <section className="space-y-3 rounded-2xl border border-white/10 bg-white/[0.03] p-4">
-        <h2 className="font-medium">Daten-Sync</h2>
-        <p className="text-sm text-zinc-400">
-          Sets wöchentlich, Preise täglich. Kartendaten pro Set in der
-          Set-Liste. Der Worker muss laufen.
-        </p>
+        <h2 className="font-medium">{t("settings.dataSync")}</h2>
+        <p className="text-sm text-zinc-400">{t("settings.dataSyncHelp")}</p>
         {syncError ? (
           <p className="text-sm text-red-400">{syncError}</p>
         ) : null}
@@ -182,7 +217,7 @@ export default function SettingsPage() {
             ) : (
               <RefreshCw className="h-4 w-4" />
             )}
-            Sets synchronisieren
+            {t("settings.syncSets")}
           </button>
           <button
             type="button"
@@ -195,19 +230,19 @@ export default function SettingsPage() {
             ) : (
               <RefreshCw className="h-4 w-4" />
             )}
-            Preise jetzt synchronisieren
+            {t("settings.syncPricesNow")}
           </button>
         </div>
       </section>
 
       <section className="space-y-3">
-        <h2 className="font-medium">Letzte Jobs</h2>
+        <h2 className="font-medium">{t("settings.recentJobs")}</h2>
         {jobs.length === 0 ? (
-          <p className="text-sm text-zinc-500">Noch keine Sync-Jobs.</p>
+          <p className="text-sm text-zinc-500">{t("settings.noSyncJobs")}</p>
         ) : (
           jobs.map((job) => {
-            const issues = getSyncJobIssues(job.progress);
-            const issueSummary = formatSyncJobIssueSummary(job.progress);
+            const issues = getSyncJobIssues(job.progress, t);
+            const issueSummary = formatSyncJobIssueSummary(job.progress, t);
 
             return (
             <div
@@ -216,7 +251,7 @@ export default function SettingsPage() {
             >
               <div className="flex items-center justify-between gap-3">
                 <span className="font-medium text-white">
-                  {formatJobTypeLabel(job.jobType, job.setId)}
+                  {formatJobTypeLabel(job.jobType, job.setId, t, job.setName)}
                 </span>
                 <span
                   className={
@@ -229,17 +264,19 @@ export default function SettingsPage() {
                           : "text-zinc-400"
                   }
                 >
-                  {formatJobStatusLabel(job.status, job.message)}
+                  {formatJobStatusLabel(job.status, job.message, t)}
                 </span>
               </div>
               {job.message ? (
-                <p className="mt-1 text-zinc-500">{job.message}</p>
+                <p className="mt-1 text-zinc-500">
+                  {formatSyncJobMessage(job.message, t)}
+                </p>
               ) : null}
               {issueSummary ? (
                 <details className="mt-2 rounded-lg border border-yellow-500/20 bg-yellow-500/5">
                   <summary className="flex cursor-pointer list-none items-center justify-between gap-2 px-3 py-2 text-yellow-200 [&::-webkit-details-marker]:hidden">
                     <span>
-                      Probleme: {issueSummary}
+                      {t("settings.issuesSummary", { summary: issueSummary })}
                     </span>
                     <ChevronDown className="h-4 w-4 shrink-0 opacity-70" />
                   </summary>
@@ -248,10 +285,10 @@ export default function SettingsPage() {
                       <li key={`${issue.kind}-${issue.title}-${index}`}>
                         <p className="font-medium text-yellow-100/90">
                           {issue.kind === "set"
-                            ? "Set"
+                            ? t("settings.issueKindSet")
                             : issue.kind === "card"
-                              ? "Karte"
-                              : "Job"}
+                              ? t("settings.issueKindCard")
+                              : t("settings.issueKindJob")}
                           : {issue.title}
                         </p>
                         <p className="text-xs text-yellow-100/60">{issue.detail}</p>
@@ -261,7 +298,7 @@ export default function SettingsPage() {
                 </details>
               ) : null}
               <p className="mt-1 text-xs text-zinc-600">
-                {formatDate(job.finishedAt ?? job.createdAt)}
+                {formatDate(job.finishedAt ?? job.createdAt, locale)}
               </p>
             </div>
             );
@@ -270,9 +307,7 @@ export default function SettingsPage() {
       </section>
 
       <p className="text-xs leading-relaxed text-zinc-600">
-        OpenBinder ist ein inoffizielles Fan-Tool. Pokémon und alle zugehörigen
-        Marken sind Eigentum von Nintendo / Creatures Inc. / GAME FREAK inc.
-        Kartendaten via TCGdex, Preise via Cardmarket (über TCGdex).
+        {t("settings.disclaimer")}
       </p>
     </div>
   );

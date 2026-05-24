@@ -1,5 +1,6 @@
 import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
+import { localeToIntlTag, type UiLocale } from "@/lib/i18n/locale";
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -14,10 +15,11 @@ export const CARD_ASPECT = {
 export function formatCurrency(
   value: number | string | null | undefined,
   currency = "EUR",
+  locale: UiLocale = "en",
 ) {
   const num = typeof value === "string" ? parseFloat(value) : value;
   if (num == null || Number.isNaN(num)) return "—";
-  return new Intl.NumberFormat("de-DE", {
+  return new Intl.NumberFormat(localeToIntlTag(locale), {
     style: "currency",
     currency,
   }).format(num);
@@ -29,19 +31,28 @@ export function hasCardPrice(price: number | null | undefined): boolean {
 
 export function formatCardPriceLabel(
   price: number | null | undefined,
-  label = "Preis",
+  label = "Price",
+  locale: UiLocale = "en",
 ): string {
-  return hasCardPrice(price) ? formatCurrency(price) : `${label}: —`;
+  return hasCardPrice(price)
+    ? formatCurrency(price, "EUR", locale)
+    : `${label}: —`;
 }
 
-export function formatCardPrice(price: number | null | undefined): string {
-  return formatCardPriceLabel(price);
+export function formatCardPrice(
+  price: number | null | undefined,
+  locale: UiLocale = "en",
+): string {
+  return formatCardPriceLabel(price, "Price", locale);
 }
 
-export function formatDate(value: string | Date | null | undefined) {
+export function formatDate(
+  value: string | Date | null | undefined,
+  locale: UiLocale = "en",
+) {
   if (!value) return "—";
   const date = typeof value === "string" ? new Date(value) : value;
-  return new Intl.DateTimeFormat("de-DE", {
+  return new Intl.DateTimeFormat(localeToIntlTag(locale), {
     dateStyle: "medium",
     timeStyle: "short",
   }).format(date);

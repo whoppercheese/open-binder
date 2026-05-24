@@ -2,6 +2,7 @@
 
 import { ImageOff } from "lucide-react";
 import { SetImage } from "@/components/set-image";
+import { useTranslations } from "@/lib/i18n/context";
 import { cn } from "@/lib/utils";
 
 type CardImageFallbackProps = {
@@ -15,6 +16,8 @@ export function CardImageFallback({
   number,
   className,
 }: CardImageFallbackProps) {
+  const t = useTranslations();
+
   return (
     <div
       className={cn(
@@ -40,7 +43,7 @@ export function CardImageFallback({
           #{number}
         </p>
       ) : null}
-      <p className="mt-1 text-[10px] text-zinc-500">Kein Bild</p>
+      <p className="mt-1 text-[10px] text-zinc-500">{t("common.noImage")}</p>
     </div>
   );
 }

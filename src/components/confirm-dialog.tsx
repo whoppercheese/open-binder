@@ -2,6 +2,7 @@
 
 import { Loader2 } from "lucide-react";
 import { Portal } from "@/components/portal";
+import { useTranslations } from "@/lib/i18n/context";
 import { cn } from "@/lib/utils";
 
 type ConfirmDialogProps = {
@@ -19,12 +20,14 @@ export function ConfirmDialog({
   open,
   title,
   message,
-  confirmLabel = "Löschen",
-  cancelLabel = "Abbrechen",
+  confirmLabel,
+  cancelLabel,
   loading = false,
   onConfirm,
   onCancel,
 }: ConfirmDialogProps) {
+  const t = useTranslations();
+
   if (!open) return null;
 
   const messageParts = Array.isArray(message) ? message : [message];
@@ -57,7 +60,7 @@ export function ConfirmDialog({
             onClick={onCancel}
             className="flex-1 rounded-2xl border border-white/10 px-4 py-3 text-sm font-medium text-white transition hover:bg-white/5 disabled:opacity-60"
           >
-            {cancelLabel}
+            {cancelLabel ?? t("common.cancel")}
           </button>
           <button
             type="button"
@@ -68,7 +71,7 @@ export function ConfirmDialog({
             )}
           >
             {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-            {confirmLabel}
+            {confirmLabel ?? t("common.delete")}
           </button>
         </div>
         </div>

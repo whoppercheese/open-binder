@@ -13,34 +13,21 @@ import {
   type QuickAddToastData,
 } from "@/components/quick-add-toast";
 import { addToCollection, pickDefaultVariantId } from "@/lib/collection-client";
+import { apiUrl, useLocale, useTranslations } from "@/lib/i18n/context";
+import { formatSyncJobMessage } from "@/lib/sync-job-display";
+import { getRarityLabel, sortCanonicalRarities } from "@/lib/rarity";
 import { useDefaultCondition } from "@/lib/use-default-condition";
-import { cn, CONDITION_LABELS } from "@/lib/utils";
-
-const RARITY_ORDER = [
-  "Häufig",
-  "Ungewöhnlich",
-  "Selten",
-  "Doppel-Selten",
-  "Ultra Selten",
-  "Illustrations-Selten",
-  "Geheimes Selten",
-  "Promo",
-];
+import { cn, type CardCondition } from "@/lib/utils";
 
 type OwnershipFilter = "owned" | "missing";
 
-function sortRarities(rarities: string[]) {
-  return [...rarities].sort((a, b) => {
-    const indexA = RARITY_ORDER.indexOf(a);
-    const indexB = RARITY_ORDER.indexOf(b);
-    if (indexA === -1 && indexB === -1) {
-      return a.localeCompare(b, "de");
-    }
-    if (indexA === -1) return 1;
-    if (indexB === -1) return -1;
-    return indexA - indexB;
-  });
-}
+const CONDITION_KEYS: Record<CardCondition, string> = {
+  mint: "common.conditionMint",
+  nm: "common.conditionNm",
+  lp: "common.conditionLp",
+  mp: "common.conditionMp",
+  hp: "common.conditionHp",
+};
 
 function FilterChip({
   active,
@@ -70,14 +57,14 @@ function FilterChip({
 type SetDetailResponse = {
   set: {
     id: string;
-    nameDe: string;
+    name: string;
     officialCode: string | null;
     cardsSyncedAt: string | null;
   };
   cards: Array<{
     id: string;
     number: string;
-    nameDe: string;
+    name: string;
     rarity: string | null;
     imageUrl: string | null;
     owned: boolean;
@@ -102,6 +89,8 @@ type SetDetailResponse = {
 export default function SetDetailPage() {
   const params = useParams<{ id: string }>();
   const router = useRouter();
+  const { locale } = useLocale();
+  const t = useTranslations();
   const [data, setData] = useState<SetDetailResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [selectedCard, setSelectedCard] = useState<CardDetail | null>(null);
@@ -139,7 +128,7 @@ export default function SetDetailPage() {
     for (const card of data.cards) {
       if (card.rarity) unique.add(card.rarity);
     }
-    return sortRarities(Array.from(unique));
+    return sortCanonicalRarities(Array.from(unique));
   }, [data]);
 
   const filteredCards = useMemo(() => {
@@ -182,8 +171,8 @@ export default function SetDetailPage() {
         showQuickAddToast({
           kind: "success",
           number: card.number,
-          name: card.nameDe,
-          conditionLabel: CONDITION_LABELS[defaultCondition],
+          name: card.name,
+          conditionLabel: t(CONDITION_KEYS[defaultCondition]),
         });
       } catch (error) {
         showQuickAddToast(
@@ -191,8 +180,10 @@ export default function SetDetailPage() {
             kind: "error",
             message:
               error instanceof Error
-                ? error.message
-                : "Hinzufügen fehlgeschlagen",
+                ? error.message === "COLLECTION_ADD_FAILED"
+                  ? t("errors.addFailed")
+                  : error.message
+                : t("errors.addFailed"),
           },
           3000,
         );
@@ -200,7 +191,7 @@ export default function SetDetailPage() {
         addingCardIdsRef.current.delete(card.id);
       }
     },
-    [showQuickAddToast, defaultCondition],
+    [showQuickAddToast, defaultCondition, t],
   );
 
   useEffect(() => {
@@ -212,12 +203,12 @@ export default function SetDetailPage() {
   }, []);
 
   const loadSet = useCallback(async () => {
-    const response = await fetch(`/api/sets/${params.id}`);
+    const response = await fetch(apiUrl(`/api/sets/${params.id}`, locale));
     const payload = await response.json();
     setData(payload);
     setLoading(false);
     return payload as SetDetailResponse;
-  }, [params.id]);
+  }, [params.id, locale]);
 
   const loadSyncStatus = useCallback(async () => {
     const response = await fetch(
@@ -326,18 +317,15 @@ export default function SetDetailPage() {
     });
 
     if (!response.ok) {
-      const body = await response.json().catch(() => ({}));
-      setLoadError(
-        (body.error as string) ?? "Karten-Sync konnte nicht gestartet werden.",
-      );
+      setLoadError(t("errors.cardSyncStartFailed"));
     } else {
       setSyncStatus("pending");
-      setSyncMessage("Karten-Sync wird vorbereitet…");
+      setSyncMessage(t("sync.syncPreparing"));
       await loadSyncStatus();
     }
 
     setLoadingCards(false);
-  }, [loadSyncStatus, params.id]);
+  }, [loadSyncStatus, params.id, t]);
 
   async function handleDeleteCardData() {
     setDeleteError(null);
@@ -349,10 +337,7 @@ export default function SetDetailPage() {
       });
 
       if (!response.ok) {
-        const body = await response.json().catch(() => ({}));
-        setDeleteError(
-          (body.error as string) ?? "Kartendaten konnten nicht gelöscht werden.",
-        );
+        setDeleteError(t("errors.cardDataDeleteFailed"));
         setConfirmDeleteOpen(false);
         return;
       }
@@ -370,29 +355,25 @@ export default function SetDetailPage() {
 
   const deleteConfirmMessage = useMemo(() => {
     const entryCount = data?.collectionEntryCount ?? 0;
-    const parts = [
-      "Alle heruntergeladenen Kartendaten dieses Sets werden gelöscht. Karten, Varianten, Preise und zwischengespeicherte Bilder.",
-    ];
+    const parts = [t("sets.deleteConfirmIntro")];
 
     if (entryCount > 0) {
-      parts.push(
-        `Dabei werden auch ${entryCount} ${entryCount === 1 ? "Sammlungseintrag" : "Sammlungseinträge"} aus deiner Sammlung entfernt, die zu diesem Set gehören.`,
-      );
+      parts.push(t("sets.deleteConfirmWithEntries", { count: entryCount }));
     } else {
-      parts.push("Es gibt keine Sammlungseinträge für dieses Set.");
+      parts.push(t("sets.deleteConfirmNoEntries"));
     }
 
-    parts.push("Das Set kann danach erneut synchronisiert werden.");
+    parts.push(t("sets.deleteConfirmResyncNote"));
     return parts;
-  }, [data?.collectionEntryCount]);
+  }, [data?.collectionEntryCount, t]);
 
   const actionSheetItems = useMemo(
     () => [
       {
         id: "resync",
         label: syncActive
-          ? "Aktualisierung läuft…"
-          : "Kartendaten erneut laden",
+          ? t("sets.resyncRunning")
+          : t("sets.resyncCards"),
         icon: syncActive ? (
           <Loader2 className="h-4 w-4 shrink-0 animate-spin" />
         ) : (
@@ -403,25 +384,29 @@ export default function SetDetailPage() {
       },
       {
         id: "delete-cards",
-        label: "Kartendaten löschen",
+        label: t("sets.deleteCardData"),
         icon: <Trash2 className="h-4 w-4 shrink-0" />,
         destructive: true,
         disabled: syncActive,
         onSelect: () => setConfirmDeleteOpen(true),
       },
     ],
-    [handleLoadCards, syncActive],
+    [handleLoadCards, syncActive, t],
   );
 
   if (loading) {
     return (
-      <div className="px-4 pt-6 text-sm text-zinc-400">Set wird geladen…</div>
+      <div className="px-4 pt-6 text-sm text-zinc-400">
+        {t("sets.detailLoading")}
+      </div>
     );
   }
 
   if (!data?.set) {
     return (
-      <div className="px-4 pt-6 text-sm text-red-400">Set nicht gefunden.</div>
+      <div className="px-4 pt-6 text-sm text-red-400">
+        {t("sets.detailNotFound")}
+      </div>
     );
   }
 
@@ -430,7 +415,7 @@ export default function SetDetailPage() {
       <div className="space-y-5 px-4 pt-6">
         <header>
           <h1 className="text-2xl font-bold">
-            {data.set.nameDe}
+            {data.set.name}
             <span className="ml-2 text-base font-normal text-zinc-500">
               {data.set.officialCode ?? data.set.id}
             </span>
@@ -441,12 +426,15 @@ export default function SetDetailPage() {
           {syncStatus === "pending" || syncStatus === "running" ? (
             <div className="flex flex-col items-center gap-3 text-sm text-zinc-400">
               <Loader2 className="h-5 w-5 animate-spin text-emerald-400" />
-              <p>{syncMessage ?? "Karten werden geladen…"}</p>
+              <p>
+                {formatSyncJobMessage(syncMessage, t) ??
+                  t("sets.detailCardsLoading")}
+              </p>
             </div>
           ) : (
             <>
               <p className="text-sm text-zinc-500">
-                Für dieses Set wurden noch keine Kartendaten geladen.
+                {t("sets.detailNoCardData")}
               </p>
               {loadError ? (
                 <p className="mt-3 text-sm text-red-400">{loadError}</p>
@@ -462,7 +450,7 @@ export default function SetDetailPage() {
                 ) : (
                   <Download className="h-4 w-4" />
                 )}
-                Karten laden
+                {t("sets.loadCards")}
               </button>
             </>
           )}
@@ -476,14 +464,14 @@ export default function SetDetailPage() {
       <header className="space-y-3">
         <div className="flex items-start justify-between gap-2">
           <h1 className="min-w-0 flex-1 text-2xl font-bold">
-            {data.set.nameDe}
+            {data.set.name}
             <span className="ml-2 text-base font-normal text-zinc-500">
               {data.set.officialCode ?? data.set.id}
             </span>
           </h1>
           <button
             type="button"
-            aria-label="Set-Aktionen"
+            aria-label={t("sets.setActions")}
             aria-haspopup="menu"
             onClick={() => setMenuOpen(true)}
             className="-mr-1 mt-0.5 inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-zinc-500 transition hover:bg-white/5 hover:text-zinc-300 active:bg-white/10"
@@ -500,12 +488,15 @@ export default function SetDetailPage() {
         {syncStatus === "pending" || syncStatus === "running" ? (
           <div className="flex items-center gap-2 rounded-xl border border-emerald-500/20 bg-emerald-500/10 px-3 py-2 text-sm text-emerald-100">
             <Loader2 className="h-4 w-4 shrink-0 animate-spin text-emerald-400" />
-            <span>{syncMessage ?? "Kartendaten werden aktualisiert…"}</span>
+            <span>
+              {formatSyncJobMessage(syncMessage, t) ??
+                t("sets.detailCardsUpdating")}
+            </span>
           </div>
         ) : null}
         <div>
           <div className="mb-1 flex justify-between text-sm text-zinc-400">
-            <span>Fortschritt</span>
+            <span>{t("sets.detailProgress")}</span>
             <span>
               {data.progress.ownedCards}/{data.progress.totalCards}
             </span>
@@ -524,7 +515,7 @@ export default function SetDetailPage() {
               )
             }
           >
-            Im Besitz
+            {t("sets.filterOwned")}
           </FilterChip>
           <FilterChip
             active={ownershipFilter === "missing"}
@@ -534,7 +525,7 @@ export default function SetDetailPage() {
               )
             }
           >
-            Nicht im Besitz
+            {t("sets.filterMissing")}
           </FilterChip>
         </div>
 
@@ -550,7 +541,7 @@ export default function SetDetailPage() {
                   )
                 }
               >
-                {rarity}
+                {getRarityLabel(rarity, t) ?? rarity}
               </FilterChip>
             ))}
           </div>
@@ -558,14 +549,17 @@ export default function SetDetailPage() {
 
         {hasActiveFilters ? (
           <p className="text-xs text-zinc-500">
-            {filteredCards.length} von {data.cards.length} Karten
+            {t("sets.filteredCardsSummary", {
+              filtered: filteredCards.length,
+              total: data.cards.length,
+            })}
           </p>
         ) : null}
       </section>
 
       {filteredCards.length === 0 ? (
         <div className="rounded-2xl border border-dashed border-white/10 p-8 text-center text-sm text-zinc-500">
-          Keine Karten für diese Filter.
+          {t("sets.emptyFilteredCards")}
         </div>
       ) : (
       <div className="grid grid-cols-3 gap-3 sm:grid-cols-4">
@@ -575,7 +569,7 @@ export default function SetDetailPage() {
             card={{
               id: card.id,
               number: card.number,
-              nameDe: card.nameDe,
+              name: card.name,
               setId: data.set.id,
               imageUrl: card.imageUrl,
               owned: card.owned,
@@ -588,10 +582,10 @@ export default function SetDetailPage() {
               setSelectedCard({
                 id: card.id,
                 number: card.number,
-                nameDe: card.nameDe,
+                name: card.name,
                 imageUrl: card.imageUrl,
                 setId: data.set.id,
-                setName: data.set.nameDe,
+                setName: data.set.name,
                 officialCode: data.set.officialCode,
                 variants: card.variants,
               });
@@ -615,16 +609,15 @@ export default function SetDetailPage() {
 
       <ActionSheet
         open={menuOpen}
-        title="Set-Aktionen"
+        title={t("sets.setActions")}
         items={actionSheetItems}
         onClose={() => setMenuOpen(false)}
       />
 
       <ConfirmDialog
         open={confirmDeleteOpen}
-        title="Kartendaten löschen?"
+        title={t("sets.deleteCardDataTitle")}
         message={deleteConfirmMessage}
-        confirmLabel="Löschen"
         loading={deletingCards}
         onConfirm={() => void handleDeleteCardData()}
         onCancel={() => {

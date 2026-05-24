@@ -1,11 +1,15 @@
+"use client";
+
 import Link from "next/link";
 import { ChevronRight, Download, Loader2 } from "lucide-react";
 import { ProgressBar } from "@/components/progress-bar";
 import { SetImage } from "@/components/set-image";
+import { useTranslations } from "@/lib/i18n/context";
+import { formatSyncJobMessage } from "@/lib/sync-job-display";
 
 type SetListItemProps = {
   id: string;
-  nameDe: string;
+  name: string;
   officialCode?: string | null;
   cardsSynced: boolean;
   syncStatus?: "idle" | "pending" | "running";
@@ -19,7 +23,7 @@ type SetListItemProps = {
 
 export function SetListItem({
   id,
-  nameDe,
+  name,
   officialCode,
   cardsSynced,
   syncStatus = "idle",
@@ -30,6 +34,7 @@ export function SetListItem({
   onLoadCards,
   loadingCards = false,
 }: SetListItemProps) {
+  const t = useTranslations();
   const isSyncing = syncStatus === "pending" || syncStatus === "running";
   const showProgress = cardsSynced && !isSyncing;
 
@@ -38,15 +43,15 @@ export function SetListItem({
       <Link
         href={`/sets/${id}`}
         className="absolute inset-0 z-0 rounded-2xl focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400/50"
-        aria-label={`${nameDe} öffnen`}
+        aria-label={t("sets.openSet", { name })}
       />
 
       <div className="pointer-events-none relative z-[1] p-4">
         <div className={`flex items-center gap-3 ${showProgress ? "mb-3" : ""}`}>
-          <SetImage setId={id} alt={nameDe} className="h-12 w-12 shrink-0" />
+          <SetImage setId={id} alt={name} className="h-12 w-12 shrink-0" />
 
           <div className="min-w-0 flex-1">
-            <h3 className="truncate font-medium text-white">{nameDe}</h3>
+            <h3 className="truncate font-medium text-white">{name}</h3>
             {officialCode ? (
               <p className="text-xs text-zinc-500">{officialCode}</p>
             ) : null}
@@ -62,11 +67,15 @@ export function SetListItem({
           ) : isSyncing ? (
             <div
               className="flex max-w-[9rem] shrink-0 items-center gap-1.5 text-xs text-zinc-400"
-              title={syncMessage ?? undefined}
+              title={
+                syncMessage
+                  ? (formatSyncJobMessage(syncMessage, t) ?? undefined)
+                  : undefined
+              }
             >
               <Loader2 className="h-3.5 w-3.5 shrink-0 animate-spin text-emerald-400" />
               <span className="truncate">
-                {syncStatus === "pending" ? "Wartend…" : "Lädt…"}
+                {syncStatus === "pending" ? t("sets.waiting") : t("sets.loading")}
               </span>
             </div>
           ) : (
@@ -81,7 +90,7 @@ export function SetListItem({
               ) : (
                 <Download className="h-3.5 w-3.5" />
               )}
-              Karten laden
+              {t("sets.loadCards")}
             </button>
           )}
         </div>
@@ -89,7 +98,9 @@ export function SetListItem({
         {showProgress ? (
           <>
             <ProgressBar value={percent} />
-            <p className="mt-1 text-xs text-zinc-500">{percent}% komplett</p>
+            <p className="mt-1 text-xs text-zinc-500">
+              {t("sets.percentComplete", { percent })}
+            </p>
           </>
         ) : null}
       </div>

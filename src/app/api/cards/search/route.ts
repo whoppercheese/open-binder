@@ -2,12 +2,17 @@ import { eq, inArray } from "drizzle-orm";
 import { NextResponse } from "next/server";
 import { db } from "@/db/client";
 import { cardPrices, cards, cardVariants, sets, userCards } from "@/db/schema";
+import {
+  localizedCardNameSql,
+  localizedSetNameSql,
+} from "@/lib/localized-names";
+import { getRequestTranslator } from "@/lib/i18n/server";
 import { getPricePreference, pickPrice } from "@/lib/settings";
 import { buildSearchSql, parseSearchQuery } from "@/lib/search";
-import { cardDisplayNameSql } from "@/lib/card-names";
 
 export async function GET(request: Request) {
   try {
+    const { locale } = getRequestTranslator(request);
     const { searchParams } = new URL(request.url);
     const q = searchParams.get("q")?.trim() ?? "";
     if (!q) {
@@ -15,23 +20,27 @@ export async function GET(request: Request) {
     }
 
     const parsed = parseSearchQuery(q);
-    const idRows = await db.execute<{ id: string }>(buildSearchSql(parsed));
+    const idRows = await db.execute<{ id: string }>(
+      buildSearchSql(parsed, locale),
+    );
     const cardIds = idRows.map((row) => row.id);
     if (cardIds.length === 0) {
       return NextResponse.json({ results: [] });
     }
 
     const preference = await getPricePreference();
+    const nameSql = localizedCardNameSql(locale);
+    const setNameSql = localizedSetNameSql(locale);
 
     const results = await db
       .select({
         id: cards.id,
         number: cards.number,
-        nameDe: cardDisplayNameSql,
+        name: nameSql,
         rarity: cards.rarity,
         imageUrl: cards.imageUrl,
         setId: sets.id,
-        setName: sets.nameDe,
+        setName: setNameSql,
         officialCode: sets.officialCode,
         variantId: cardVariants.id,
         variantType: cardVariants.variantType,
@@ -46,14 +55,14 @@ export async function GET(request: Request) {
       .leftJoin(userCards, eq(userCards.variantId, cardVariants.id))
       .leftJoin(cardPrices, eq(cardPrices.variantId, cardVariants.id))
       .where(inArray(cards.id, cardIds))
-      .orderBy(cardDisplayNameSql);
+      .orderBy(nameSql);
 
     const grouped = new Map<
       string,
       {
         id: string;
         number: string;
-        nameDe: string;
+        name: string;
         rarity: string | null;
         imageUrl: string | null;
         setId: string;
@@ -74,7 +83,7 @@ export async function GET(request: Request) {
       const existing = grouped.get(row.id) ?? {
         id: row.id,
         number: row.number,
-        nameDe: row.nameDe,
+        name: row.name,
         rarity: row.rarity,
         imageUrl: row.imageUrl,
         setId: row.setId,
@@ -100,7 +109,7 @@ export async function GET(request: Request) {
   } catch (error) {
     console.error(error);
     return NextResponse.json(
-      { error: "Suche fehlgeschlagen." },
+      { errorCode: "SEARCH_FAILED" },
       { status: 500 },
     );
   }

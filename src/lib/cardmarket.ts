@@ -1,3 +1,5 @@
+import { cardmarketLocalePath, type UiLocale } from "@/lib/i18n/locale";
+
 const PRODUCT_CATALOG_URL =
   "https://downloads.s3.cardmarket.com/productCatalog/productList/products_singles_6.json";
 
@@ -38,9 +40,10 @@ export async function fetchProductCatalog(): Promise<CardmarketProductCatalog> {
 
 export function getCardmarketProductUrl(
   productId: number,
-  options?: { foil?: boolean },
+  options?: { foil?: boolean; locale?: UiLocale },
 ): string {
-  const url = new URL("https://www.cardmarket.com/de/Pokemon/Products");
+  const lang = cardmarketLocalePath(options?.locale ?? "en");
+  const url = new URL(`https://www.cardmarket.com/${lang}/Pokemon/Products`);
   url.searchParams.set("idProduct", String(productId));
   if (options?.foil) {
     url.searchParams.set("isFoil", "Y");

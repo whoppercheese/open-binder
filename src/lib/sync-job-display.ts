@@ -1,5 +1,8 @@
-export const WORKER_RESTART_MESSAGE =
-  "Unterbrochen durch Worker-Neustart";
+import type { TranslateFn } from "@/lib/i18n/messages";
+import { isWorkerRestartMessage } from "@/lib/sync-job-messages";
+
+export { WORKER_RESTART_MESSAGE } from "@/lib/sync-job-messages";
+export { formatSyncJobMessage } from "@/lib/sync-job-messages";
 
 export type CatalogCardError = {
   setId: string;
@@ -30,20 +33,21 @@ export type SyncJobIssue = {
 export function formatJobStatusLabel(
   status: string,
   message: string | null,
+  t: TranslateFn,
 ): string {
-  if (status === "failed" && message === WORKER_RESTART_MESSAGE) {
-    return "unterbrochen (Neustart)";
+  if (status === "failed" && isWorkerRestartMessage(message)) {
+    return t("sync.jobStatusInterrupted");
   }
 
   switch (status) {
     case "pending":
-      return "wartend";
+      return t("sync.jobStatusPending");
     case "running":
-      return "läuft";
+      return t("sync.jobStatusRunning");
     case "completed":
-      return "abgeschlossen";
+      return t("sync.jobStatusCompleted");
     case "failed":
-      return "fehlgeschlagen";
+      return t("sync.jobStatusFailed");
     default:
       return status;
   }
@@ -51,15 +55,21 @@ export function formatJobStatusLabel(
 
 export function formatJobTypeLabel(
   jobType: "catalog" | "set_cards" | "prices",
-  setId?: string | null,
+  setId: string | null | undefined,
+  t: TranslateFn,
+  setLabel?: string | null,
 ): string {
   switch (jobType) {
     case "catalog":
-      return "Sets";
+      return t("sync.jobTypeCatalog");
     case "set_cards":
-      return setId ? `Set-Karten (${setId})` : "Set-Karten";
+      return setId || setLabel
+        ? t("sync.jobTypeSetCardsWithId", {
+            setId: setLabel ?? setId ?? "",
+          })
+        : t("sync.jobTypeSetCards");
     case "prices":
-      return "Preise";
+      return t("sync.jobTypePrices");
     default:
       return jobType;
   }
@@ -71,6 +81,7 @@ export function isActiveSyncJob(status: string): boolean {
 
 export function getSyncJobIssues(
   progress: SyncJobProgress | null | undefined,
+  t: TranslateFn,
 ): SyncJobIssue[] {
   if (!progress) return [];
 
@@ -81,13 +92,13 @@ export function getSyncJobIssues(
     if (failure.kind === "set") {
       issues.push({
         kind: "set",
-        title: failure.setName ?? failure.setId ?? "Unbekanntes Set",
+        title: failure.setName ?? failure.setId ?? t("sync.unknownSet"),
         detail: failure.error,
       });
     } else {
       issues.push({
         kind: "job",
-        title: "Job abgebrochen",
+        title: t("sync.jobAborted"),
         detail: failure.error,
       });
     }
@@ -106,8 +117,9 @@ export function getSyncJobIssues(
 
 export function formatSyncJobIssueSummary(
   progress: SyncJobProgress | null | undefined,
+  t: TranslateFn,
 ): string | null {
-  const issues = getSyncJobIssues(progress);
+  const issues = getSyncJobIssues(progress, t);
   if (issues.length === 0) return null;
 
   const setFailures = issues.filter((issue) => issue.kind === "set").length;
@@ -116,15 +128,13 @@ export function formatSyncJobIssueSummary(
 
   const parts: string[] = [];
   if (setFailures > 0) {
-    parts.push(`${setFailures} Set${setFailures === 1 ? "" : "s"}`);
+    parts.push(t("sync.issueSummarySets", { count: setFailures }));
   }
   if (jobFailures > 0) {
-    parts.push("Job-Fehler");
+    parts.push(t("sync.issueSummaryJobError"));
   }
   if (cardFailures > 0) {
-    parts.push(
-      `${cardFailures} Karte${cardFailures === 1 ? "" : "n"}`,
-    );
+    parts.push(t("sync.issueSummaryCards", { count: cardFailures }));
   }
 
   return parts.join(", ");
