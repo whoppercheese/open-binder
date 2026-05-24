@@ -52,3 +52,28 @@ export async function addToCollection({
     throw new Error(payload.error ?? "Speichern fehlgeschlagen");
   }
 }
+
+export type UpdateCollectionInput = {
+  quantity?: number;
+  condition?: string;
+  language?: string;
+  notes?: string | null;
+  purchasePrice?: number | null;
+  flagged?: boolean;
+};
+
+export async function updateCollection(
+  entryId: string,
+  input: UpdateCollectionInput,
+): Promise<void> {
+  const response = await fetch(`/api/collection/${entryId}`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(input),
+  });
+
+  if (!response.ok) {
+    const payload = (await response.json()) as { error?: string };
+    throw new Error(payload.error ?? "Speichern fehlgeschlagen");
+  }
+}

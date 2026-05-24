@@ -252,3 +252,70 @@ export async function getSetWithCards(setId: string) {
     collectionEntryCount,
   };
 }
+
+export async function getCardWithVariants(cardId: string) {
+  const preference = await getPricePreference();
+
+  const rows = await db
+    .select({
+      id: cards.id,
+      number: cards.number,
+      nameDe: cardDisplayNameSql,
+      imageUrl: cards.imageUrl,
+      setId: sets.id,
+      setName: sets.nameDe,
+      officialCode: sets.officialCode,
+      variantId: cardVariants.id,
+      variantType: cardVariants.variantType,
+      cardmarketProductId: cardVariants.cardmarketProductId,
+      ownedQuantity: sql<number>`coalesce(sum(${userCards.quantity}), 0)::int`,
+      trendEur: cardPrices.trendEur,
+      lowEur: cardPrices.lowEur,
+    })
+    .from(cards)
+    .innerJoin(sets, eq(cards.setId, sets.id))
+    .innerJoin(cardVariants, eq(cardVariants.cardId, cards.id))
+    .leftJoin(userCards, eq(userCards.variantId, cardVariants.id))
+    .leftJoin(cardPrices, eq(cardPrices.variantId, cardVariants.id))
+    .where(eq(cards.id, cardId))
+    .groupBy(
+      cards.id,
+      cards.number,
+      cards.nameDe,
+      cards.nameEn,
+      cards.imageUrl,
+      sets.id,
+      sets.nameDe,
+      sets.officialCode,
+      cardVariants.id,
+      cardVariants.variantType,
+      cardVariants.cardmarketProductId,
+      cardPrices.trendEur,
+      cardPrices.lowEur,
+    )
+    .orderBy(cardVariants.variantType);
+
+  if (rows.length === 0) {
+    return null;
+  }
+
+  const first = rows[0];
+  const variants = rows.map((row) => ({
+    id: row.variantId,
+    variantType: row.variantType,
+    ownedQuantity: Number(row.ownedQuantity),
+    price: pickPrice(row, preference),
+    cardmarketProductId: row.cardmarketProductId,
+  }));
+
+  return {
+    id: first.id,
+    number: first.number,
+    nameDe: first.nameDe,
+    imageUrl: first.imageUrl,
+    setId: first.setId,
+    setName: first.setName,
+    officialCode: first.officialCode,
+    variants,
+  };
+}

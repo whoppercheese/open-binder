@@ -26,7 +26,7 @@ import {
   formatCurrency,
   hasCardPrice,
 } from "@/lib/utils";
-import { addToCollection, pickDefaultVariantId } from "@/lib/collection-client";
+import { addToCollection, pickDefaultVariantId, updateCollection } from "@/lib/collection-client";
 
 export type CardVariantOption = {
   id: string;
@@ -47,14 +47,41 @@ export type CardDetail = {
   variants: CardVariantOption[];
 };
 
+export type CollectionEntry = {
+  id: string;
+  variantId: string;
+  quantity: number;
+  condition: string;
+  language: string;
+  notes: string | null;
+  purchasePrice: string | null;
+  flagged: boolean;
+};
+
 type CardModalProps = {
   card: CardDetail | null;
   open: boolean;
   onClose: () => void;
   onSaved?: () => void;
+  entry?: CollectionEntry | null;
 };
 
-function createInitialFormState(card: CardDetail | null) {
+function createInitialFormState(
+  card: CardDetail | null,
+  entry?: CollectionEntry | null,
+) {
+  if (entry) {
+    return {
+      variantId: entry.variantId,
+      quantity: entry.quantity,
+      condition: entry.condition,
+      language: entry.language,
+      notes: entry.notes ?? "",
+      purchasePrice: entry.purchasePrice ?? "",
+      flagged: entry.flagged,
+    };
+  }
+
   if (!card) {
     return {
       variantId: "",
@@ -78,20 +105,32 @@ function createInitialFormState(card: CardDetail | null) {
   };
 }
 
-export function CardModal({ card, open, onClose, onSaved }: CardModalProps) {
+export function CardModal({
+  card,
+  open,
+  onClose,
+  onSaved,
+  entry = null,
+}: CardModalProps) {
+  const isEdit = entry != null;
+  const initialForm = useMemo(
+    () => createInitialFormState(card, entry),
+    [card, entry],
+  );
+
   const defaultVariant = useMemo(() => {
     if (!card) return null;
     const variantId = pickDefaultVariantId(card.variants);
     return card.variants.find((variant) => variant.id === variantId) ?? null;
   }, [card]);
 
-  const [variantId, setVariantId] = useState("");
-  const [quantity, setQuantity] = useState(1);
-  const [condition, setCondition] = useState("nm");
-  const [language, setLanguage] = useState("de");
-  const [notes, setNotes] = useState("");
-  const [purchasePrice, setPurchasePrice] = useState("");
-  const [flagged, setFlagged] = useState(false);
+  const [variantId, setVariantId] = useState(initialForm.variantId);
+  const [quantity, setQuantity] = useState(initialForm.quantity);
+  const [condition, setCondition] = useState(initialForm.condition);
+  const [language, setLanguage] = useState(initialForm.language);
+  const [notes, setNotes] = useState(initialForm.notes);
+  const [purchasePrice, setPurchasePrice] = useState(initialForm.purchasePrice);
+  const [flagged, setFlagged] = useState(initialForm.flagged);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [imageExpanded, setImageExpanded] = useState(false);
@@ -102,7 +141,7 @@ export function CardModal({ card, open, onClose, onSaved }: CardModalProps) {
   }
 
   function resetForm(nextCard: CardDetail | null = card) {
-    const initial = createInitialFormState(nextCard);
+    const initial = createInitialFormState(nextCard, entry);
     setVariantId(initial.variantId);
     setQuantity(initial.quantity);
     setCondition(initial.condition);
@@ -138,15 +177,26 @@ export function CardModal({ card, open, onClose, onSaved }: CardModalProps) {
     setLoading(true);
     setError(null);
     try {
-      await addToCollection({
-        variantId: activeVariantId,
-        quantity,
-        condition,
-        language,
-        notes: notes || null,
-        purchasePrice: purchasePrice ? Number(purchasePrice) : null,
-        flagged,
-      });
+      if (isEdit && entry) {
+        await updateCollection(entry.id, {
+          quantity,
+          condition,
+          language,
+          notes: notes || null,
+          purchasePrice: purchasePrice ? Number(purchasePrice) : null,
+          flagged,
+        });
+      } else {
+        await addToCollection({
+          variantId: activeVariantId,
+          quantity,
+          condition,
+          language,
+          notes: notes || null,
+          purchasePrice: purchasePrice ? Number(purchasePrice) : null,
+          flagged,
+        });
+      }
       resetForm();
       onSaved?.();
       handleClose();
@@ -228,7 +278,8 @@ export function CardModal({ card, open, onClose, onSaved }: CardModalProps) {
                   <select
                     value={activeVariantId}
                     onChange={(event) => setVariantId(event.target.value)}
-                    className="w-full rounded-xl border border-white/10 bg-black/30 px-3 py-2 text-white"
+                    disabled={isEdit}
+                    className="w-full rounded-xl border border-white/10 bg-black/30 px-3 py-2 text-white disabled:opacity-60"
                   >
                     {card.variants.map((variant) => (
                       <option key={variant.id} value={variant.id}>
@@ -397,7 +448,7 @@ export function CardModal({ card, open, onClose, onSaved }: CardModalProps) {
               <p className="mb-3 text-sm text-red-400">{error}</p>
             ) : null}
 
-            {ownedCount > 0 ? (
+            {ownedCount > 0 && !isEdit ? (
               <Link
                 href={`/collection?cardId=${encodeURIComponent(card.id)}`}
                 onClick={handleClose}
@@ -418,7 +469,7 @@ export function CardModal({ card, open, onClose, onSaved }: CardModalProps) {
               )}
             >
               {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-              Zur Sammlung hinzufügen
+              {isEdit ? "Speichern" : "Zur Sammlung hinzufügen"}
             </button>
           </div>
         </div>

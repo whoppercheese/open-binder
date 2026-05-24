@@ -7,6 +7,11 @@ import { CardFlagBadge } from "@/components/card-flag-badge";
 import { CardFrame } from "@/components/card-frame";
 import { CardImage } from "@/components/card-image";
 import { CardImageLightbox } from "@/components/card-image-lightbox";
+import {
+  CardModal,
+  type CardDetail,
+  type CollectionEntry,
+} from "@/components/card-modal";
 import { ConfirmDialog } from "@/components/confirm-dialog";
 import { SearchBar } from "@/components/search-bar";
 import {
@@ -27,6 +32,7 @@ type CollectionItem = {
   notes: string | null;
   purchasePrice: string | null;
   flagged: boolean;
+  variantId: string;
   variantType: string;
   cardId: string;
   nameDe: string;
@@ -94,6 +100,10 @@ function CollectionPageContent() {
     number: string;
     nameDe: string;
   } | null>(null);
+  const [editEntry, setEditEntry] = useState<CollectionEntry | null>(null);
+  const [editCard, setEditCard] = useState<CardDetail | null>(null);
+  const [editOpen, setEditOpen] = useState(false);
+  const [editLoadingId, setEditLoadingId] = useState<string | null>(null);
   const offsetRef = useRef(0);
   const sentinelRef = useRef<HTMLDivElement>(null);
 
@@ -256,6 +266,42 @@ function CollectionPageContent() {
     router.push("/collection");
   }
 
+  async function openEdit(item: CollectionItem) {
+    if (editLoadingId != null) return;
+
+    setEditLoadingId(item.id);
+    try {
+      const response = await fetch(`/api/cards/${item.cardId}`);
+      const payload = (await response.json()) as CardDetail & { error?: string };
+      if (!response.ok) {
+        throw new Error(payload.error ?? "Karte konnte nicht geladen werden.");
+      }
+
+      setEditCard(payload);
+      setEditEntry({
+        id: item.id,
+        variantId: item.variantId,
+        quantity: item.quantity,
+        condition: item.condition,
+        language: item.language,
+        notes: item.notes,
+        purchasePrice: item.purchasePrice,
+        flagged: item.flagged,
+      });
+      setEditOpen(true);
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setEditLoadingId(null);
+    }
+  }
+
+  function closeEdit() {
+    setEditOpen(false);
+    setEditEntry(null);
+    setEditCard(null);
+  }
+
   const emptyMessage = cardId
     ? "Keine Einträge für diese Karte."
     : query.trim()
@@ -341,7 +387,12 @@ function CollectionPageContent() {
                       />
                     </CardFrame>
                   </button>
-                  <div className="min-w-0 flex-1">
+                  <button
+                    type="button"
+                    disabled={editLoadingId === item.id}
+                    onClick={() => void openEdit(item)}
+                    className="min-w-0 flex-1 cursor-pointer text-left transition hover:opacity-90 disabled:opacity-60"
+                  >
                     <p className="flex min-w-0 items-center gap-1.5 font-medium text-white">
                       {item.flagged ? <CardFlagBadge size="sm" /> : null}
                       <span className="truncate">{item.nameDe}</span>
@@ -362,8 +413,11 @@ function CollectionPageContent() {
                         ? formatCurrency(item.value)
                         : formatCardPriceLabel(null, "Wert")}
                     </p>
-                  </div>
-                  <div className="flex shrink-0 flex-col items-end justify-between self-stretch">
+                  </button>
+                  <div
+                    className="flex shrink-0 flex-col items-end justify-between self-stretch"
+                    onClick={(event) => event.stopPropagation()}
+                  >
                     <div className="flex items-center gap-0.5 rounded-xl border border-white/10 bg-black/20 p-0.5">
                       <button
                         type="button"
@@ -420,6 +474,15 @@ function CollectionPageContent() {
         number={expandedImage?.number}
         alt={expandedImage?.nameDe ?? ""}
         onClose={() => setExpandedImage(null)}
+      />
+
+      <CardModal
+        key={editEntry?.id ?? "closed"}
+        card={editCard}
+        entry={editEntry}
+        open={editOpen}
+        onClose={closeEdit}
+        onSaved={() => void loadPage(true, query, cardId)}
       />
 
       <ConfirmDialog
