@@ -61,24 +61,53 @@ export async function getPortfolioSummary() {
     ORDER BY s.release_date DESC NULLS LAST
   `);
 
-  const recent = await db
-    .select({
-      id: userCards.id,
-      cardId: cards.id,
-      cardName: cardDisplayNameSql,
-      setId: sets.id,
-      setName: sets.nameDe,
-      number: cards.number,
-      imageUrl: cards.imageUrl,
-      quantity: userCards.quantity,
-      updatedAt: userCards.updatedAt,
-    })
-    .from(userCards)
-    .innerJoin(cardVariants, eq(userCards.variantId, cardVariants.id))
-    .innerJoin(cards, eq(cardVariants.cardId, cards.id))
-    .innerJoin(sets, eq(cards.setId, sets.id))
-    .orderBy(sql`${userCards.updatedAt} DESC`)
-    .limit(8);
+  const recentRows = await db.execute<{
+    id: string;
+    card_id: string;
+    card_name: string;
+    set_id: string;
+    set_name: string;
+    set_code: string | null;
+    number: string;
+    image_url: string | null;
+    quantity: number;
+    updated_at: Date;
+  }>(sql`
+    SELECT *
+    FROM (
+      SELECT DISTINCT ON (c.id)
+        uc.id,
+        c.id AS card_id,
+        coalesce(c.name_de, c.name_en, 'Unbekannt') AS card_name,
+        s.id AS set_id,
+        s.name_de AS set_name,
+        s.official_code AS set_code,
+        c.number,
+        c.image_url,
+        uc.quantity,
+        uc.updated_at
+      FROM user_cards uc
+      INNER JOIN card_variants cv ON uc.variant_id = cv.id
+      INNER JOIN cards c ON cv.card_id = c.id
+      INNER JOIN sets s ON c.set_id = s.id
+      ORDER BY c.id, uc.updated_at DESC
+    ) recent_cards
+    ORDER BY updated_at DESC
+    LIMIT 8
+  `);
+
+  const recent = recentRows.map((row) => ({
+    id: row.id,
+    cardId: row.card_id,
+    cardName: row.card_name,
+    setId: row.set_id,
+    setName: row.set_name,
+    officialCode: row.set_code,
+    number: row.number,
+    imageUrl: row.image_url,
+    quantity: Number(row.quantity),
+    updatedAt: row.updated_at,
+  }));
 
   const latestCatalogSync = await db.query.syncJobs.findFirst({
     where: eq(syncJobs.jobType, "catalog"),

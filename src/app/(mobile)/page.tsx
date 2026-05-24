@@ -78,7 +78,7 @@ export default async function DashboardPage() {
         ) : (
           <div className="grid grid-cols-4 gap-3">
             {summary.recent.map((item) => (
-              <div key={item.id} className="space-y-1">
+              <div key={item.cardId} className="space-y-1">
                 <CardFrame className="aspect-card w-full">
                   <CardImage
                     cardId={item.cardId}
@@ -88,8 +88,11 @@ export default async function DashboardPage() {
                     className="h-full w-full"
                   />
                 </CardFrame>
-                <p className="truncate text-[10px] text-zinc-400">
+                <p className="truncate text-[10px] font-medium text-zinc-300">
                   {item.cardName}
+                </p>
+                <p className="truncate text-[10px] tabular-nums text-zinc-500">
+                  {item.officialCode ?? item.setId} · #{item.number}
                 </p>
               </div>
             ))}
