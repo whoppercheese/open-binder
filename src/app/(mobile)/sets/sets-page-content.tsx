@@ -33,6 +33,26 @@ type SetsPageContentProps = {
   initialSets: SetListEntry[];
 };
 
+const SETS_PAGE_STATE_KEY = "sets-page-state";
+
+function readSavedQuery() {
+  if (typeof window === "undefined") {
+    return "";
+  }
+
+  try {
+    const saved = sessionStorage.getItem(SETS_PAGE_STATE_KEY);
+    if (!saved) {
+      return "";
+    }
+
+    const parsed = JSON.parse(saved) as { query?: string };
+    return typeof parsed.query === "string" ? parsed.query : "";
+  } catch {
+    return "";
+  }
+}
+
 function matchesSetQuery(set: SetListEntry, query: string) {
   const normalized = query.trim().toLowerCase();
   if (!normalized) {
@@ -89,7 +109,7 @@ export function SetsPageContent({ initialSets }: SetsPageContentProps) {
   const [sets, setSets] = useState(initialSets);
   const setsRef = useRef(initialSets);
   const knownSetCountRef = useRef(initialSets.length);
-  const [query, setQuery] = useState("");
+  const [query, setQuery] = useState(readSavedQuery);
   const [activeJobs, setActiveJobs] = useState<ActiveSetCardsJob[]>([]);
   const [catalogJob, setCatalogJob] = useState<ActiveCatalogJob | null>(null);
   const [loadingSetId, setLoadingSetId] = useState<string | null>(null);
@@ -101,6 +121,13 @@ export function SetsPageContent({ initialSets }: SetsPageContentProps) {
   useEffect(() => {
     setsRef.current = sets;
   }, [sets]);
+
+  useEffect(() => {
+    sessionStorage.setItem(
+      SETS_PAGE_STATE_KEY,
+      JSON.stringify({ query }),
+    );
+  }, [query]);
 
   const stopPolling = useCallback(() => {
     if (pollTimeoutRef.current) {
