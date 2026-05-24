@@ -83,14 +83,14 @@ export function SetListItem({
               type="button"
               onClick={() => onLoadCards?.(id)}
               disabled={loadingCards || !onLoadCards}
-              className="pointer-events-auto inline-flex shrink-0 items-center gap-1.5 rounded-lg bg-emerald-500/15 px-2.5 py-1.5 text-xs font-medium text-emerald-300 transition hover:bg-emerald-500/25 disabled:opacity-50"
+              aria-label={t("sets.loadCards")}
+              className="pointer-events-auto inline-flex shrink-0 items-center justify-center rounded-xl bg-emerald-500/15 p-3 text-emerald-300 transition hover:bg-emerald-500/25 disabled:opacity-50"
             >
               {loadingCards ? (
-                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                <Loader2 className="h-5 w-5 animate-spin" />
               ) : (
-                <Download className="h-3.5 w-3.5" />
+                <Download className="h-5 w-5" />
               )}
-              {t("sets.loadCards")}
             </button>
           )}
         </div>
