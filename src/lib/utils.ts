@@ -77,6 +77,49 @@ export const CONDITION_LABELS: Record<CardCondition, string> = {
   hp: "HP",
 };
 
+export const CONDITION_I18N_KEYS: Record<CardCondition, string> = {
+  mint: "common.conditionMint",
+  nm: "common.conditionNm",
+  lp: "common.conditionLp",
+  mp: "common.conditionMp",
+  hp: "common.conditionHp",
+};
+
+/** Tailwind classes per condition — green (mint) → red (HP), consistent app-wide. */
+export const CONDITION_BADGE_STYLES: Record<
+  CardCondition,
+  { default: string; selected: string }
+> = {
+  mint: {
+    default: "border-emerald-500/35 bg-emerald-500/15 text-emerald-300",
+    selected: "border-emerald-400 bg-emerald-500 text-black shadow-sm shadow-emerald-500/25",
+  },
+  nm: {
+    default: "border-sky-500/35 bg-sky-500/15 text-sky-300",
+    selected: "border-sky-400 bg-sky-500 text-black shadow-sm shadow-sky-500/25",
+  },
+  lp: {
+    default: "border-amber-500/35 bg-amber-500/15 text-amber-300",
+    selected: "border-amber-400 bg-amber-500 text-black shadow-sm shadow-amber-500/25",
+  },
+  mp: {
+    default: "border-orange-500/35 bg-orange-500/15 text-orange-300",
+    selected: "border-orange-400 bg-orange-500 text-black shadow-sm shadow-orange-500/25",
+  },
+  hp: {
+    default: "border-rose-500/35 bg-rose-500/15 text-rose-300",
+    selected: "border-rose-400 bg-rose-500 text-white shadow-sm shadow-rose-500/25",
+  },
+};
+
+export function conditionBadgeClassName(
+  condition: CardCondition,
+  options?: { selected?: boolean },
+) {
+  const styles = CONDITION_BADGE_STYLES[condition];
+  return options?.selected ? styles.selected : styles.default;
+}
+
 export function isCardCondition(value: string): value is CardCondition {
   return CARD_CONDITIONS.includes(value as CardCondition);
 }

@@ -17,17 +17,9 @@ import { apiUrl, useLocale, useTranslations } from "@/lib/i18n/context";
 import { formatSyncJobMessage } from "@/lib/sync-job-display";
 import { getRarityLabel, sortCanonicalRarities } from "@/lib/rarity";
 import { useDefaultCondition } from "@/lib/use-default-condition";
-import { cn, type CardCondition } from "@/lib/utils";
+import { cn } from "@/lib/utils";
 
 type OwnershipFilter = "owned" | "missing";
-
-const CONDITION_KEYS: Record<CardCondition, string> = {
-  mint: "common.conditionMint",
-  nm: "common.conditionNm",
-  lp: "common.conditionLp",
-  mp: "common.conditionMp",
-  hp: "common.conditionHp",
-};
 
 function FilterChip({
   active,
@@ -174,7 +166,7 @@ export default function SetDetailPage() {
           kind: "success",
           number: card.number,
           name: card.name,
-          conditionLabel: t(CONDITION_KEYS[defaultCondition]),
+          condition: defaultCondition,
         });
       } catch (error) {
         showQuickAddToast(
@@ -193,7 +185,7 @@ export default function SetDetailPage() {
         addingCardIdsRef.current.delete(card.id);
       }
     },
-    [showQuickAddToast, defaultCondition, t],
+    [showQuickAddToast, defaultCondition],
   );
 
   useEffect(() => {

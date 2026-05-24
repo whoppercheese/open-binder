@@ -40,7 +40,7 @@ export function CardImageFallback({
       )}
       {number ? (
         <p className="mt-2 text-xs font-semibold tabular-nums text-zinc-200">
-          #{number}
+          {number}
         </p>
       ) : null}
       <p className="mt-1 text-[10px] text-zinc-500">{t("common.noImage")}</p>

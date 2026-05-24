@@ -11,6 +11,7 @@ import {
   X,
 } from "lucide-react";
 import { CardFlagBadge } from "@/components/card-flag-badge";
+import { ConditionBadgeButton } from "@/components/condition-badge";
 import { CardFrame } from "@/components/card-frame";
 import { CardImage } from "@/components/card-image";
 import { CardImageLightbox } from "@/components/card-image-lightbox";
@@ -77,14 +78,6 @@ const VARIANT_KEYS: Record<string, string> = {
   holo: "common.variantHolo",
   reverse_holo: "common.variantReverseHolo",
   first_edition: "common.variantFirstEdition",
-};
-
-const CONDITION_KEYS: Record<CardCondition, string> = {
-  mint: "common.conditionMint",
-  nm: "common.conditionNm",
-  lp: "common.conditionLp",
-  mp: "common.conditionMp",
-  hp: "common.conditionHp",
 };
 
 const LANGUAGE_KEYS: Record<string, string> = {
@@ -280,7 +273,7 @@ function CardModalForm({
                     </span>
                   )}
                   <span className="inline-flex items-center rounded-lg border border-white/10 bg-white/5 px-2 py-0.5 text-sm font-medium tabular-nums text-zinc-200">
-                    #{card.number}
+                    {card.number}
                   </span>
                 </div>
                 <h2 className="text-lg font-semibold text-white">
@@ -377,35 +370,35 @@ function CardModalForm({
                     </div>
                   </div>
                   <label className="block space-y-1">
-                    <span className="text-zinc-400">{t("cardModal.condition")}</span>
+                    <span className="text-zinc-400">{t("cardModal.language")}</span>
                     <select
-                      value={condition}
-                      onChange={(event) => setCondition(event.target.value)}
+                      value={language}
+                      onChange={(event) => setLanguage(event.target.value)}
                       className="w-full rounded-xl border border-white/10 bg-black/30 px-3 py-2 text-white"
                     >
-                      {CARD_CONDITIONS.map((value) => (
+                      {Object.entries(LANGUAGE_KEYS).map(([value, key]) => (
                         <option key={value} value={value}>
-                          {t(CONDITION_KEYS[value])}
+                          {t(key)}
                         </option>
                       ))}
                     </select>
                   </label>
                 </div>
 
-                <label className="block space-y-1">
-                  <span className="text-zinc-400">{t("cardModal.language")}</span>
-                  <select
-                    value={language}
-                    onChange={(event) => setLanguage(event.target.value)}
-                    className="w-full rounded-xl border border-white/10 bg-black/30 px-3 py-2 text-white"
-                  >
-                    {Object.entries(LANGUAGE_KEYS).map(([value, key]) => (
-                      <option key={value} value={value}>
-                        {t(key)}
-                      </option>
+                <div className="block space-y-2">
+                  <span className="text-zinc-400">{t("cardModal.condition")}</span>
+                  <div className="grid grid-cols-5 gap-2">
+                    {CARD_CONDITIONS.map((value) => (
+                      <ConditionBadgeButton
+                        key={value}
+                        condition={value}
+                        selected={condition === value}
+                        size="sm"
+                        onClick={() => setCondition(value)}
+                      />
                     ))}
-                  </select>
-                </label>
+                  </div>
+                </div>
 
                 <label className="block space-y-1">
                   <span className="text-zinc-400">{t("cardModal.notes")}</span>

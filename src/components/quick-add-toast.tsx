@@ -1,15 +1,16 @@
 "use client";
 
 import { Check } from "lucide-react";
+import { ConditionBadge } from "@/components/condition-badge";
 import { useTranslations } from "@/lib/i18n/context";
-import { cn } from "@/lib/utils";
+import { cn, type CardCondition } from "@/lib/utils";
 
 export type QuickAddToastData =
   | {
       kind: "success";
       number: string;
       name: string;
-      conditionLabel: string;
+      condition: CardCondition;
     }
   | { kind: "error"; message: string };
 
@@ -56,9 +57,7 @@ export function QuickAddToast({ data, className }: QuickAddToastProps) {
           <span className="min-w-0 truncate font-medium text-white">
             {data.name}
           </span>
-          <span className="shrink-0 rounded-md border border-white/10 bg-white/5 px-1.5 py-0.5 text-xs font-semibold tracking-wide text-emerald-200">
-            {data.conditionLabel}
-          </span>
+          <ConditionBadge condition={data.condition} size="md" />
           <span className="shrink-0 text-emerald-400/75">{t("common.added")}</span>
         </span>
       </p>

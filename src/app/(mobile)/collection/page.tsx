@@ -4,6 +4,7 @@ import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "rea
 import { useRouter, useSearchParams } from "next/navigation";
 import { Minus, Plus, Trash2, X } from "lucide-react";
 import { CardFlagBadge } from "@/components/card-flag-badge";
+import { ConditionBadge } from "@/components/condition-badge";
 import { CardFrame } from "@/components/card-frame";
 import { CardImage } from "@/components/card-image";
 import { CardImageLightbox } from "@/components/card-image-lightbox";
@@ -19,7 +20,6 @@ import { apiUrl, useLocale, useTranslations } from "@/lib/i18n/context";
 import {
   formatCardPriceLabel,
   formatCurrency,
-  type CardCondition,
 } from "@/lib/utils";
 
 const PAGE_SIZE = 20;
@@ -29,14 +29,6 @@ const VARIANT_KEYS: Record<string, string> = {
   holo: "common.variantHolo",
   reverse_holo: "common.variantReverseHolo",
   first_edition: "common.variantFirstEdition",
-};
-
-const CONDITION_KEYS: Record<CardCondition, string> = {
-  mint: "common.conditionMint",
-  nm: "common.conditionNm",
-  lp: "common.conditionLp",
-  mp: "common.conditionMp",
-  hp: "common.conditionHp",
 };
 
 const LANGUAGE_KEYS: Record<string, string> = {
@@ -221,7 +213,7 @@ function CollectionPageContent() {
 
   const groups = useMemo(() => groupBySet(items), [items]);
   const filterLabel = filterCard
-    ? `${filterCard.name} · ${filterCard.setName} · #${filterCard.number}`
+    ? `${filterCard.name} · ${filterCard.setName} · ${filterCard.number}`
     : null;
 
   async function removeItem(item: CollectionItem) {
@@ -427,11 +419,11 @@ function CollectionPageContent() {
                       {item.flagged ? <CardFlagBadge size="sm" /> : null}
                       <span className="truncate">{item.name}</span>
                     </p>
-                    <p className="text-xs text-zinc-500">#{item.number}</p>
-                    <p className="mt-1 text-xs text-zinc-400">
-                      {variantLabel(item.variantType)} ·{" "}
-                      {t(CONDITION_KEYS[item.condition as CardCondition] ?? "common.unknown")} ·{" "}
-                      {t(LANGUAGE_KEYS[item.language] ?? "common.unknown")}
+                    <p className="text-xs text-zinc-500">{item.number}</p>
+                    <p className="mt-1 flex flex-wrap items-center gap-1.5 text-xs text-zinc-400">
+                      <span>{variantLabel(item.variantType)}</span>
+                      <ConditionBadge condition={item.condition} />
+                      <span>{t(LANGUAGE_KEYS[item.language] ?? "common.unknown")}</span>
                     </p>
                     {item.notes ? (
                       <p className="mt-1 text-xs text-zinc-500">{item.notes}</p>

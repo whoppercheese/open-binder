@@ -12,6 +12,7 @@ import {
   type SyncJobProgress,
 } from "@/lib/sync-job-display";
 import { useLocale, useTranslations } from "@/lib/i18n/context";
+import { ConditionBadgeButton } from "@/components/condition-badge";
 import { MobilePage, MobilePageHeader } from "@/components/mobile-page";
 import { UI_LOCALES, type UiLocale } from "@/lib/i18n/locale";
 import {
@@ -32,16 +33,6 @@ type SyncJob = {
   finishedAt: string | null;
 };
 
-function conditionLabel(condition: CardCondition, t: ReturnType<typeof useTranslations>) {
-  const keys: Record<CardCondition, string> = {
-    mint: "common.conditionMint",
-    nm: "common.conditionNm",
-    lp: "common.conditionLp",
-    mp: "common.conditionMp",
-    hp: "common.conditionHp",
-  };
-  return t(keys[condition]);
-}
 
 export default function SettingsPage() {
   const { locale, setLocale } = useLocale();
@@ -184,18 +175,12 @@ export default function SettingsPage() {
         <p className="text-sm text-zinc-400">{t("settings.defaultConditionHelp")}</p>
         <div className="grid grid-cols-3 gap-2 sm:grid-cols-5">
           {CARD_CONDITIONS.map((value) => (
-            <button
+            <ConditionBadgeButton
               key={value}
-              type="button"
+              condition={value}
+              selected={defaultCondition === value}
               onClick={() => void saveDefaultCondition(value)}
-              className={`rounded-xl px-3 py-2 text-sm font-medium ${
-                defaultCondition === value
-                  ? "bg-emerald-500 text-black"
-                  : "bg-white/5 text-zinc-300"
-              }`}
-            >
-              {conditionLabel(value, t)}
-            </button>
+            />
           ))}
         </div>
       </section>

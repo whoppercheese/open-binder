@@ -100,7 +100,7 @@ export default async function DashboardPage() {
                   {item.cardName}
                 </p>
                 <p className="truncate text-[10px] tabular-nums text-zinc-500">
-                  {item.officialCode ?? item.setId} · #{item.number}
+                  {item.officialCode ?? item.setId} · {item.number}
                 </p>
               </div>
             ))}
