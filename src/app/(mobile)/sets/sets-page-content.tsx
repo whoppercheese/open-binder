@@ -412,11 +412,11 @@ export function SetsPageContent({ initialSets }: SetsPageContentProps) {
   const hasSearch = trimmedQuery.length > 0;
   const subtitle =
     hasSearch || hasActiveFilters
-      ? t("sets.subtitleFiltered", {
+      ? t.plural("sets.subtitleFiltered", sets.length, {
           filtered: filteredSets.length,
           total: sets.length,
         })
-      : t("sets.subtitleBrowse", { total: sets.length });
+      : t.plural("sets.subtitleBrowse", sets.length, { count: sets.length });
 
   return (
     <MobilePage>
@@ -441,7 +441,7 @@ export function SetsPageContent({ initialSets }: SetsPageContentProps) {
               </p>
             ) : syncIndicator.pendingCount > 0 ? (
               <p className="font-medium">
-                {t("sets.setsInQueue", { count: syncIndicator.pendingCount })}
+                {t.plural("sets.setsInQueue", syncIndicator.pendingCount)}
               </p>
             ) : null}
             {syncIndicator.runningMessage ? (
@@ -451,9 +451,7 @@ export function SetsPageContent({ initialSets }: SetsPageContentProps) {
             ) : null}
             {syncIndicator.runningSetName && syncIndicator.pendingCount > 0 ? (
               <p className="text-xs text-emerald-200/70">
-                {t("sets.additionalSetsWaiting", {
-                  count: syncIndicator.pendingCount,
-                })}
+                {t.plural("sets.additionalSetsWaiting", syncIndicator.pendingCount)}
               </p>
             ) : null}
           </div>

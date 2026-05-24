@@ -128,13 +128,13 @@ export function formatSyncJobIssueSummary(
 
   const parts: string[] = [];
   if (setFailures > 0) {
-    parts.push(t("sync.issueSummarySets", { count: setFailures }));
+    parts.push(t.plural("sync.issueSummarySets", setFailures));
   }
   if (jobFailures > 0) {
     parts.push(t("sync.issueSummaryJobError"));
   }
   if (cardFailures > 0) {
-    parts.push(t("sync.issueSummaryCards", { count: cardFailures }));
+    parts.push(t.plural("sync.issueSummaryCards", cardFailures));
   }
 
   return parts.join(", ");

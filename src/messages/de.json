@@ -34,8 +34,11 @@
     "title": "Dashboard",
     "subtitle": "Inoffizielles Fan-Tool · Cardmarket EUR",
     "portfolioValue": "Portfolio-Wert",
-    "cardsSummary": "{cards} Karten · {entries} Einträge",
-    "cardsWithoutPriceSuffix": " · {count} ohne Preis",
+    "cardsSummary": "{cardsPart} · {entriesPart}",
+    "cardsWithoutPriceSuffix": {
+      "one": " · {count} Karte ohne Preis",
+      "other": " · {count} Karten ohne Preis"
+    },
     "setProgress": "Set-Fortschritt",
     "allSets": "Alle Sets",
     "emptyCollection": "Noch keine Karten in der Sammlung. Starte mit einem Set oder der Suche.",
@@ -50,7 +53,7 @@
   },
   "collection": {
     "title": "Sammlung",
-    "entriesSummary": "{count} Einträge · {value}",
+    "entriesSummary": "{entriesPart} · {value}",
     "filteredByCard": "Gefiltert nach Karte",
     "loadingCard": "Karte wird geladen…",
     "clearCardFilter": "Kartenfilter zurücksetzen",
@@ -77,13 +80,25 @@
   },
   "sets": {
     "title": "Sets",
-    "subtitleFiltered": "{filtered} von {total} Sets",
-    "subtitleBrowse": "{total} Sets durchsuchen",
+    "subtitleFiltered": {
+      "one": "{filtered} von {total} Set",
+      "other": "{filtered} von {total} Sets"
+    },
+    "subtitleBrowse": {
+      "one": "{count} Set durchsuchen",
+      "other": "{count} Sets durchsuchen"
+    },
     "catalogSyncRunning": "Set-Liste wird synchronisiert…",
     "catalogSyncPending": "Set-Liste wartet in der Queue…",
     "cardsLoadingNamed": "Karten werden geladen: {setName}",
-    "setsInQueue": "{count} Sets in der Warteschlange",
-    "additionalSetsWaiting": "{count} weitere Sets warten in der Queue",
+    "setsInQueue": {
+      "one": "{count} Set in der Warteschlange",
+      "other": "{count} Sets in der Warteschlange"
+    },
+    "additionalSetsWaiting": {
+      "one": "{count} weiteres Set wartet in der Queue",
+      "other": "{count} weitere Sets warten in der Queue"
+    },
     "searchPlaceholder": "Name oder Kürzel (z.B. Base Set, BS)",
     "filterDownloaded": "Karten geladen",
     "filterCollection": "Mit Sammelfortschritt",
@@ -100,13 +115,19 @@
     "detailLoading": "Set wird geladen…",
     "detailNotFound": "Set nicht gefunden.",
     "detailNoCardData": "Für dieses Set wurden noch keine Kartendaten geladen.",
-    "detailCardCountHint": "{count} Karten im Set",
+    "detailCardCountHint": {
+      "one": "{count} Karte im Set",
+      "other": "{count} Karten im Set"
+    },
     "detailCardsLoading": "Karten werden geladen…",
     "detailCardsUpdating": "Kartendaten werden aktualisiert…",
     "detailProgress": "Fortschritt",
     "filterOwned": "Im Besitz",
     "filterMissing": "Nicht im Besitz",
-    "filteredCardsSummary": "{filtered} von {total} Karten",
+    "filteredCardsSummary": {
+      "one": "{filtered} von {total} Karte",
+      "other": "{filtered} von {total} Karten"
+    },
     "emptyFilteredCards": "Keine Karten für diese Filter.",
     "setActions": "Set-Aktionen",
     "resyncRunning": "Aktualisierung läuft…",
@@ -114,7 +135,10 @@
     "deleteCardData": "Kartendaten löschen",
     "deleteCardDataTitle": "Kartendaten löschen?",
     "deleteConfirmIntro": "Alle heruntergeladenen Kartendaten dieses Sets werden gelöscht. Karten, Varianten, Preise und zwischengespeicherte Bilder.",
-    "deleteConfirmWithEntries": "Dabei werden auch {count} Sammlungseinträge aus deiner Sammlung entfernt, die zu diesem Set gehören.",
+    "deleteConfirmWithEntries": {
+      "one": "Dabei wird auch {count} Sammlungseintrag aus deiner Sammlung entfernt, der zu diesem Set gehört.",
+      "other": "Dabei werden auch {count} Sammlungseinträge aus deiner Sammlung entfernt, die zu diesem Set gehören."
+    },
     "deleteConfirmNoEntries": "Es gibt keine Sammlungseinträge für dieses Set.",
     "deleteConfirmResyncNote": "Das Set kann danach erneut synchronisiert werden."
   },
@@ -160,7 +184,15 @@
     "conditionHp": "HP",
     "languageDe": "Deutsch",
     "languageEn": "Englisch",
-    "unknown": "Unbekannt"
+    "unknown": "Unbekannt",
+    "cardCount": {
+      "one": "{count} Karte",
+      "other": "{count} Karten"
+    },
+    "entryCount": {
+      "one": "{count} Eintrag",
+      "other": "{count} Einträge"
+    }
   },
   "errors": {
     "cardLoadFailed": "Karte konnte nicht geladen werden.",
@@ -196,24 +228,42 @@
     "workerRestartMessage": "Unterbrochen durch Worker-Neustart",
     "unknownSet": "Unbekanntes Set",
     "jobAborted": "Job abgebrochen",
-    "issueSummarySets": "{count} Sets",
+    "issueSummarySets": {
+      "one": "{count} Set",
+      "other": "{count} Sets"
+    },
     "issueSummaryJobError": "Job-Fehler",
-    "issueSummaryCards": "{count} Karten",
+    "issueSummaryCards": {
+      "one": "{count} Karte",
+      "other": "{count} Karten"
+    },
     "messages": {
       "catalogStarting": "Starte Sets-Sync…",
-      "catalogForSetsCount": "Sets-Sync für {count} Set(s)…",
+      "catalogForSetsCount": {
+        "one": "Sets-Sync für {count} Set…",
+        "other": "Sets-Sync für {count} Sets…"
+      },
       "catalogSetProgress": "Set {current}/{total}: {name}",
-      "catalogCompleted": "Sets-Sync abgeschlossen ({count} Sets).",
+      "catalogCompleted": {
+        "one": "Sets-Sync abgeschlossen ({count} Set).",
+        "other": "Sets-Sync abgeschlossen ({count} Sets)."
+      },
       "setCardsStarting": "Starte Karten-Sync für {setName}…",
       "setCardsProgress": "Karte {current}/{total}: {name}",
       "setCardsCompleted": "Karten-Sync abgeschlossen ({setName}).",
-      "setCardsCompletedWithSkips": "Karten-Sync abgeschlossen ({setName}, {skipped} Karte(n) übersprungen).",
+      "setCardsCompletedWithSkips": {
+        "one": "Karten-Sync abgeschlossen ({setName}, {skipped} Karte übersprungen).",
+        "other": "Karten-Sync abgeschlossen ({setName}, {skipped} Karten übersprungen)."
+      },
       "weeklySetCardsRefresh": "Wöchentlicher Karten-Refresh für {setName}",
       "pricesStarting": "Starte Preis-Sync…",
       "cardmarketCatalogProgress": "Cardmarket Katalog: {current}/{total}",
       "pricesUpdatedProgress": "Preise aktualisiert: {updated}/{total}",
       "pricesCompletedEmpty": "Preis-Sync abgeschlossen (keine Karten in der Sammlung).",
-      "pricesCompleted": "Preis-Sync abgeschlossen ({count} Karten).",
+      "pricesCompleted": {
+        "one": "Preis-Sync abgeschlossen ({count} Karte).",
+        "other": "Preis-Sync abgeschlossen ({count} Karten)."
+      },
       "workerRestart": "Unterbrochen durch Worker-Neustart"
     }
   },

@@ -35,13 +35,14 @@ export default async function DashboardPage() {
         </p>
         <p className="mt-1 text-sm text-zinc-400">
           {t("dashboard.cardsSummary", {
-            cards: summary.totalCards,
-            entries: summary.uniqueEntries,
+            cardsPart: t.plural("common.cardCount", summary.totalCards),
+            entriesPart: t.plural("common.entryCount", summary.uniqueEntries),
           })}
           {summary.cardsWithPrice < summary.totalCards
-            ? t("dashboard.cardsWithoutPriceSuffix", {
-                count: summary.totalCards - summary.cardsWithPrice,
-              })
+            ? t.plural(
+                "dashboard.cardsWithoutPriceSuffix",
+                summary.totalCards - summary.cardsWithPrice,
+              )
             : ""}
         </p>
       </section>

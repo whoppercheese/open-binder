@@ -358,7 +358,7 @@ export default function SetDetailPage() {
     const parts = [t("sets.deleteConfirmIntro")];
 
     if (entryCount > 0) {
-      parts.push(t("sets.deleteConfirmWithEntries", { count: entryCount }));
+      parts.push(t.plural("sets.deleteConfirmWithEntries", entryCount));
     } else {
       parts.push(t("sets.deleteConfirmNoEntries"));
     }
@@ -422,7 +422,7 @@ export default function SetDetailPage() {
           </p>
           {cardCountHint ? (
             <p className="mt-2 text-xs text-zinc-600">
-              {t("sets.detailCardCountHint", { count: cardCountHint })}
+              {t.plural("sets.detailCardCountHint", cardCountHint)}
             </p>
           ) : null}
           {loadError ? (
@@ -564,7 +564,7 @@ export default function SetDetailPage() {
 
         {hasActiveFilters ? (
           <p className="text-xs text-zinc-500">
-            {t("sets.filteredCardsSummary", {
+            {t.plural("sets.filteredCardsSummary", data.cards.length, {
               filtered: filteredCards.length,
               total: data.cards.length,
             })}

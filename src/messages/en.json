@@ -34,8 +34,11 @@
     "title": "Dashboard",
     "subtitle": "Unofficial fan tool · Cardmarket EUR",
     "portfolioValue": "Portfolio value",
-    "cardsSummary": "{cards} cards · {entries} entries",
-    "cardsWithoutPriceSuffix": " · {count} without price",
+    "cardsSummary": "{cardsPart} · {entriesPart}",
+    "cardsWithoutPriceSuffix": {
+      "one": " · {count} card without price",
+      "other": " · {count} cards without price"
+    },
     "setProgress": "Set progress",
     "allSets": "All sets",
     "emptyCollection": "No cards in your collection yet. Start with a set or search.",
@@ -50,7 +53,7 @@
   },
   "collection": {
     "title": "Collection",
-    "entriesSummary": "{count} entries · {value}",
+    "entriesSummary": "{entriesPart} · {value}",
     "filteredByCard": "Filtered by card",
     "loadingCard": "Loading card…",
     "clearCardFilter": "Clear card filter",
@@ -77,13 +80,25 @@
   },
   "sets": {
     "title": "Sets",
-    "subtitleFiltered": "{filtered} of {total} sets",
-    "subtitleBrowse": "Browse {total} sets",
+    "subtitleFiltered": {
+      "one": "{filtered} of {total} set",
+      "other": "{filtered} of {total} sets"
+    },
+    "subtitleBrowse": {
+      "one": "Browse {count} set",
+      "other": "Browse {count} sets"
+    },
     "catalogSyncRunning": "Syncing set list…",
     "catalogSyncPending": "Set list waiting in queue…",
     "cardsLoadingNamed": "Loading cards: {setName}",
-    "setsInQueue": "{count} sets in queue",
-    "additionalSetsWaiting": "{count} more sets waiting in queue",
+    "setsInQueue": {
+      "one": "{count} set in queue",
+      "other": "{count} sets in queue"
+    },
+    "additionalSetsWaiting": {
+      "one": "{count} more set waiting in queue",
+      "other": "{count} more sets waiting in queue"
+    },
     "searchPlaceholder": "Name or code (e.g. Base Set, BS)",
     "filterDownloaded": "Cards downloaded",
     "filterCollection": "With collection progress",
@@ -100,13 +115,19 @@
     "detailLoading": "Loading set…",
     "detailNotFound": "Set not found.",
     "detailNoCardData": "No card data has been loaded for this set yet.",
-    "detailCardCountHint": "{count} cards in this set",
+    "detailCardCountHint": {
+      "one": "{count} card in this set",
+      "other": "{count} cards in this set"
+    },
     "detailCardsLoading": "Loading cards…",
     "detailCardsUpdating": "Updating card data…",
     "detailProgress": "Progress",
     "filterOwned": "Owned",
     "filterMissing": "Not owned",
-    "filteredCardsSummary": "{filtered} of {total} cards",
+    "filteredCardsSummary": {
+      "one": "{filtered} of {total} card",
+      "other": "{filtered} of {total} cards"
+    },
     "emptyFilteredCards": "No cards for these filters.",
     "setActions": "Set actions",
     "resyncRunning": "Update in progress…",
@@ -114,7 +135,10 @@
     "deleteCardData": "Delete card data",
     "deleteCardDataTitle": "Delete card data?",
     "deleteConfirmIntro": "All downloaded card data for this set will be deleted. Cards, variants, prices, and cached images.",
-    "deleteConfirmWithEntries": "This will also remove {count} collection entries belonging to this set from your collection.",
+    "deleteConfirmWithEntries": {
+      "one": "This will also remove {count} collection entry belonging to this set from your collection.",
+      "other": "This will also remove {count} collection entries belonging to this set from your collection."
+    },
     "deleteConfirmNoEntries": "There are no collection entries for this set.",
     "deleteConfirmResyncNote": "The set can be synced again afterwards."
   },
@@ -160,7 +184,15 @@
     "conditionHp": "HP",
     "languageDe": "German",
     "languageEn": "English",
-    "unknown": "Unknown"
+    "unknown": "Unknown",
+    "cardCount": {
+      "one": "{count} card",
+      "other": "{count} cards"
+    },
+    "entryCount": {
+      "one": "{count} entry",
+      "other": "{count} entries"
+    }
   },
   "errors": {
     "cardLoadFailed": "Could not load card.",
@@ -196,24 +228,42 @@
     "workerRestartMessage": "Interrupted by worker restart",
     "unknownSet": "Unknown set",
     "jobAborted": "Job aborted",
-    "issueSummarySets": "{count} sets",
+    "issueSummarySets": {
+      "one": "{count} set",
+      "other": "{count} sets"
+    },
     "issueSummaryJobError": "Job error",
-    "issueSummaryCards": "{count} cards",
+    "issueSummaryCards": {
+      "one": "{count} card",
+      "other": "{count} cards"
+    },
     "messages": {
       "catalogStarting": "Starting sets sync…",
-      "catalogForSetsCount": "Syncing {count} set(s)…",
+      "catalogForSetsCount": {
+        "one": "Syncing {count} set…",
+        "other": "Syncing {count} sets…"
+      },
       "catalogSetProgress": "Set {current}/{total}: {name}",
-      "catalogCompleted": "Sets sync completed ({count} sets).",
+      "catalogCompleted": {
+        "one": "Sets sync completed ({count} set).",
+        "other": "Sets sync completed ({count} sets)."
+      },
       "setCardsStarting": "Starting card sync for {setName}…",
       "setCardsProgress": "Card {current}/{total}: {name}",
       "setCardsCompleted": "Card sync completed ({setName}).",
-      "setCardsCompletedWithSkips": "Card sync completed ({setName}, {skipped} card(s) skipped).",
+      "setCardsCompletedWithSkips": {
+        "one": "Card sync completed ({setName}, {skipped} card skipped).",
+        "other": "Card sync completed ({setName}, {skipped} cards skipped)."
+      },
       "weeklySetCardsRefresh": "Weekly card refresh for {setName}",
       "pricesStarting": "Starting price sync…",
       "cardmarketCatalogProgress": "Cardmarket catalog: {current}/{total}",
       "pricesUpdatedProgress": "Prices updated: {updated}/{total}",
       "pricesCompletedEmpty": "Price sync completed (no cards in collection).",
-      "pricesCompleted": "Price sync completed ({count} cards).",
+      "pricesCompleted": {
+        "one": "Price sync completed ({count} card).",
+        "other": "Price sync completed ({count} cards)."
+      },
       "workerRestart": "Interrupted by worker restart"
     }
   },

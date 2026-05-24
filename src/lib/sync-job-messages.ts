@@ -1,4 +1,4 @@
-import type { TranslateFn } from "@/lib/i18n/messages";
+import { resolveTranslation, type TranslateFn } from "@/lib/i18n/messages";
 
 export type SyncJobMessagePayload = {
   k: string;
@@ -138,7 +138,7 @@ export function formatSyncJobMessage(
   const payload = parseSyncJobMessage(raw) ?? matchLegacyMessage(raw);
   if (payload) {
     const key = `sync.messages.${payload.k}`;
-    const translated = t(key, payload.p);
+    const translated = resolveTranslation(t, key, payload.p);
     if (translated !== key) {
       return translated;
     }

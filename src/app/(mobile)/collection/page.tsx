@@ -334,7 +334,7 @@ function CollectionPageContent() {
       <MobilePageHeader
         title={t("collection.title")}
         subtitle={t("collection.entriesSummary", {
-          count: total,
+          entriesPart: t.plural("common.entryCount", total),
           value: formatCurrency(totalValue, "EUR", locale),
         })}
       />
