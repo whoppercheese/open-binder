@@ -60,6 +60,8 @@ type SetDetailResponse = {
     name: string;
     officialCode: string | null;
     cardsSyncedAt: string | null;
+    cardCountTotal?: number;
+    cardCountOfficial?: number;
   };
   cards: Array<{
     id: string;
@@ -118,7 +120,7 @@ export default function SetDetailPage() {
   const hadActiveSyncJobRef = useRef(false);
   const { defaultCondition } = useDefaultCondition();
 
-  const cardsSynced = data?.set.cardsSyncedAt != null;
+  const cardsSynced = data?.set?.cardsSyncedAt != null;
   const syncActive =
     syncStatus === "pending" || syncStatus === "running" || loadingCards;
 
@@ -205,7 +207,12 @@ export default function SetDetailPage() {
   const loadSet = useCallback(async () => {
     const response = await fetch(apiUrl(`/api/sets/${params.id}`, locale));
     const payload = await response.json();
-    setData(payload);
+    if (!response.ok || !payload.set) {
+      setData(null);
+      setLoading(false);
+      return null;
+    }
+    setData(payload as SetDetailResponse);
     setLoading(false);
     return payload as SetDetailResponse;
   }, [params.id, locale]);
@@ -238,7 +245,7 @@ export default function SetDetailPage() {
     const hasActiveJob =
       activeJob?.status === "running" || activeJob?.status === "pending";
 
-    if (status.cardsSyncedAt && !data?.set.cardsSyncedAt) {
+    if (status.cardsSyncedAt && !data?.set?.cardsSyncedAt) {
       await loadSet();
       router.refresh();
       hadActiveSyncJobRef.current = false;
@@ -247,7 +254,7 @@ export default function SetDetailPage() {
       return;
     }
 
-    if (hadActiveSyncJobRef.current && !hasActiveJob && data?.set.cardsSyncedAt) {
+    if (hadActiveSyncJobRef.current && !hasActiveJob && data?.set?.cardsSyncedAt) {
       await loadSet();
       router.refresh();
     }
@@ -264,7 +271,7 @@ export default function SetDetailPage() {
       setSyncStatus("idle");
       setSyncMessage(null);
     }
-  }, [data?.set.cardsSyncedAt, loadSet, params.id, router]);
+  }, [data?.set?.cardsSyncedAt, loadSet, params.id, router]);
 
   useEffect(() => {
     let cancelled = false;
@@ -321,11 +328,12 @@ export default function SetDetailPage() {
     } else {
       setSyncStatus("pending");
       setSyncMessage(t("sync.syncPreparing"));
+      await loadSet();
       await loadSyncStatus();
     }
 
     setLoadingCards(false);
-  }, [loadSyncStatus, params.id, t]);
+  }, [loadSet, loadSyncStatus, params.id, t]);
 
   async function handleDeleteCardData() {
     setDeleteError(null);
@@ -402,10 +410,57 @@ export default function SetDetailPage() {
     );
   }
 
+  const cardCountHint =
+    data?.set?.cardCountOfficial || data?.set?.cardCountTotal || null;
+
+  const loadCardsPanel = (
+    <div className="rounded-2xl border border-dashed border-white/10 p-8 text-center">
+      {syncStatus === "pending" || syncStatus === "running" ? (
+        <div className="flex flex-col items-center gap-3 text-sm text-zinc-400">
+          <Loader2 className="h-5 w-5 animate-spin text-emerald-400" />
+          <p>
+            {formatSyncJobMessage(syncMessage, t) ??
+              t("sets.detailCardsLoading")}
+          </p>
+        </div>
+      ) : (
+        <>
+          <p className="text-sm text-zinc-500">
+            {t("sets.detailNoCardData")}
+          </p>
+          {cardCountHint ? (
+            <p className="mt-2 text-xs text-zinc-600">
+              {t("sets.detailCardCountHint", { count: cardCountHint })}
+            </p>
+          ) : null}
+          {loadError ? (
+            <p className="mt-3 text-sm text-red-400">{loadError}</p>
+          ) : null}
+          <button
+            type="button"
+            onClick={() => void handleLoadCards()}
+            disabled={loadingCards}
+            className="mt-4 inline-flex items-center gap-2 rounded-xl bg-emerald-500/15 px-4 py-2.5 text-sm font-medium text-emerald-300 transition hover:bg-emerald-500/25 disabled:opacity-50"
+          >
+            {loadingCards ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Download className="h-4 w-4" />
+            )}
+            {t("sets.loadCards")}
+          </button>
+        </>
+      )}
+    </div>
+  );
+
   if (!data?.set) {
     return (
-      <div className="px-4 pt-6 text-sm text-red-400">
-        {t("sets.detailNotFound")}
+      <div className="space-y-5 px-4 pt-6">
+        <header>
+          <h1 className="text-2xl font-bold">{params.id}</h1>
+        </header>
+        {loadCardsPanel}
       </div>
     );
   }
@@ -422,39 +477,7 @@ export default function SetDetailPage() {
           </h1>
         </header>
 
-        <div className="rounded-2xl border border-dashed border-white/10 p-8 text-center">
-          {syncStatus === "pending" || syncStatus === "running" ? (
-            <div className="flex flex-col items-center gap-3 text-sm text-zinc-400">
-              <Loader2 className="h-5 w-5 animate-spin text-emerald-400" />
-              <p>
-                {formatSyncJobMessage(syncMessage, t) ??
-                  t("sets.detailCardsLoading")}
-              </p>
-            </div>
-          ) : (
-            <>
-              <p className="text-sm text-zinc-500">
-                {t("sets.detailNoCardData")}
-              </p>
-              {loadError ? (
-                <p className="mt-3 text-sm text-red-400">{loadError}</p>
-              ) : null}
-              <button
-                type="button"
-                onClick={handleLoadCards}
-                disabled={loadingCards}
-                className="mt-4 inline-flex items-center gap-2 rounded-xl bg-emerald-500/15 px-4 py-2.5 text-sm font-medium text-emerald-300 transition hover:bg-emerald-500/25 disabled:opacity-50"
-              >
-                {loadingCards ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  <Download className="h-4 w-4" />
-                )}
-                {t("sets.loadCards")}
-              </button>
-            </>
-          )}
-        </div>
+        {loadCardsPanel}
       </div>
     );
   }

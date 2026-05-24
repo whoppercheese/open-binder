@@ -70,7 +70,9 @@
   },
   "search": {
     "title": "Suche",
-    "subtitle": "Name, Nummer oder Set + Nummer",
+    "subtitle": "Name, Nummer oder Set + Nummer · nur heruntergeladene Sets",
+    "subtitleAllSets": "Name, Nummer oder Set + Nummer · alle Sets via TCGdex",
+    "allSetsButton": "Alle Sets durchsuchen",
     "loading": "Suche läuft…",
     "noResults": "Keine Karten gefunden."
   },
@@ -99,6 +101,7 @@
     "detailLoading": "Set wird geladen…",
     "detailNotFound": "Set nicht gefunden.",
     "detailNoCardData": "Für dieses Set wurden noch keine Kartendaten geladen.",
+    "detailCardCountHint": "{count} Karten im Set",
     "detailCardsLoading": "Karten werden geladen…",
     "detailCardsUpdating": "Kartendaten werden aktualisiert…",
     "detailProgress": "Fortschritt",
@@ -131,6 +134,8 @@
     "cardmarketLink": "Cardmarket: {price}",
     "cardmarketPrice": "Cardmarket-Preis",
     "viewInCollection": "In Sammlung anzeigen ({count})",
+    "downloadSetHint": "Set zuerst herunterladen, um die Karte zur Sammlung hinzuzufügen.",
+    "goToSet": "Zum Set",
     "save": "Speichern",
     "addToCollection": "Zur Sammlung hinzufügen"
   },
@@ -144,7 +149,7 @@
     "price": "Preis",
     "priceUnavailable": "—",
     "added": "hinzugefügt",
-    "searchDefaultPlaceholder": "Pikachu, 004 oder Dschungel 60",
+    "searchDefaultPlaceholder": "Pikachu, 4 oder Dschungel 60",
     "variantNormal": "Normal",
     "variantHolo": "Holo",
     "variantReverseHolo": "Reverse Holo",

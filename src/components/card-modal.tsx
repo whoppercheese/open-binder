@@ -206,6 +206,11 @@ function CardModalForm({
       ),
     [card],
   );
+  const remoteImageUrl =
+    card.imageUrl?.startsWith("https://assets.tcgdex.net")
+      ? card.imageUrl
+      : null;
+  const needsSetDownload = card.variants.length === 0 && !isEdit;
 
   async function handleSave() {
     if (!activeVariantId) return;
@@ -291,11 +296,23 @@ function CardModalForm({
               </button>
             </div>
 
-            <div className="mb-4 flex gap-4">
+            <div
+              className={cn(
+                "mb-4",
+                needsSetDownload
+                  ? "flex flex-col items-center gap-4"
+                  : "flex gap-4",
+              )}
+            >
               <button
                 type="button"
                 onClick={() => setImageExpanded(true)}
-                className="relative aspect-card w-24 shrink-0 self-start cursor-pointer transition hover:opacity-90 active:scale-[0.98]"
+                className={cn(
+                  "relative aspect-card shrink-0 cursor-pointer transition hover:opacity-90 active:scale-[0.98]",
+                  needsSetDownload
+                    ? "w-44 self-center sm:w-52"
+                    : "w-24 self-start",
+                )}
                 aria-label={t("cardModal.expandImage")}
               >
                 <CardFrame className="size-full">
@@ -303,11 +320,13 @@ function CardModalForm({
                     cardId={card.id}
                     setId={card.setId}
                     number={card.number}
+                    remoteImageUrl={remoteImageUrl}
                     alt={card.name}
                     className="h-full w-full"
                   />
                 </CardFrame>
               </button>
+              {!needsSetDownload ? (
               <div className="flex-1 space-y-3 text-sm">
                 <label className="block space-y-1">
                   <span className="text-zinc-400">{t("cardModal.variant")}</span>
@@ -435,9 +454,27 @@ function CardModalForm({
                   </span>
                 </label>
               </div>
+              ) : null}
             </div>
 
-            {selectedVariant ? (
+            {needsSetDownload ? (
+              <div className="mb-3 space-y-3">
+                <p className="rounded-xl border border-amber-500/20 bg-amber-500/5 px-3 py-2.5 text-center text-sm text-amber-200">
+                  {t("cardModal.downloadSetHint")}
+                </p>
+                {card.setId ? (
+                  <Link
+                    href={`/sets/${card.setId}`}
+                    onClick={handleClose}
+                    className="flex w-full items-center justify-center gap-2 rounded-2xl border border-emerald-400/30 bg-emerald-500/10 px-4 py-3 text-sm font-medium text-emerald-200 transition hover:bg-emerald-500/20"
+                  >
+                    {t("cardModal.goToSet")}
+                  </Link>
+                ) : null}
+              </div>
+            ) : null}
+
+            {!needsSetDownload && selectedVariant ? (
               <p className="mb-3 text-sm">
                 {selectedVariant.cardmarketProductId &&
                 selectedVariant.price != null ? (
@@ -496,6 +533,7 @@ function CardModalForm({
               </Link>
             ) : null}
 
+            {!needsSetDownload ? (
             <button
               type="button"
               disabled={loading || !activeVariantId}
@@ -508,6 +546,7 @@ function CardModalForm({
               {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
               {isEdit ? t("cardModal.save") : t("cardModal.addToCollection")}
             </button>
+            ) : null}
           </div>
         </div>
       </Portal>
@@ -517,6 +556,7 @@ function CardModalForm({
         cardId={card.id}
         setId={card.setId}
         number={card.number}
+        remoteImageUrl={remoteImageUrl}
         alt={card.name}
         onClose={() => setImageExpanded(false)}
       />

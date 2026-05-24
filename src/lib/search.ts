@@ -49,7 +49,7 @@ function setMetadataBlobExpr(locale: UiLocale) {
   )`;
 }
 
-function buildSetHintMatchSql(setHint: string, locale: UiLocale) {
+export function buildSetHintMatchSql(setHint: string, locale: UiLocale) {
   const tokens = setHint.toLowerCase().split(/\s+/).filter(Boolean);
   if (tokens.length === 0) {
     return sql`TRUE`;

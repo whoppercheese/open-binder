@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getSetWithCards } from "@/lib/portfolio";
 import { getRequestTranslator } from "@/lib/i18n/server";
+import { ensureSetMetadata } from "@/lib/set-metadata.server";
 
 export async function GET(
   request: Request,
@@ -9,7 +10,15 @@ export async function GET(
   try {
     const { locale } = getRequestTranslator(request);
     const { id } = await context.params;
-    const data = await getSetWithCards(id, locale);
+    let data = await getSetWithCards(id, locale);
+
+    if (!data) {
+      const ensured = await ensureSetMetadata(id);
+      if (ensured) {
+        data = await getSetWithCards(id, locale);
+      }
+    }
+
     if (!data) {
       return NextResponse.json({ errorCode: "SET_NOT_FOUND" }, { status: 404 });
     }

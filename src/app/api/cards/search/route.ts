@@ -1,13 +1,8 @@
-import { eq, inArray } from "drizzle-orm";
 import { NextResponse } from "next/server";
 import { db } from "@/db/client";
-import { cardPrices, cards, cardVariants, sets, userCards } from "@/db/schema";
-import {
-  localizedCardNameSql,
-  localizedSetNameSql,
-} from "@/lib/localized-names";
+import { loadCardSearchResults } from "@/lib/card-search-results.server";
+import { searchCatalogCards } from "@/lib/catalog-card-search";
 import { getRequestTranslator } from "@/lib/i18n/server";
-import { getPricePreference, pickPrice } from "@/lib/settings";
 import { buildSearchSql, parseSearchQuery } from "@/lib/search";
 
 export async function GET(request: Request) {
@@ -19,93 +14,20 @@ export async function GET(request: Request) {
       return NextResponse.json({ results: [] });
     }
 
+    const scope = searchParams.get("scope");
+    if (scope === "all") {
+      const results = await searchCatalogCards(q, locale);
+      return NextResponse.json({ results });
+    }
+
     const parsed = parseSearchQuery(q);
     const idRows = await db.execute<{ id: string }>(
       buildSearchSql(parsed, locale),
     );
     const cardIds = idRows.map((row) => row.id);
-    if (cardIds.length === 0) {
-      return NextResponse.json({ results: [] });
-    }
+    const results = await loadCardSearchResults(cardIds, locale);
 
-    const preference = await getPricePreference();
-    const nameSql = localizedCardNameSql(locale);
-    const setNameSql = localizedSetNameSql(locale);
-
-    const results = await db
-      .select({
-        id: cards.id,
-        number: cards.number,
-        name: nameSql,
-        rarity: cards.rarity,
-        imageUrl: cards.imageUrl,
-        setId: sets.id,
-        setName: setNameSql,
-        officialCode: sets.officialCode,
-        variantId: cardVariants.id,
-        variantType: cardVariants.variantType,
-        cardmarketProductId: cardVariants.cardmarketProductId,
-        ownedQuantity: userCards.quantity,
-        trendEur: cardPrices.trendEur,
-        lowEur: cardPrices.lowEur,
-      })
-      .from(cards)
-      .innerJoin(sets, eq(cards.setId, sets.id))
-      .innerJoin(cardVariants, eq(cardVariants.cardId, cards.id))
-      .leftJoin(userCards, eq(userCards.variantId, cardVariants.id))
-      .leftJoin(cardPrices, eq(cardPrices.variantId, cardVariants.id))
-      .where(inArray(cards.id, cardIds))
-      .orderBy(nameSql);
-
-    const grouped = new Map<
-      string,
-      {
-        id: string;
-        number: string;
-        name: string;
-        rarity: string | null;
-        imageUrl: string | null;
-        setId: string;
-        setName: string;
-        officialCode: string | null;
-        owned: boolean;
-        variants: Array<{
-          id: string;
-          variantType: string;
-          ownedQuantity: number | null;
-          price: number | null;
-          cardmarketProductId: number | null;
-        }>;
-      }
-    >();
-
-    for (const row of results) {
-      const existing = grouped.get(row.id) ?? {
-        id: row.id,
-        number: row.number,
-        name: row.name,
-        rarity: row.rarity,
-        imageUrl: row.imageUrl,
-        setId: row.setId,
-        setName: row.setName,
-        officialCode: row.officialCode,
-        owned: false,
-        variants: [],
-      };
-
-      const ownedQuantity = row.ownedQuantity ?? 0;
-      existing.owned = existing.owned || ownedQuantity > 0;
-      existing.variants.push({
-        id: row.variantId,
-        variantType: row.variantType,
-        ownedQuantity: row.ownedQuantity,
-        price: pickPrice(row, preference),
-        cardmarketProductId: row.cardmarketProductId,
-      });
-      grouped.set(row.id, existing);
-    }
-
-    return NextResponse.json({ results: Array.from(grouped.values()) });
+    return NextResponse.json({ results });
   } catch (error) {
     console.error(error);
     return NextResponse.json(

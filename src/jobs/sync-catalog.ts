@@ -42,6 +42,7 @@ import {
 } from "@/lib/image-storage";
 import { findActiveSetCardsJob } from "@/jobs/sync-job-utils";
 import { enqueueSetCardsSync } from "@/jobs/boss";
+import { ensureSetMetadata } from "@/lib/set-metadata.server";
 import { encodeSyncJobMessage } from "@/lib/sync-job-messages";
 import type {
   CatalogCardError,
@@ -658,9 +659,19 @@ export async function runWeeklyCatalogRefresh() {
 }
 
 export async function createSetCardsSyncJob(setId: string) {
-  const set = await db.query.sets.findFirst({
+  let set = await db.query.sets.findFirst({
     where: eq(sets.id, setId),
   });
+
+  if (!set) {
+    const ensured = await ensureSetMetadata(setId);
+    if (!ensured) {
+      return { error: "Set nicht gefunden.", status: 404 as const };
+    }
+    set = await db.query.sets.findFirst({
+      where: eq(sets.id, setId),
+    });
+  }
 
   if (!set) {
     return { error: "Set nicht gefunden.", status: 404 as const };

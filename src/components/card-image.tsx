@@ -10,6 +10,7 @@ type CardImageProps = {
   cardId?: string | null;
   setId?: string | null;
   number?: string | null;
+  remoteImageUrl?: string | null;
   alt: string;
   className?: string;
   bare?: boolean;
@@ -19,13 +20,15 @@ export function CardImage({
   cardId,
   setId,
   number,
+  remoteImageUrl,
   alt,
   className,
   bare = false,
 }: CardImageProps) {
-  const [failedCardId, setFailedCardId] = useState<string | null>(null);
+  const [failedSource, setFailedSource] = useState<string | null>(null);
 
-  const useFallback = !cardId || failedCardId === cardId;
+  const imageSource = remoteImageUrl ?? (cardId ? getCardImageApiPath(cardId) : null);
+  const useFallback = !imageSource || failedSource === imageSource;
 
   return (
     <div
@@ -39,14 +42,14 @@ export function CardImage({
         <CardImageFallback setId={setId} number={number} className="h-full w-full" />
       ) : (
         <Image
-          src={getCardImageApiPath(cardId)}
+          src={imageSource}
           alt={alt}
           fill
           draggable={false}
           sizes={bare ? "90vw" : "(max-width: 768px) 33vw, 120px"}
           className="pointer-events-none object-contain select-none [-webkit-user-drag:none]"
           onDragStart={(event) => event.preventDefault()}
-          onError={() => cardId && setFailedCardId(cardId)}
+          onError={() => imageSource && setFailedSource(imageSource)}
         />
       )}
     </div>

@@ -13,6 +13,7 @@ type CardImageLightboxProps = {
   cardId: string;
   setId?: string | null;
   number?: string | null;
+  remoteImageUrl?: string | null;
   alt: string;
   onClose: () => void;
 };
@@ -22,6 +23,7 @@ export function CardImageLightbox({
   cardId,
   setId,
   number,
+  remoteImageUrl,
   alt,
   onClose,
 }: CardImageLightboxProps) {
@@ -69,6 +71,7 @@ export function CardImageLightbox({
               cardId={cardId}
               setId={setId}
               number={number}
+              remoteImageUrl={remoteImageUrl}
               alt={alt}
               bare
               className="h-full w-full"

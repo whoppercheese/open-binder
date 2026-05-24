@@ -249,8 +249,12 @@ export async function getSetWithCards(setId: string, locale: UiLocale = "en") {
 
   return {
     set: {
-      ...set,
+      id: set.id,
       name: getLocalizedSetName(set, locale),
+      officialCode: set.officialCode,
+      cardsSyncedAt: set.cardsSyncedAt?.toISOString() ?? null,
+      cardCountTotal: set.cardCountTotal,
+      cardCountOfficial: set.cardCountOfficial,
       seriesName: getLocalizedSeriesName(set, locale),
     },
     cards: cardsList,

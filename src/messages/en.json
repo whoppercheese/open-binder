@@ -70,7 +70,9 @@
   },
   "search": {
     "title": "Search",
-    "subtitle": "Name, number, or set + number",
+    "subtitle": "Name, number, or set + number · downloaded sets only",
+    "subtitleAllSets": "Name, number, or set + number · all sets via TCGdex",
+    "allSetsButton": "Search all sets",
     "loading": "Searching…",
     "noResults": "No cards found."
   },
@@ -99,6 +101,7 @@
     "detailLoading": "Loading set…",
     "detailNotFound": "Set not found.",
     "detailNoCardData": "No card data has been loaded for this set yet.",
+    "detailCardCountHint": "{count} cards in this set",
     "detailCardsLoading": "Loading cards…",
     "detailCardsUpdating": "Updating card data…",
     "detailProgress": "Progress",
@@ -131,6 +134,8 @@
     "cardmarketLink": "Cardmarket: {price}",
     "cardmarketPrice": "Cardmarket price",
     "viewInCollection": "View in collection ({count})",
+    "downloadSetHint": "Download the set first to add this card to your collection.",
+    "goToSet": "Go to set",
     "save": "Save",
     "addToCollection": "Add to collection"
   },
@@ -144,7 +149,7 @@
     "price": "Price",
     "priceUnavailable": "—",
     "added": "added",
-    "searchDefaultPlaceholder": "Pikachu, 004 or Jungle 60",
+    "searchDefaultPlaceholder": "Pikachu, 4 or Jungle 60",
     "variantNormal": "Normal",
     "variantHolo": "Holo",
     "variantReverseHolo": "Reverse Holo",

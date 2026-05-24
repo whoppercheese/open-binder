@@ -15,6 +15,7 @@ export type CardPreview = {
   name: string;
   setId?: string;
   imageUrl?: string | null;
+  remoteImageUrl?: string | null;
   owned?: boolean;
   ownedQuantity?: number;
   flagged?: boolean;
@@ -68,6 +69,7 @@ export function CardTile({
           cardId={card.id}
           setId={card.setId}
           number={card.number}
+          remoteImageUrl={card.remoteImageUrl ?? card.imageUrl}
           alt={card.name}
           className="h-full w-full"
         />
