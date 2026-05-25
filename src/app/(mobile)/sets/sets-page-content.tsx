@@ -8,8 +8,9 @@ import {
   useState,
   type ReactNode,
 } from "react";
-import { Loader2 } from "lucide-react";
-import { MobilePage, MobilePageHeader } from "@/components/mobile-page";
+import { Loader2, Download, Ellipsis } from "lucide-react";
+import { ActionSheet } from "@/components/action-sheet";
+import { MobilePage } from "@/components/mobile-page";
 import { SearchBar } from "@/components/search-bar";
 import { SetListItem } from "@/components/set-list-item";
 import { apiUrl, useLocale, useTranslations } from "@/lib/i18n/context";
@@ -197,6 +198,8 @@ export function SetsPageContent({ initialSets }: SetsPageContentProps) {
   const [activeJobs, setActiveJobs] = useState<ActiveSetCardsJob[]>([]);
   const [catalogJob, setCatalogJob] = useState<ActiveCatalogJob | null>(null);
   const [loadingSetId, setLoadingSetId] = useState<string | null>(null);
+  const [loadingAllCards, setLoadingAllCards] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
   const pollTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const hadActiveJobsRef = useRef(false);
@@ -413,6 +416,48 @@ export function SetsPageContent({ initialSets }: SetsPageContentProps) {
     setLoadingSetId(null);
   }
 
+  async function handleLoadAllCards() {
+    setLoadError(null);
+    setLoadingAllCards(true);
+
+    const response = await fetch("/api/sync/set-cards", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ all: true }),
+    });
+
+    if (!response.ok) {
+      setLoadError(t("errors.cardSyncStartFailed"));
+    } else {
+      await loadActiveJobs();
+      stopPolling();
+      pollTimeoutRef.current = setTimeout(() => {
+        void runPoll();
+      }, 0);
+    }
+
+    setLoadingAllCards(false);
+  }
+
+  const actionSheetItems = useMemo(
+    () => [
+      {
+        id: "load-all-cards",
+        label: loadingAllCards
+          ? t("sets.loadAllCardsRunning")
+          : t("sets.loadAllCards"),
+        icon: loadingAllCards ? (
+          <Loader2 className="h-4 w-4 shrink-0 animate-spin" />
+        ) : (
+          <Download className="h-4 w-4 shrink-0" />
+        ),
+        disabled: loadingAllCards,
+        onSelect: () => void handleLoadAllCards(),
+      },
+    ],
+    [loadingAllCards, t],
+  );
+
   const trimmedQuery = query.trim();
   const hasSearch = trimmedQuery.length > 0;
   const hasActiveSearch = hasSearch || hasActiveFilters;
@@ -432,7 +477,25 @@ export function SetsPageContent({ initialSets }: SetsPageContentProps) {
 
   return (
     <MobilePage>
-      <MobilePageHeader title={t("sets.title")} subtitle={subtitle} />
+      <header>
+        <div className="flex items-start justify-between gap-2">
+          <div className="min-w-0 flex-1">
+            <h1 className="text-2xl font-bold">{t("sets.title")}</h1>
+            <p className="text-sm text-zinc-400">{subtitle}</p>
+          </div>
+          {sets.length > 0 ? (
+            <button
+              type="button"
+              aria-label={t("sets.listActions")}
+              aria-haspopup="menu"
+              onClick={() => setMenuOpen(true)}
+              className="-mr-1 mt-0.5 inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-zinc-500 transition hover:bg-white/5 hover:text-zinc-300 active:bg-white/10"
+            >
+              <Ellipsis className="h-5 w-5" strokeWidth={2} />
+            </button>
+          ) : null}
+        </div>
+      </header>
 
       {syncIndicator ? (
         <div className="flex items-start gap-3 rounded-2xl border border-emerald-500/20 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-100">
@@ -556,6 +619,13 @@ export function SetsPageContent({ initialSets }: SetsPageContentProps) {
           </div>
         </section>
       ))}
+
+      <ActionSheet
+        open={menuOpen}
+        title={t("sets.listActions")}
+        items={actionSheetItems}
+        onClose={() => setMenuOpen(false)}
+      />
     </MobilePage>
   );
 }

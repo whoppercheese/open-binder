@@ -99,7 +99,7 @@
       "one": "{count} weiteres Set wartet in der Queue",
       "other": "{count} weitere Sets warten in der Queue"
     },
-    "searchPlaceholder": "Name oder Kürzel (z.B. Base Set, BS)",
+    "searchPlaceholder": "Name oder Kürzel (z.B. Grundset, BS)",
     "filterDownloaded": "Karten geladen",
     "filterCollection": "Mit Sammelfortschritt",
     "emptyNoSets": "Noch keine Sets vorhanden. Der Worker lädt die Set-Liste beim Start.",
@@ -130,6 +130,9 @@
     },
     "emptyFilteredCards": "Keine Karten für diese Filter.",
     "setActions": "Set-Aktionen",
+    "listActions": "Set-Aktionen",
+    "loadAllCards": "Karten aller Sets laden",
+    "loadAllCardsRunning": "Wird eingeplant…",
     "resyncRunning": "Aktualisierung läuft…",
     "resyncCards": "Kartendaten erneut laden",
     "deleteCardData": "Kartendaten löschen",

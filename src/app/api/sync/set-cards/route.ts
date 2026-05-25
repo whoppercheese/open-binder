@@ -1,5 +1,8 @@
 import { NextResponse } from "next/server";
-import { createSetCardsSyncJob } from "@/lib/sync-set-cards.server";
+import {
+  createSetCardsSyncJob,
+  createSetCardsSyncJobsForAllSets,
+} from "@/lib/sync-set-cards.server";
 import { getSetCardsSyncStatuses } from "@/jobs/sync-job-utils";
 import { db } from "@/db/client";
 import { sets } from "@/db/schema";
@@ -60,6 +63,15 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   try {
     const body = await request.json();
+
+    if (body.all === true) {
+      const result = await createSetCardsSyncJobsForAllSets();
+      return NextResponse.json(
+        { enqueued: result.enqueued, skipped: result.skipped },
+        { status: result.status },
+      );
+    }
+
     const setId = body.setId as string | undefined;
 
     if (!setId?.trim()) {
