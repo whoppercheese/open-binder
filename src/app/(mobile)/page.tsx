@@ -1,13 +1,12 @@
 import Link from "next/link";
-import { ArrowRight, RefreshCw, TrendingUp } from "lucide-react";
+import { ArrowRight, TrendingUp } from "lucide-react";
 import { CardFrame } from "@/components/card-frame";
 import { CardImage } from "@/components/card-image";
 import { MobilePage, MobilePageHeader } from "@/components/mobile-page";
 import { SetListItem } from "@/components/set-list-item";
 import { getServerTranslator } from "@/lib/i18n/server";
 import { getPortfolioSummary } from "@/lib/portfolio";
-import { formatJobStatusLabel } from "@/lib/sync-job-display";
-import { formatCurrency, formatDate } from "@/lib/utils";
+import { formatCurrency } from "@/lib/utils";
 
 export default async function DashboardPage() {
   const { locale, t } = await getServerTranslator();
@@ -107,31 +106,6 @@ export default async function DashboardPage() {
             ))}
           </div>
         )}
-      </section>
-
-      <section className="rounded-2xl border border-white/10 bg-white/[0.03] p-4 text-sm text-zinc-400">
-        <div className="mb-2 flex items-center gap-2 text-white">
-          <RefreshCw className="h-4 w-4" />
-          {t("dashboard.syncStatus")}
-        </div>
-        <p>
-          {t("dashboard.setsLabel")}{" "}
-          {summary.sync.catalog
-            ? `${formatJobStatusLabel(summary.sync.catalog.status, summary.sync.catalog.message, t)} · ${formatDate(summary.sync.catalog.finishedAt ?? summary.sync.catalog.createdAt, locale)}`
-            : t("dashboard.noSyncYet")}
-        </p>
-        <p>
-          {t("dashboard.pricesLabel")}{" "}
-          {summary.sync.prices
-            ? `${formatJobStatusLabel(summary.sync.prices.status, summary.sync.prices.message, t)} · ${formatDate(summary.sync.prices.finishedAt ?? summary.sync.prices.createdAt, locale)}`
-            : t("dashboard.noSyncYet")}
-        </p>
-        <Link
-          href="/settings"
-          className="mt-3 inline-block text-emerald-400"
-        >
-          {t("dashboard.startSyncInSettings")}
-        </Link>
       </section>
     </MobilePage>
   );
