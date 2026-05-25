@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { CardImageFallback } from "@/components/card-image-fallback";
 import { getCardImageApiPath } from "@/lib/image-paths";
 import { cn } from "@/lib/utils";
@@ -25,10 +25,22 @@ export function CardImage({
   className,
   bare = false,
 }: CardImageProps) {
-  const [failedSource, setFailedSource] = useState<string | null>(null);
+  const [localFailed, setLocalFailed] = useState(false);
+  const [remoteFailed, setRemoteFailed] = useState(false);
 
-  const imageSource = remoteImageUrl ?? (cardId ? getCardImageApiPath(cardId) : null);
-  const useFallback = !imageSource || failedSource === imageSource;
+  useEffect(() => {
+    setLocalFailed(false);
+    setRemoteFailed(false);
+  }, [cardId, remoteImageUrl]);
+
+  const localSource = cardId ? getCardImageApiPath(cardId) : null;
+  const imageSource =
+    localSource && !localFailed
+      ? localSource
+      : remoteImageUrl && !remoteFailed
+        ? remoteImageUrl
+        : null;
+  const useFallback = !imageSource;
 
   return (
     <div
@@ -45,11 +57,20 @@ export function CardImage({
           src={imageSource}
           alt={alt}
           fill
+          unoptimized={imageSource.startsWith("/api/")}
           draggable={false}
           sizes={bare ? "90vw" : "(max-width: 768px) 33vw, 120px"}
           className="pointer-events-none object-contain select-none [-webkit-user-drag:none]"
           onDragStart={(event) => event.preventDefault()}
-          onError={() => imageSource && setFailedSource(imageSource)}
+          onError={() => {
+            if (imageSource === localSource) {
+              setLocalFailed(true);
+              return;
+            }
+            if (imageSource === remoteImageUrl) {
+              setRemoteFailed(true);
+            }
+          }}
         />
       )}
     </div>
