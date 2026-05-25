@@ -68,6 +68,7 @@ export default function SearchPage() {
   const offsetRef = useRef(offset);
   const resultsRef = useRef(results);
   const sentinelRef = useRef<HTMLDivElement>(null);
+  const skipScrollRestoreRef = useRef(false);
 
   useEffect(() => {
     offsetRef.current = offset;
@@ -94,6 +95,7 @@ export default function SearchPage() {
       if (reset) {
         setLoading(true);
       } else {
+        skipScrollRestoreRef.current = true;
         setLoadingMore(true);
       }
 
@@ -206,6 +208,10 @@ export default function SearchPage() {
 
   useLayoutEffect(() => {
     if (loading || loadingMore || !isSearchableQuery(query)) {
+      return;
+    }
+    if (skipScrollRestoreRef.current) {
+      skipScrollRestoreRef.current = false;
       return;
     }
     restoreScrollPosition("/search");
