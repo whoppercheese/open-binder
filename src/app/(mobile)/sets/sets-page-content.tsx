@@ -415,6 +415,13 @@ export function SetsPageContent({ initialSets }: SetsPageContentProps) {
 
   const trimmedQuery = query.trim();
   const hasSearch = trimmedQuery.length > 0;
+  const hasActiveSearch = hasSearch || hasActiveFilters;
+
+  function resetSearch() {
+    setQuery("");
+    setFilters([]);
+  }
+
   const subtitle =
     hasSearch || hasActiveFilters
       ? t.plural("sets.subtitleFiltered", sets.length, {
@@ -468,6 +475,8 @@ export function SetsPageContent({ initialSets }: SetsPageContentProps) {
           <SearchBar
             value={query}
             onChange={setQuery}
+            onClear={resetSearch}
+            showClear={hasActiveSearch}
             placeholder={t("sets.searchPlaceholder")}
           />
           <div className="flex flex-wrap gap-2">

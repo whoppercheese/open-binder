@@ -286,6 +286,15 @@ function CollectionPageContent() {
     router.push("/collection");
   }
 
+  function resetSearch() {
+    setQuery("");
+    if (cardId) {
+      clearCardFilter();
+    }
+  }
+
+  const hasActiveSearch = query.trim().length > 0 || Boolean(cardId);
+
   async function openEdit(item: CollectionItem) {
     if (editLoadingId != null) return;
 
@@ -361,6 +370,8 @@ function CollectionPageContent() {
       <SearchBar
         value={query}
         onChange={setQuery}
+        onClear={resetSearch}
+        showClear={hasActiveSearch}
         placeholder={t("collection.searchPlaceholder")}
       />
 
