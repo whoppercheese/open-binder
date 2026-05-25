@@ -22,26 +22,57 @@ type SearchResult = CardDetail & {
   owned: boolean;
 };
 
+function isSearchResult(value: unknown): value is SearchResult {
+  if (!value || typeof value !== "object") {
+    return false;
+  }
+
+  const candidate = value as Partial<SearchResult>;
+  return (
+    typeof candidate.id === "string" &&
+    typeof candidate.number === "string" &&
+    typeof candidate.name === "string" &&
+    typeof candidate.setName === "string" &&
+    typeof candidate.owned === "boolean" &&
+    Array.isArray(candidate.variants)
+  );
+}
+
+function parseStoredResults(results: unknown[]): SearchResult[] {
+  return results.filter(isSearchResult);
+}
+
 export default function SearchPage() {
   const { locale } = useLocale();
   const t = useTranslations();
   const {
     query,
     searchAllSets,
+    results: storedResults,
+    hasMore,
+    offset,
     hydrated,
     setQuery,
     setSearchAllSets,
+    setResultsState,
     clearStoredState,
   } = useSearchPageState();
-  const [results, setResults] = useState<SearchResult[]>([]);
-  const [hasMore, setHasMore] = useState(false);
+  const results = parseStoredResults(storedResults);
   const [loading, setLoading] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
   const [selectedCard, setSelectedCard] = useState<CardDetail | null>(null);
   const [open, setOpen] = useState(false);
-  const offsetRef = useRef(0);
   const searchRequestIdRef = useRef(0);
+  const skipNextSearchRef = useRef(false);
+  const initialSearchHandledRef = useRef(false);
+  const offsetRef = useRef(offset);
+  const resultsRef = useRef(results);
   const sentinelRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    offsetRef.current = offset;
+    resultsRef.current = results;
+  }, [offset, results]);
 
   const hasActiveSearch =
     query.trim().length > 0 || results.length > 0 || searchAllSets;
@@ -51,9 +82,7 @@ export default function SearchPage() {
       const trimmed = searchQuery.trim();
       if (!trimmed) {
         searchRequestIdRef.current += 1;
-        offsetRef.current = 0;
-        setResults([]);
-        setHasMore(false);
+        setResultsState({ results: [], hasMore: false, offset: 0 });
         setLoading(false);
         setLoadingMore(false);
         return;
@@ -63,7 +92,6 @@ export default function SearchPage() {
       searchRequestIdRef.current = requestId;
 
       if (reset) {
-        offsetRef.current = 0;
         setLoading(true);
       } else {
         setLoadingMore(true);
@@ -73,7 +101,7 @@ export default function SearchPage() {
         const params = new URLSearchParams({
           q: trimmed,
           limit: String(PAGE_SIZE),
-          offset: String(offsetRef.current),
+          offset: String(reset ? 0 : offsetRef.current),
         });
         if (allSets) {
           params.set("scope", "all");
@@ -87,14 +115,17 @@ export default function SearchPage() {
         }
 
         const newResults: SearchResult[] = payload.results ?? [];
-        if (reset) {
-          setResults(newResults);
-        } else {
-          setResults((current) => [...current, ...newResults]);
-        }
+        const currentOffset = reset ? 0 : offsetRef.current;
+        const nextResults = reset
+          ? newResults
+          : [...resultsRef.current, ...newResults];
+        const nextOffset = currentOffset + newResults.length;
 
-        offsetRef.current += newResults.length;
-        setHasMore(Boolean(payload.hasMore));
+        setResultsState({
+          results: nextResults,
+          hasMore: Boolean(payload.hasMore),
+          offset: nextOffset,
+        });
       } finally {
         if (requestId === searchRequestIdRef.current) {
           setLoading(false);
@@ -102,22 +133,30 @@ export default function SearchPage() {
         }
       }
     },
-    [locale],
+    [locale, setResultsState],
   );
 
   const resetSearch = useCallback(() => {
     searchRequestIdRef.current += 1;
-    offsetRef.current = 0;
     clearStoredState();
-    setResults([]);
-    setHasMore(false);
     setLoading(false);
     setLoadingMore(false);
     setSelectedCard(null);
     setOpen(false);
     clearSavedScrollPosition("/search");
     scrollMainToTop();
-  }, [clearStoredState]);
+  }, [clearStoredState, setOpen]);
+
+  useEffect(() => {
+    if (!hydrated || initialSearchHandledRef.current) {
+      return;
+    }
+
+    initialSearchHandledRef.current = true;
+    if (isSearchableQuery(query)) {
+      skipNextSearchRef.current = true;
+    }
+  }, [hydrated, query]);
 
   useEffect(() => {
     if (!hydrated) {
@@ -125,19 +164,22 @@ export default function SearchPage() {
     }
 
     const timer = setTimeout(() => {
+      if (skipNextSearchRef.current) {
+        skipNextSearchRef.current = false;
+        return;
+      }
+
       if (isSearchableQuery(query)) {
         void loadPage(true, query, searchAllSets);
       } else {
         searchRequestIdRef.current += 1;
-        offsetRef.current = 0;
-        setResults([]);
-        setHasMore(false);
+        setResultsState({ results: [], hasMore: false, offset: 0 });
         setLoading(false);
         setLoadingMore(false);
       }
     }, 300);
     return () => clearTimeout(timer);
-  }, [hydrated, query, searchAllSets, loadPage]);
+  }, [hydrated, query, searchAllSets, loadPage, setResultsState]);
 
   useEffect(() => {
     if (!hasMore || loading || loadingMore) {
@@ -166,10 +208,8 @@ export default function SearchPage() {
     if (loading || loadingMore || !isSearchableQuery(query)) {
       return;
     }
-    if (offsetRef.current <= PAGE_SIZE) {
-      restoreScrollPosition("/search");
-    }
-  }, [loading, loadingMore, query]);
+    restoreScrollPosition("/search");
+  }, [loading, loadingMore, query, results.length]);
 
   return (
     <MobilePage>
