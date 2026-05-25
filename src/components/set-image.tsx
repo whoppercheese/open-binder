@@ -5,12 +5,32 @@ import { useState } from "react";
 import { getSetImageApiPath, type SetImageKind } from "@/lib/image-paths";
 import { cn } from "@/lib/utils";
 
+export function SetCodeLabel({
+  label,
+  className,
+}: {
+  label: string;
+  className?: string;
+}) {
+  return (
+    <div
+      className={cn(
+        "flex h-full w-full items-center justify-center rounded-xl bg-zinc-800/80 px-1 text-center text-xs font-semibold uppercase tracking-wide text-zinc-200",
+        className,
+      )}
+    >
+      {label}
+    </div>
+  );
+}
+
 type SetImageProps = {
   setId: string;
   alt: string;
   className?: string;
   plain?: boolean;
   preferSymbol?: boolean;
+  fallbackLabel?: string | null;
 };
 
 export function SetImage({
@@ -19,6 +39,7 @@ export function SetImage({
   className,
   plain = false,
   preferSymbol = false,
+  fallbackLabel,
 }: SetImageProps) {
   const defaultKind: SetImageKind = preferSymbol ? "symbol" : "logo";
   const [fallback, setFallback] = useState<{
@@ -85,9 +106,7 @@ export function SetImage({
           }}
         />
       ) : (
-        <div className="flex h-full items-center justify-center text-[10px] font-semibold uppercase tracking-wide text-zinc-600">
-          Set
-        </div>
+        <SetCodeLabel label={fallbackLabel ?? setId} />
       )}
     </div>
   );

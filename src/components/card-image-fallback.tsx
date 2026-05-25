@@ -1,22 +1,25 @@
 "use client";
 
 import { ImageOff } from "lucide-react";
-import { SetImage } from "@/components/set-image";
+import { SetCodeLabel } from "@/components/set-image";
 import { useTranslations } from "@/lib/i18n/context";
 import { cn } from "@/lib/utils";
 
 type CardImageFallbackProps = {
   setId?: string | null;
+  officialCode?: string | null;
   number?: string | null;
   className?: string;
 };
 
 export function CardImageFallback({
   setId,
+  officialCode,
   number,
   className,
 }: CardImageFallbackProps) {
   const t = useTranslations();
+  const setLabel = officialCode ?? setId;
 
   return (
     <div
@@ -25,12 +28,9 @@ export function CardImageFallback({
         className,
       )}
     >
-      {setId ? (
-        <SetImage
-          setId={setId}
-          alt=""
-          plain
-          preferSymbol
+      {setLabel ? (
+        <SetCodeLabel
+          label={setLabel}
           className="h-14 w-14 sm:h-16 sm:w-16"
         />
       ) : (

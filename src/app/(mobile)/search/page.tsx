@@ -12,119 +12,164 @@ import { MobilePage, MobilePageHeader } from "@/components/mobile-page";
 import { SearchBar } from "@/components/search-bar";
 import { apiUrl, useLocale, useTranslations } from "@/lib/i18n/context";
 import { isSearchableQuery } from "@/lib/search";
+import { useSearchPageState } from "@/lib/use-search-page-state";
 import { cn } from "@/lib/utils";
+
+const PAGE_SIZE = 24;
 
 type SearchResult = CardDetail & {
   setName: string;
   owned: boolean;
 };
 
-const SEARCH_PAGE_STATE_KEY = "search-page-state";
-
-type SearchPageState = {
-  query: string;
-  searchAllSets: boolean;
-  results: SearchResult[];
-};
-
-function readSavedState(): SearchPageState {
-  if (typeof window === "undefined") {
-    return { query: "", searchAllSets: false, results: [] };
-  }
-
-  try {
-    const saved = sessionStorage.getItem(SEARCH_PAGE_STATE_KEY);
-    if (!saved) {
-      return { query: "", searchAllSets: false, results: [] };
-    }
-
-    const parsed = JSON.parse(saved) as Partial<SearchPageState>;
-    return {
-      query: typeof parsed.query === "string" ? parsed.query : "",
-      searchAllSets: parsed.searchAllSets === true,
-      results: Array.isArray(parsed.results) ? parsed.results : [],
-    };
-  } catch {
-    return { query: "", searchAllSets: false, results: [] };
-  }
-}
-
 export default function SearchPage() {
   const { locale } = useLocale();
   const t = useTranslations();
-  const savedState = readSavedState();
-  const [query, setQuery] = useState(savedState.query);
-  const [searchAllSets, setSearchAllSets] = useState(savedState.searchAllSets);
-  const [results, setResults] = useState<SearchResult[]>(savedState.results);
+  const {
+    query,
+    searchAllSets,
+    hydrated,
+    setQuery,
+    setSearchAllSets,
+    clearStoredState,
+  } = useSearchPageState();
+  const [results, setResults] = useState<SearchResult[]>([]);
+  const [hasMore, setHasMore] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [selectedCard, setSelectedCard] = useState<CardDetail | null>(null);
   const [open, setOpen] = useState(false);
-  const skipNextSearchRef = useRef(isSearchableQuery(savedState.query));
+  const offsetRef = useRef(0);
+  const searchRequestIdRef = useRef(0);
+  const sentinelRef = useRef<HTMLDivElement>(null);
 
   const hasActiveSearch =
     query.trim().length > 0 || results.length > 0 || searchAllSets;
 
-  const runSearch = useCallback(async (searchQuery: string, allSets: boolean) => {
-    if (!searchQuery.trim()) {
-      setResults([]);
-      return;
-    }
-    setLoading(true);
-    try {
-      const scope = allSets ? "&scope=all" : "";
-      const response = await fetch(
-        apiUrl(
-          `/api/cards/search?q=${encodeURIComponent(searchQuery.trim())}${scope}`,
-          locale,
-        ),
-      );
-      const payload = await response.json();
-      setResults(payload.results ?? []);
-    } finally {
-      setLoading(false);
-    }
-  }, [locale]);
-
-  const resetSearch = useCallback(() => {
-    skipNextSearchRef.current = false;
-    setQuery("");
-    setSearchAllSets(false);
-    setResults([]);
-    setSelectedCard(null);
-    setOpen(false);
-    sessionStorage.removeItem(SEARCH_PAGE_STATE_KEY);
-    clearSavedScrollPosition("/search");
-    scrollMainToTop();
-  }, []);
-
-  useEffect(() => {
-    sessionStorage.setItem(
-      SEARCH_PAGE_STATE_KEY,
-      JSON.stringify({ query, searchAllSets, results }),
-    );
-  }, [query, searchAllSets, results]);
-
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      if (skipNextSearchRef.current) {
-        skipNextSearchRef.current = false;
+  const loadPage = useCallback(
+    async (reset: boolean, searchQuery: string, allSets: boolean) => {
+      const trimmed = searchQuery.trim();
+      if (!trimmed) {
+        searchRequestIdRef.current += 1;
+        offsetRef.current = 0;
+        setResults([]);
+        setHasMore(false);
+        setLoading(false);
+        setLoadingMore(false);
         return;
       }
 
-      if (isSearchableQuery(query)) {
-        void runSearch(query, searchAllSets);
+      const requestId = searchRequestIdRef.current + 1;
+      searchRequestIdRef.current = requestId;
+
+      if (reset) {
+        offsetRef.current = 0;
+        setLoading(true);
       } else {
+        setLoadingMore(true);
+      }
+
+      try {
+        const params = new URLSearchParams({
+          q: trimmed,
+          limit: String(PAGE_SIZE),
+          offset: String(offsetRef.current),
+        });
+        if (allSets) {
+          params.set("scope", "all");
+        }
+        const response = await fetch(
+          apiUrl(`/api/cards/search?${params}`, locale),
+        );
+        const payload = await response.json();
+        if (requestId !== searchRequestIdRef.current) {
+          return;
+        }
+
+        const newResults: SearchResult[] = payload.results ?? [];
+        if (reset) {
+          setResults(newResults);
+        } else {
+          setResults((current) => [...current, ...newResults]);
+        }
+
+        offsetRef.current += newResults.length;
+        setHasMore(Boolean(payload.hasMore));
+      } finally {
+        if (requestId === searchRequestIdRef.current) {
+          setLoading(false);
+          setLoadingMore(false);
+        }
+      }
+    },
+    [locale],
+  );
+
+  const resetSearch = useCallback(() => {
+    searchRequestIdRef.current += 1;
+    offsetRef.current = 0;
+    clearStoredState();
+    setResults([]);
+    setHasMore(false);
+    setLoading(false);
+    setLoadingMore(false);
+    setSelectedCard(null);
+    setOpen(false);
+    clearSavedScrollPosition("/search");
+    scrollMainToTop();
+  }, [clearStoredState]);
+
+  useEffect(() => {
+    if (!hydrated) {
+      return;
+    }
+
+    const timer = setTimeout(() => {
+      if (isSearchableQuery(query)) {
+        void loadPage(true, query, searchAllSets);
+      } else {
+        searchRequestIdRef.current += 1;
+        offsetRef.current = 0;
         setResults([]);
+        setHasMore(false);
+        setLoading(false);
+        setLoadingMore(false);
       }
     }, 300);
     return () => clearTimeout(timer);
-  }, [query, searchAllSets, runSearch]);
+  }, [hydrated, query, searchAllSets, loadPage]);
+
+  useEffect(() => {
+    if (!hasMore || loading || loadingMore) {
+      return;
+    }
+
+    const sentinel = sentinelRef.current;
+    if (!sentinel) {
+      return;
+    }
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0]?.isIntersecting) {
+          void loadPage(false, query, searchAllSets);
+        }
+      },
+      { rootMargin: "200px" },
+    );
+
+    observer.observe(sentinel);
+    return () => observer.disconnect();
+  }, [hasMore, loading, loadingMore, query, searchAllSets, loadPage, results.length]);
 
   useLayoutEffect(() => {
-    if (!loading && isSearchableQuery(query)) {
+    if (loading || loadingMore || !isSearchableQuery(query)) {
+      return;
+    }
+    if (offsetRef.current <= PAGE_SIZE) {
       restoreScrollPosition("/search");
     }
-  }, [loading, query, results.length]);
+  }, [loading, loadingMore, query]);
 
   return (
     <MobilePage>
@@ -137,13 +182,13 @@ export default function SearchPage() {
         <SearchBar
           value={query}
           onChange={setQuery}
-          onSubmit={() => void runSearch(query, searchAllSets)}
+          onSubmit={() => void loadPage(true, query, searchAllSets)}
           onClear={resetSearch}
           showClear={hasActiveSearch}
         />
         <button
           type="button"
-          onClick={() => setSearchAllSets((current) => !current)}
+          onClick={() => setSearchAllSets(!searchAllSets)}
           className={cn(
             "shrink-0 cursor-pointer rounded-full border px-3 py-1.5 text-xs font-medium transition-colors",
             searchAllSets
@@ -174,7 +219,7 @@ export default function SearchPage() {
               name: card.name,
               setId: card.setId,
               imageUrl: card.imageUrl,
-              remoteImageUrl: searchAllSets ? card.imageUrl : null,
+              remoteImageUrl: card.imageUrl,
               setName: card.setName,
               officialCode: card.officialCode,
               owned: card.owned,
@@ -187,6 +232,15 @@ export default function SearchPage() {
           />
         ))}
       </div>
+
+      {hasMore ? (
+        <div
+          ref={sentinelRef}
+          className="py-4 text-center text-sm text-zinc-500"
+        >
+          {loadingMore ? t("collection.loadingMore") : null}
+        </div>
+      ) : null}
 
       <CardModal
         key={selectedCard?.id ?? "closed"}

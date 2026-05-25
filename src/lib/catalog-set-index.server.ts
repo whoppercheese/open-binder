@@ -61,6 +61,21 @@ export function matchCatalogSetIds(
     .map((entry) => entry.id);
 }
 
+export function matchCatalogSetIdsForBulkFetch(
+  token: string,
+  entries: readonly CatalogSetEntry[],
+): string[] {
+  const lowerToken = token.toLowerCase();
+  return entries
+    .filter(
+      (entry) =>
+        entry.name.toLowerCase() === lowerToken ||
+        entry.id.toLowerCase() === lowerToken ||
+        (entry.officialCode?.toLowerCase() ?? "") === lowerToken,
+    )
+    .map((entry) => entry.id);
+}
+
 export function getCatalogSetMetadata(
   entries: readonly CatalogSetEntry[],
 ): Map<string, { name: string; officialCode: string | null }> {

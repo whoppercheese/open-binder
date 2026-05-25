@@ -305,6 +305,7 @@ function CardModalForm({
                   <CardImage
                     cardId={card.id}
                     setId={card.setId}
+                    officialCode={card.officialCode}
                     number={card.number}
                     remoteImageUrl={remoteImageUrl}
                     alt={card.name}

@@ -44,6 +44,8 @@ export function CardTile({
     onTap: onLongPress ? onClick : undefined,
   });
 
+  const setLabel = card.officialCode ?? card.setName ?? card.setId;
+
   return (
     <button
       type="button"
@@ -69,6 +71,7 @@ export function CardTile({
         <CardImage
           cardId={card.id}
           setId={card.setId}
+          officialCode={card.officialCode}
           number={card.number}
           remoteImageUrl={card.remoteImageUrl ?? card.imageUrl}
           alt={card.name}
@@ -94,14 +97,27 @@ export function CardTile({
         ) : null}
       </CardFrame>
       <div className="px-0.5">
-        <p className="truncate text-[11px] font-medium text-zinc-300">
-          {card.number} · {card.name}
-        </p>
-        {!compact && (card.officialCode ?? card.setName) ? (
-          <p className="truncate text-[10px] text-zinc-500">
-            {card.officialCode ?? card.setName}
-          </p>
-        ) : null}
+        {compact ? (
+          <>
+            <p className="truncate text-[11px] font-medium text-zinc-300">
+              {card.name}
+            </p>
+            <p className="truncate text-[10px] text-zinc-500">
+              {[setLabel, card.number].filter(Boolean).join(" · ")}
+            </p>
+          </>
+        ) : (
+          <>
+            <p className="truncate text-[11px] font-medium text-zinc-300">
+              {card.number} · {card.name}
+            </p>
+            {card.officialCode ?? card.setName ? (
+              <p className="truncate text-[10px] text-zinc-500">
+                {card.officialCode ?? card.setName}
+              </p>
+            ) : null}
+          </>
+        )}
         <p className="text-[10px] tabular-nums">
           {hasCardPrice(card.price) ? (
             <span className="font-semibold text-emerald-400">

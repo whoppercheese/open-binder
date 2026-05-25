@@ -1,14 +1,14 @@
 "use client";
 
-import Image from "next/image";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { CardImageFallback } from "@/components/card-image-fallback";
-import { getCardImageApiPath } from "@/lib/image-paths";
+import { getCardImageApiPath, getTcgdexEnglishImageUrl } from "@/lib/image-paths";
 import { cn } from "@/lib/utils";
 
 type CardImageProps = {
   cardId?: string | null;
   setId?: string | null;
+  officialCode?: string | null;
   number?: string | null;
   remoteImageUrl?: string | null;
   alt: string;
@@ -19,6 +19,7 @@ type CardImageProps = {
 export function CardImage({
   cardId,
   setId,
+  officialCode,
   number,
   remoteImageUrl,
   alt,
@@ -26,21 +27,58 @@ export function CardImage({
   bare = false,
 }: CardImageProps) {
   const [localFailed, setLocalFailed] = useState(false);
-  const [remoteFailed, setRemoteFailed] = useState(false);
+  const [remoteAttempt, setRemoteAttempt] = useState(0);
+  const [remoteExhausted, setRemoteExhausted] = useState(false);
+
+  const remoteCandidates = useMemo(() => {
+    const candidates: string[] = [];
+    if (remoteImageUrl) {
+      candidates.push(remoteImageUrl);
+      const englishFallback = getTcgdexEnglishImageUrl(remoteImageUrl);
+      if (englishFallback && englishFallback !== remoteImageUrl) {
+        candidates.push(englishFallback);
+      }
+    }
+    return candidates;
+  }, [remoteImageUrl]);
+
+  const activeRemoteUrl = remoteCandidates[remoteAttempt] ?? null;
 
   useEffect(() => {
     setLocalFailed(false);
-    setRemoteFailed(false);
+    setRemoteAttempt(0);
+    setRemoteExhausted(false);
   }, [cardId, remoteImageUrl]);
 
   const localSource = cardId ? getCardImageApiPath(cardId) : null;
   const imageSource =
     localSource && !localFailed
       ? localSource
-      : remoteImageUrl && !remoteFailed
-        ? remoteImageUrl
+      : activeRemoteUrl && !remoteExhausted
+        ? activeRemoteUrl
         : null;
   const useFallback = !imageSource;
+
+  function handleImageError(failedSource: string) {
+    if (failedSource === localSource) {
+      setLocalFailed(true);
+      return;
+    }
+
+    if (
+      activeRemoteUrl &&
+      failedSource === activeRemoteUrl &&
+      remoteAttempt < remoteCandidates.length - 1
+    ) {
+      setRemoteAttempt((current) => current + 1);
+      return;
+    }
+
+    setRemoteExhausted(true);
+  }
+
+  const imageClassName =
+    "pointer-events-none object-contain select-none [-webkit-user-drag:none]";
 
   return (
     <div
@@ -51,26 +89,22 @@ export function CardImage({
       )}
     >
       {useFallback ? (
-        <CardImageFallback setId={setId} number={number} className="h-full w-full" />
+        <CardImageFallback
+          setId={setId}
+          officialCode={officialCode}
+          number={number}
+          className="h-full w-full"
+        />
       ) : (
-        <Image
+        // Native img: reliable onError for local 404 JSON and remote TCGdex misses.
+        <img
+          key={imageSource}
           src={imageSource}
           alt={alt}
-          fill
-          unoptimized={imageSource.startsWith("/api/")}
           draggable={false}
-          sizes={bare ? "90vw" : "(max-width: 768px) 33vw, 120px"}
-          className="pointer-events-none object-contain select-none [-webkit-user-drag:none]"
+          className={cn("absolute inset-0 h-full w-full", imageClassName)}
           onDragStart={(event) => event.preventDefault()}
-          onError={() => {
-            if (imageSource === localSource) {
-              setLocalFailed(true);
-              return;
-            }
-            if (imageSource === remoteImageUrl) {
-              setRemoteFailed(true);
-            }
-          }}
+          onError={() => handleImageError(imageSource)}
         />
       )}
     </div>

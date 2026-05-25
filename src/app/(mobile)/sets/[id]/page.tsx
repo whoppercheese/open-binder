@@ -590,6 +590,7 @@ export default function SetDetailPage() {
               owned: card.owned,
               ownedQuantity: card.ownedQuantity,
               flagged: card.flagged,
+              officialCode: data.set.officialCode,
               price: card.variants.find((variant) => variant.price != null)?.price,
             }}
             compact

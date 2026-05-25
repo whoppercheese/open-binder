@@ -7,3 +7,11 @@ export function getCardImageApiPath(cardId: string): string {
 export function getSetImageApiPath(setId: string, kind: SetImageKind): string {
   return `/api/set-images/${encodeURIComponent(setId)}/${kind}`;
 }
+
+export function getTcgdexEnglishImageUrl(url: string): string | null {
+  if (!url.includes("assets.tcgdex.net/de/")) {
+    return null;
+  }
+
+  return url.replace("assets.tcgdex.net/de/", "assets.tcgdex.net/en/");
+}

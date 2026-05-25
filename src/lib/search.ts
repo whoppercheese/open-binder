@@ -67,6 +67,147 @@ export function cardMatchesAllTokens(
   return tokens.every((token) => tokenMatchesCardFields(token, fields));
 }
 
+export function tokenMatchesCatalogSearchFields(
+  token: string,
+  fields: CardSearchFields,
+): boolean {
+  if (isNumberToken(token)) {
+    return numbersMatch(fields.number, token);
+  }
+
+  const lowerToken = token.toLowerCase();
+  return (
+    fields.cardName.toLowerCase().includes(lowerToken) ||
+    fields.setName.toLowerCase() === lowerToken ||
+    (fields.officialCode?.toLowerCase() ?? "") === lowerToken
+  );
+}
+
+export function cardMatchesAllCatalogTokens(
+  tokens: readonly string[],
+  fields: CardSearchFields,
+): boolean {
+  return tokens.every((token) => tokenMatchesCatalogSearchFields(token, fields));
+}
+
+export function normalizeSearchText(value: string): string {
+  return value.toLowerCase().replace(/[^a-z0-9]+/g, "");
+}
+
+export function cardMatchesCatalogSearchQuery(
+  raw: string,
+  tokens: readonly string[],
+  fields: CardSearchFields,
+): boolean {
+  const normalizedQuery = normalizeSearchText(raw);
+  const normalizedCardName = normalizeSearchText(fields.cardName);
+
+  if (
+    normalizedQuery.length >= 2 &&
+    normalizedCardName.includes(normalizedQuery)
+  ) {
+    return true;
+  }
+
+  return cardMatchesAllCatalogTokens(tokens, fields);
+}
+
+export function scoreCatalogSearchMatch(
+  raw: string,
+  tokens: readonly string[],
+  fields: CardSearchFields,
+): number {
+  const lowerName = fields.cardName.toLowerCase();
+  const lowerRaw = raw.trim().toLowerCase();
+  const normalizedQuery = normalizeSearchText(raw);
+  const normalizedName = normalizeSearchText(fields.cardName);
+
+  let score = 0;
+
+  if (lowerRaw.length > 0 && lowerName === lowerRaw) {
+    score += 1000;
+  } else if (normalizedQuery.length >= 2 && normalizedName === normalizedQuery) {
+    score += 950;
+  } else if (
+    normalizedQuery.length >= 2 &&
+    normalizedName.includes(normalizedQuery)
+  ) {
+    score += 200;
+  }
+
+  for (const token of tokens) {
+    if (isNumberToken(token)) {
+      if (numbersMatch(fields.number, token)) {
+        score += 80;
+      }
+      continue;
+    }
+
+    const lowerToken = token.toLowerCase();
+    if (lowerName === lowerToken) {
+      score += 500;
+    } else if (
+      lowerName.startsWith(`${lowerToken} `) ||
+      lowerName.startsWith(`${lowerToken}-`)
+    ) {
+      score += 150;
+    } else if (lowerName.includes(lowerToken)) {
+      score += 50;
+    }
+    if ((fields.officialCode?.toLowerCase() ?? "") === lowerToken) {
+      score += 100;
+    }
+    if (fields.setName.toLowerCase() === lowerToken) {
+      score += 80;
+    }
+  }
+
+  return score;
+}
+
+const DEFAULT_MAX_DUPLICATE_NAME_RESULTS = 6;
+
+export function pickDiverseSearchResults<T extends { id: string; name: string }>(
+  sorted: readonly T[],
+  limit: number,
+  maxPerExactName = DEFAULT_MAX_DUPLICATE_NAME_RESULTS,
+): T[] {
+  const selected: T[] = [];
+  const seenIds = new Set<string>();
+  const nameCounts = new Map<string, number>();
+
+  for (const item of sorted) {
+    if (selected.length >= limit) {
+      break;
+    }
+    if (seenIds.has(item.id)) {
+      continue;
+    }
+
+    const duplicateCount = nameCounts.get(item.name) ?? 0;
+    if (duplicateCount >= maxPerExactName) {
+      continue;
+    }
+
+    nameCounts.set(item.name, duplicateCount + 1);
+    seenIds.add(item.id);
+    selected.push(item);
+  }
+
+  for (const item of sorted) {
+    if (selected.length >= limit) {
+      break;
+    }
+    if (seenIds.has(item.id)) {
+      continue;
+    }
+    seenIds.add(item.id);
+    selected.push(item);
+  }
+
+  return selected;
+}
+
 function localizedNameExpr(tableAlias: "c" | "s", locale: UiLocale) {
   return sql`lower(coalesce(${sql.raw(tableAlias)}.names->>${locale}, ${sql.raw(tableAlias)}.names->>'en', ''))`;
 }
@@ -114,7 +255,8 @@ export function buildTokenMatchSql(token: string, locale: UiLocale) {
 export function buildSearchSql(
   parsed: ParsedSearchQuery,
   locale: UiLocale = "en",
-  limit = 50,
+  limit = 24,
+  offset = 0,
 ): ReturnType<typeof sql> {
   if (parsed.tokens.length === 0) {
     return sql`SELECT NULL LIMIT 0`;
@@ -131,5 +273,6 @@ export function buildSearchSql(
     WHERE ${sql.join(conditions, sql` AND `)}
     ORDER BY s.release_date DESC NULLS LAST, c.number
     LIMIT ${limit}
+    OFFSET ${offset}
   `;
 }
