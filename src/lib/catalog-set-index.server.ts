@@ -28,7 +28,7 @@ async function buildCatalogSetIndex(locale: UiLocale): Promise<CatalogSetEntry[]
     return {
       id: summary.id,
       name: detail?.name ?? summary.name,
-      officialCode: detail?.abbreviation?.official ?? null,
+      officialCode: detail?.abbreviation?.official ?? detail?.id ?? null,
     };
   });
 }

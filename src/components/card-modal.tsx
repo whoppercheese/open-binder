@@ -33,6 +33,7 @@ import {
   formatCardPriceLabel,
   formatCurrency,
   hasCardPrice,
+  resolveSetDisplayCode,
   type CardCondition,
 } from "@/lib/utils";
 
@@ -140,6 +141,10 @@ function CardModalForm({
   const { locale } = useLocale();
   const t = useTranslations();
   const isEdit = entry != null;
+  const setLabel = resolveSetDisplayCode({
+    officialCode: card.officialCode,
+    setId: card.setId,
+  });
   const initialForm = createInitialFormState(card, entry, defaultCondition);
 
   const defaultVariant = useMemo(() => {
@@ -258,11 +263,11 @@ function CardModalForm({
                       onClick={handleClose}
                       className="inline-flex items-center rounded-lg bg-emerald-500/10 px-2 py-0.5 text-sm font-medium text-emerald-400 transition hover:bg-emerald-500/20 hover:text-emerald-300"
                     >
-                      {card.officialCode ?? card.setName}
+                      {setLabel}
                     </Link>
                   ) : (
                     <span className="text-sm font-medium text-zinc-400">
-                      {card.officialCode ?? card.setName}
+                      {setLabel}
                     </span>
                   )}
                   <span className="inline-flex items-center rounded-lg border border-white/10 bg-white/5 px-2 py-0.5 text-sm font-medium tabular-nums text-zinc-200">

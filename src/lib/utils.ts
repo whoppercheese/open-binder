@@ -29,6 +29,20 @@ export function hasCardPrice(price: number | null | undefined): boolean {
   return price != null && !Number.isNaN(price);
 }
 
+/** Short set label: official TCG code when known, otherwise the TCGdex set id. */
+export function resolveSetDisplayCode(options: {
+  officialCode?: string | null;
+  setId?: string | null;
+}): string | null {
+  const code = options.officialCode?.trim();
+  if (code) {
+    return code;
+  }
+
+  const setId = options.setId?.trim();
+  return setId || null;
+}
+
 export function formatCardPriceLabel(
   price: number | null | undefined,
   label = "Price",

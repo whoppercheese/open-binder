@@ -8,7 +8,12 @@ import { CardImage } from "@/components/card-image";
 import { LongPressIndicator } from "@/components/long-press-indicator";
 import { useLocale, useTranslations } from "@/lib/i18n/context";
 import { useLongPress } from "@/lib/use-long-press";
-import { cn, formatCurrency, hasCardPrice } from "@/lib/utils";
+import {
+  cn,
+  formatCurrency,
+  hasCardPrice,
+  resolveSetDisplayCode,
+} from "@/lib/utils";
 
 export type CardPreview = {
   id: string;
@@ -49,7 +54,10 @@ export function CardTile({
     onTap: onLongPress ? onClick : undefined,
   });
 
-  const setLabel = card.officialCode ?? card.setName ?? card.setId;
+  const setLabel = resolveSetDisplayCode({
+    officialCode: card.officialCode,
+    setId: card.setId,
+  });
   const rootClassName = cn(
     "group relative w-full cursor-pointer select-none text-left transition-transform active:scale-[0.98] [-webkit-touch-callout:none] [touch-action:pan-y]",
     onLongPress && longPress.showIndicator && "scale-100 touch-none",
@@ -107,10 +115,8 @@ export function CardTile({
             <p className="truncate text-[11px] font-medium text-zinc-300">
               {card.number} · {card.name}
             </p>
-            {card.officialCode ?? card.setName ? (
-              <p className="truncate text-[10px] text-zinc-500">
-                {card.officialCode ?? card.setName}
-              </p>
+            {setLabel ? (
+              <p className="truncate text-[10px] text-zinc-500">{setLabel}</p>
             ) : null}
           </>
         )}
