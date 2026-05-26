@@ -40,8 +40,8 @@
       "other": " · {count} cards without price"
     },
     "setProgress": "Set progress",
-    "collections": "Your collections",
-    "allCollections": "All collections",
+    "topCollections": "Top collections",
+    "allCollections": "All",
     "allSets": "All sets",
     "emptyCollection": "Nothing recorded yet. Start with a set or search.",
     "recentlyAdded": "Recently recorded",
@@ -95,7 +95,11 @@
     "removeFromChecklist": "Remove from collection",
     "removeFromChecklistTitle": "Remove card from collection?",
     "removeFromChecklistMessage": "Remove “{cardName}” from “{collectionName}”? The card will be removed from the checklist and all inventory entries in this collection will be deleted.",
-    "removeFromChecklistFailed": "Could not remove the card from the collection."
+    "removeFromChecklistFailed": "Could not remove the card from the collection.",
+    "setCover": "Use as collection image",
+    "changeCover": "Change collection image",
+    "coverPickerTitle": "Choose collection image",
+    "coverSaving": "Saving…"
   },
   "collection": {
     "title": "Collection",

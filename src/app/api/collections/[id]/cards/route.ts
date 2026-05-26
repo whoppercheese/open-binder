@@ -74,6 +74,7 @@ export async function DELETE(
   context: { params: Promise<{ id: string }> },
 ) {
   try {
+    const { locale } = getRequestTranslator(request);
     const { id } = await context.params;
     const { searchParams } = new URL(request.url);
     const cardId = searchParams.get("cardId")?.trim();
@@ -85,7 +86,7 @@ export async function DELETE(
       );
     }
 
-    const result = await removeCardFromCollectionChecklist(id, cardId);
+    const result = await removeCardFromCollectionChecklist(id, cardId, locale);
 
     if ("error" in result) {
       const status = result.error === "COLLECTION_NOT_FOUND" ? 404 : 400;

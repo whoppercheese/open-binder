@@ -40,8 +40,8 @@
       "other": " · {count} Karten ohne Preis"
     },
     "setProgress": "Set-Fortschritt",
-    "collections": "Deine Sammlungen",
-    "allCollections": "Alle Sammlungen",
+    "topCollections": "Top-Sammlungen",
+    "allCollections": "Alle",
     "allSets": "Alle Sets",
     "emptyCollection": "Noch nichts erfasst. Starte mit einem Set oder der Suche.",
     "recentlyAdded": "Zuletzt erfasst",
@@ -95,7 +95,11 @@
     "removeFromChecklist": "Aus Sammlung entfernen",
     "removeFromChecklistTitle": "Karte aus Sammlung entfernen?",
     "removeFromChecklistMessage": "„{cardName}“ wird aus „{collectionName}“ entfernt. Die Karte verschwindet von der Checkliste; alle Bestandseinträge in dieser Sammlung werden gelöscht.",
-    "removeFromChecklistFailed": "Karte konnte nicht aus der Sammlung entfernt werden."
+    "removeFromChecklistFailed": "Karte konnte nicht aus der Sammlung entfernt werden.",
+    "setCover": "Als Sammlungsbild",
+    "changeCover": "Sammlungsbild ändern",
+    "coverPickerTitle": "Sammlungsbild wählen",
+    "coverSaving": "Wird gespeichert…"
   },
   "collection": {
     "title": "Sammlung",

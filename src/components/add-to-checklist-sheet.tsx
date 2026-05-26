@@ -14,6 +14,7 @@ type ChecklistOption = {
   type: "set" | "custom";
   setId: string | null;
   imageUrl: string | null;
+  coverImageUrl: string | null;
   onChecklist: boolean;
   locked: boolean;
 };
@@ -229,6 +230,7 @@ export function AddToChecklistSheet({
                             <CollectionCover
                               name={item.name}
                               imageUrl={item.imageUrl}
+                              coverImageUrl={item.coverImageUrl}
                               setId={item.setId}
                               className="h-10 w-10 shrink-0 text-xs"
                             />
@@ -275,6 +277,7 @@ export function AddToChecklistSheet({
                               <CollectionCover
                                 name={item.name}
                                 imageUrl={item.imageUrl}
+                                coverImageUrl={item.coverImageUrl}
                                 setId={item.setId}
                                 className="h-10 w-10 shrink-0 text-xs"
                               />

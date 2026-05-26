@@ -1,11 +1,15 @@
-import { existsSync } from "node:fs";
+import { copyFile, existsSync } from "node:fs";
 import { mkdir, readFile, unlink, writeFile } from "node:fs/promises";
 import path from "node:path";
+import { promisify } from "node:util";
 import type { SetImageKind } from "@/lib/image-paths";
 import { resolveTcgdexAssetUrl } from "@/lib/tcgdex";
 
+const copyFileAsync = promisify(copyFile);
+
 const CARD_IMAGES_SUBDIR = "cards";
 const SET_IMAGES_SUBDIR = "sets";
+const COLLECTION_COVERS_SUBDIR = "collection-covers";
 
 export type { SetImageKind };
 
@@ -42,6 +46,20 @@ export function getSetImageAbsolutePath(
   return path.join(getImageStorageRoot(), getSetImageRelativePath(setId, kind));
 }
 
+export function getCollectionCoverRelativePath(collectionId: string): string {
+  return path.join(
+    COLLECTION_COVERS_SUBDIR,
+    `${sanitizeId(collectionId)}.webp`,
+  );
+}
+
+export function getCollectionCoverAbsolutePath(collectionId: string): string {
+  return path.join(
+    getImageStorageRoot(),
+    getCollectionCoverRelativePath(collectionId),
+  );
+}
+
 export function getSetPlaceholderRelativePath(
   setId: string,
   kind: SetImageKind,
@@ -75,6 +93,10 @@ export function setImageExists(setId: string, kind: SetImageKind): boolean {
   );
 }
 
+export function collectionCoverExists(collectionId: string): boolean {
+  return existsSync(getCollectionCoverAbsolutePath(collectionId));
+}
+
 export function resolveSetImageKind(setId: string): SetImageKind | null {
   if (setImageExists(setId, "logo")) return "logo";
   if (setImageExists(setId, "symbol")) return "symbol";
@@ -86,6 +108,9 @@ export async function ensureImageStorageDir() {
     recursive: true,
   });
   await mkdir(path.join(getImageStorageRoot(), SET_IMAGES_SUBDIR), {
+    recursive: true,
+  });
+  await mkdir(path.join(getImageStorageRoot(), COLLECTION_COVERS_SUBDIR), {
     recursive: true,
   });
 }
@@ -244,6 +269,48 @@ export async function deleteCardImage(cardId: string): Promise<void> {
   if (existsSync(filePath)) {
     await unlink(filePath);
   }
+}
+
+export async function deleteCollectionCoverImage(
+  collectionId: string,
+): Promise<void> {
+  const filePath = getCollectionCoverAbsolutePath(collectionId);
+  if (existsSync(filePath)) {
+    await unlink(filePath);
+  }
+}
+
+export async function readCollectionCoverImage(
+  collectionId: string,
+): Promise<Buffer | null> {
+  const filePath = getCollectionCoverAbsolutePath(collectionId);
+  if (!existsSync(filePath)) {
+    return null;
+  }
+
+  return readFile(filePath);
+}
+
+export async function snapshotCollectionCover(
+  collectionId: string,
+  cardId: string,
+  sourceImageUrl?: string | null,
+): Promise<boolean> {
+  const destination = getCollectionCoverAbsolutePath(collectionId);
+  const cardImagePath = getCardImageAbsolutePath(cardId);
+
+  await ensureImageStorageDir();
+
+  if (existsSync(cardImagePath)) {
+    await copyFileAsync(cardImagePath, destination);
+    return true;
+  }
+
+  if (sourceImageUrl) {
+    return cacheImage(destination, resolveTcgdexAssetUrl(sourceImageUrl));
+  }
+
+  return false;
 }
 
 export async function readCardImage(cardId: string): Promise<Buffer | null> {

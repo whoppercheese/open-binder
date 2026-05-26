@@ -57,6 +57,13 @@
       "when": 1780200000000,
       "tag": "0008_set_collection_checklist",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1780300000000,
+      "tag": "0009_collection_cover",
+      "breakpoints": true
     }
   ]
 }

@@ -15,7 +15,7 @@ export function SetCodeLabel({
   return (
     <div
       className={cn(
-        "flex h-full w-full items-center justify-center rounded-xl bg-zinc-800/80 px-1 text-center text-xs font-semibold uppercase tracking-wide text-zinc-200",
+        "flex h-full w-full items-center justify-center rounded-[2px] bg-zinc-800/80 px-1 text-center text-xs font-semibold uppercase tracking-wide text-zinc-200",
         className,
       )}
     >
@@ -61,8 +61,8 @@ export function SetImage({
   return (
     <div
       className={cn(
-        "relative shrink-0 overflow-hidden",
-        !plain && "rounded-xl bg-zinc-900/80 ring-1 ring-white/10",
+        "relative shrink-0 overflow-hidden rounded-[2px]",
+        !plain && "bg-zinc-900/80 ring-1 ring-white/10",
         className,
       )}
     >

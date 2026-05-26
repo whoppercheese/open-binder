@@ -11,6 +11,9 @@ const COVER_COLORS = [
   "#0891b2",
 ] as const;
 
+export const collectionCoverShellClassName =
+  "rounded-[2px] ring-1 ring-white/10";
+
 function hashString(value: string): number {
   let hash = 0;
   for (let i = 0; i < value.length; i++) {

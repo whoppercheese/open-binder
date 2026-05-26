@@ -10,6 +10,7 @@ type CollectionListItemProps = {
   id: string;
   name: string;
   imageUrl?: string | null;
+  coverImageUrl?: string | null;
   setId?: string | null;
   setOfficialCode?: string | null;
   owned: number;
@@ -22,6 +23,7 @@ export function CollectionListItem({
   id,
   name,
   imageUrl,
+  coverImageUrl,
   setId,
   setOfficialCode,
   owned,
@@ -44,6 +46,7 @@ export function CollectionListItem({
           <CollectionCover
             name={name}
             imageUrl={imageUrl}
+            coverImageUrl={coverImageUrl}
             setId={setId}
             setOfficialCode={setOfficialCode}
             className="h-12 w-12 shrink-0 text-sm"

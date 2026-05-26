@@ -11,6 +11,7 @@ import {
   userCards,
 } from "@/db/schema";
 import { getCollectionById } from "@/lib/collections.server";
+import { maybeAutoSetCollectionCover } from "@/lib/collection-cover.server";
 import {
   localizedCardNameSql,
   localizedSetNameSql,
@@ -272,6 +273,8 @@ export async function POST(request: Request) {
           cardId: variant.cardId,
         })
         .onConflictDoNothing();
+
+      await maybeAutoSetCollectionCover(collectionId, variant.cardId);
     }
 
     const normalizedNotes = notes || null;

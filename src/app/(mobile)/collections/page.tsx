@@ -11,6 +11,7 @@ type CollectionSummary = {
   id: string;
   name: string;
   imageUrl: string | null;
+  coverImageUrl: string | null;
   type: "set" | "custom";
   setId: string | null;
   setOfficialCode: string | null;
@@ -77,6 +78,7 @@ export default function CollectionListPage() {
               id={item.id}
               name={item.name}
               imageUrl={item.imageUrl}
+              coverImageUrl={item.coverImageUrl}
               setId={item.setId}
               setOfficialCode={item.setOfficialCode}
               owned={item.ownedCount}

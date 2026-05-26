@@ -102,3 +102,42 @@ export async function updateCollection(
     throw new Error(payload.errorCode ?? "SAVE_FAILED");
   }
 }
+
+export type CollectionCoverUpdate = {
+  coverCardId: string | null;
+  coverImageUrl: string | null;
+  updatedAt: string;
+};
+
+export async function setCollectionCover(
+  collectionId: string,
+  coverCardId: string,
+): Promise<CollectionCoverUpdate> {
+  const response = await fetch(`/api/collections/${collectionId}`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ coverCardId }),
+  });
+
+  const payload = (await response.json()) as {
+    errorCode?: string;
+    collection?: CollectionCoverUpdate & {
+      id: string;
+      name: string;
+    };
+  };
+
+  if (!response.ok) {
+    throw new Error(payload.errorCode ?? "SAVE_FAILED");
+  }
+
+  if (!payload.collection) {
+    throw new Error("SAVE_FAILED");
+  }
+
+  return {
+    coverCardId: payload.collection.coverCardId,
+    coverImageUrl: payload.collection.coverImageUrl,
+    updatedAt: payload.collection.updatedAt,
+  };
+}

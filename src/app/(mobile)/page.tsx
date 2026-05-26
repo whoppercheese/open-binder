@@ -48,7 +48,7 @@ export default async function DashboardPage() {
 
       <section className="space-y-3">
         <div className="flex items-center justify-between">
-          <h2 className="text-lg font-semibold">{t("dashboard.collections")}</h2>
+          <h2 className="text-lg font-semibold">{t("dashboard.topCollections")}</h2>
           <Link href="/collections" className="inline-flex items-center gap-1 text-sm text-emerald-400">
             {t("dashboard.allCollections")}
             <ArrowRight className="h-4 w-4" />
@@ -65,6 +65,7 @@ export default async function DashboardPage() {
               id={collection.id}
               name={collection.name}
               imageUrl={collection.imageUrl}
+              coverImageUrl={collection.coverImageUrl}
               setId={collection.setId}
               setOfficialCode={collection.setOfficialCode}
               owned={collection.ownedCount}

@@ -6,6 +6,7 @@ import {
   collections,
 } from "@/db/schema";
 import { addCardToCollectionChecklist } from "@/lib/collections.server";
+import { getCollectionCoverFields } from "@/lib/collection-cover.server";
 
 /** Collections containing the card on their checklist. */
 export async function getChecklistCountsForCardIds(
@@ -39,6 +40,7 @@ export type ChecklistCollectionOption = {
   type: "set" | "custom";
   setId: string | null;
   imageUrl: string | null;
+  coverImageUrl: string | null;
   onChecklist: boolean;
   locked: boolean;
 };
@@ -77,6 +79,7 @@ export async function getCardChecklistMembership(cardId: string) {
       type: collection.type,
       setId: collection.type === "set" ? collection.setId : null,
       imageUrl: collection.imageUrl,
+      coverImageUrl: getCollectionCoverFields(collection).coverImageUrl,
       onChecklist: isOnChecklist,
       locked: isOnChecklist,
     });

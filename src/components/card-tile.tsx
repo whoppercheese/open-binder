@@ -39,6 +39,8 @@ type CardTileProps = {
   onLongPress?: () => void;
   compact?: boolean;
   showPrice?: boolean;
+  showMeta?: boolean;
+  selected?: boolean;
 };
 
 export function CardTile({
@@ -48,6 +50,8 @@ export function CardTile({
   onLongPress,
   compact = false,
   showPrice = true,
+  showMeta = true,
+  selected = false,
 }: CardTileProps) {
   const { locale } = useLocale();
   const t = useTranslations();
@@ -68,9 +72,10 @@ export function CardTile({
     setId: setIdFallback,
   });
   const rootClassName = cn(
-    "group relative w-full cursor-pointer select-none text-left transition-transform active:scale-[0.98] [-webkit-touch-callout:none] [touch-action:pan-y]",
+    "group relative w-full cursor-pointer select-none text-left transition-[transform,opacity] active:scale-[0.98] [-webkit-touch-callout:none] [touch-action:pan-y]",
     onLongPress && longPress.showIndicator && "scale-100 touch-none",
-    compact ? "space-y-1" : "space-y-2",
+    compact && showMeta ? "space-y-1" : compact ? "" : "space-y-2",
+    selected && "z-10 scale-[1.04] active:scale-[1.02]",
   );
 
   const content = (
@@ -90,6 +95,20 @@ export function CardTile({
           alt={card.name}
           className="h-full w-full"
         />
+        {selected ? (
+          <>
+            <div
+              className="pointer-events-none absolute inset-0 z-20 rounded-[inherit] border-[4px] border-emerald-400"
+              aria-hidden
+            />
+            <div
+              className="pointer-events-none absolute right-1.5 top-1.5 z-30 flex h-7 w-7 items-center justify-center rounded-full bg-emerald-400 text-black ring-2 ring-white/90"
+              aria-hidden
+            >
+              <CheckCircle2 className="h-5 w-5" strokeWidth={2.5} />
+            </div>
+          </>
+        ) : null}
         {card.flagged ? (
           <CardFlagBadge className="pointer-events-none absolute left-1 top-1 z-10" />
         ) : null}
@@ -123,6 +142,7 @@ export function CardTile({
           </div>
         ) : null}
       </CardFrame>
+      {showMeta ? (
       <div className="px-0.5">
         {compact ? (
           <>
@@ -168,6 +188,7 @@ export function CardTile({
           </p>
         ) : null}
       </div>
+      ) : null}
     </>
   );
 

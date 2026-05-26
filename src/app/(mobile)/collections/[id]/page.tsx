@@ -8,6 +8,7 @@ import { ActionSheet } from "@/components/action-sheet";
 import { CardModal, type CardDetail } from "@/components/card-modal";
 import { CollectionEntriesView } from "@/components/collection-entries-view";
 import { CollectionCover } from "@/components/collection-cover";
+import { CollectionCoverPickerSheet } from "@/components/collection-cover-picker-sheet";
 import { CardGrid } from "@/components/card-grid";
 import { CardTile } from "@/components/card-tile";
 import { ConfirmDialog } from "@/components/confirm-dialog";
@@ -82,7 +83,9 @@ type CollectionDetailHeaderProps = {
   set: CollectionDetailResponse["set"];
   progress: CollectionDetailResponse["progress"];
   isCustom: boolean;
+  canChangeCover: boolean;
   onOpenMenu: () => void;
+  onOpenCoverPicker: () => void;
 };
 
 function CollectionDetailHeader({
@@ -90,20 +93,38 @@ function CollectionDetailHeader({
   set,
   progress,
   isCustom,
+  canChangeCover,
   onOpenMenu,
+  onOpenCoverPicker,
 }: CollectionDetailHeaderProps) {
   const t = useTranslations();
+
+  const cover = (
+    <CollectionCover
+      name={collection.name}
+      imageUrl={collection.imageUrl}
+      coverImageUrl={collection.coverImageUrl}
+      setId={collection.setId}
+      setOfficialCode={set?.officialCode}
+      className="h-14 w-14 shrink-0 text-base"
+    />
+  );
 
   return (
     <header className="shrink-0 space-y-3">
       <div className="flex items-start gap-3">
-        <CollectionCover
-          name={collection.name}
-          imageUrl={collection.imageUrl}
-          setId={collection.setId}
-          setOfficialCode={set?.officialCode}
-          className="h-14 w-14 shrink-0 text-base"
-        />
+        {canChangeCover ? (
+          <button
+            type="button"
+            onClick={onOpenCoverPicker}
+            aria-label={t("collections.changeCover")}
+            className="shrink-0 rounded-xl transition hover:opacity-90 active:scale-[0.98]"
+          >
+            {cover}
+          </button>
+        ) : (
+          cover
+        )}
         <div className="min-w-0 flex-1">
           <h1 className="text-2xl font-bold text-white">{collection.name}</h1>
           {set ? (
@@ -294,6 +315,8 @@ type CollectionDetailResponse = {
     id: string;
     name: string;
     imageUrl: string | null;
+    coverCardId: string | null;
+    coverImageUrl: string | null;
     type: "set" | "custom";
     setId: string | null;
     setName: string | null;
@@ -350,6 +373,7 @@ export default function CollectionDetailPage() {
   const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [coverPickerOpen, setCoverPickerOpen] = useState(false);
   const addingCardIdsRef = useRef(new Set<string>());
   const quickAddTimeoutRef = useRef<number | null>(null);
   const { defaultCondition } = useDefaultCondition();
@@ -370,6 +394,29 @@ export default function CollectionDetailPage() {
   const bumpRefresh = useCallback(() => {
     setRefreshKey((value) => value + 1);
   }, []);
+
+  const handleCoverSaved = useCallback(
+    (update: {
+      coverCardId: string | null;
+      coverImageUrl: string | null;
+      updatedAt: string;
+    }) => {
+      setData((prev) =>
+        prev
+          ? {
+              ...prev,
+              collection: {
+                ...prev.collection,
+                coverCardId: update.coverCardId,
+                coverImageUrl: update.coverImageUrl,
+                updatedAt: update.updatedAt,
+              },
+            }
+          : prev,
+      );
+    },
+    [],
+  );
 
   const setViewModeWithUrl = useCallback(
     (mode: ViewMode) => {
@@ -569,6 +616,7 @@ export default function CollectionDetailPage() {
   }
 
   const isCustom = data.collection.type === "custom";
+  const canChangeCover = isCustom && data.cards.length > 0;
 
   return (
     <div className="flex min-h-0 flex-col space-y-5 px-4 pt-6">
@@ -578,7 +626,9 @@ export default function CollectionDetailPage() {
           set={data.set}
           progress={data.progress}
           isCustom={isCustom}
+          canChangeCover={canChangeCover}
           onOpenMenu={() => setMenuOpen(true)}
+          onOpenCoverPicker={() => setCoverPickerOpen(true)}
         />
 
         <ViewTabs
@@ -652,6 +702,17 @@ export default function CollectionDetailPage() {
           if (!deleting) setConfirmDeleteOpen(false);
         }}
       />
+
+      {canChangeCover ? (
+        <CollectionCoverPickerSheet
+          open={coverPickerOpen}
+          collectionId={collectionId}
+          cards={data.cards}
+          selectedCardId={data.collection.coverCardId}
+          onClose={() => setCoverPickerOpen(false)}
+          onSaved={handleCoverSaved}
+        />
+      ) : null}
     </div>
   );
 }

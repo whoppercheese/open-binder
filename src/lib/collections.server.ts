@@ -10,6 +10,12 @@ import {
   userCards,
 } from "@/db/schema";
 import { buildCardVariantEntry } from "@/lib/card-variants.server";
+import {
+  deleteCollectionCoverAssets,
+  getCollectionCoverFields,
+  maybeAutoSetCollectionCover,
+  refreshCollectionCoverAfterRemoval,
+} from "@/lib/collection-cover.server";
 import { getLocalizedString } from "@/lib/catalog-languages";
 import {
   localizedCardNameSql,
@@ -130,6 +136,7 @@ export async function listCollections(locale: UiLocale) {
         id: row.id,
         name: row.name,
         imageUrl: row.imageUrl,
+        ...getCollectionCoverFields(row),
         type: row.type,
         setId: row.setId,
         setOfficialCode: setMeta?.officialCode ?? null,
@@ -238,6 +245,8 @@ export async function updateCollectionMeta(
 }
 
 export async function deleteCollectionById(id: string) {
+  await deleteCollectionCoverAssets(id);
+
   const deleted = await db
     .delete(collections)
     .where(eq(collections.id, id))
@@ -267,6 +276,8 @@ export async function addCardToCollectionChecklist(
     .values({ collectionId, cardId })
     .onConflictDoNothing();
 
+  await maybeAutoSetCollectionCover(collectionId, cardId);
+
   await db
     .update(collections)
     .set({ updatedAt: new Date() })
@@ -278,6 +289,7 @@ export async function addCardToCollectionChecklist(
 export async function removeCardFromCollectionChecklist(
   collectionId: string,
   cardId: string,
+  locale: UiLocale = "de",
 ) {
   const collection = await getCollectionById(collectionId);
   if (!collection) {
@@ -309,6 +321,8 @@ export async function removeCardFromCollectionChecklist(
         eq(collectionCards.cardId, cardId),
       ),
     );
+
+  await refreshCollectionCoverAfterRemoval(collectionId, cardId, locale);
 
   await db
     .update(collections)
@@ -544,6 +558,7 @@ function mapCollectionDetail(
     id: collection.id,
     name: collection.name,
     imageUrl: collection.imageUrl,
+    ...getCollectionCoverFields(collection),
     type: collection.type,
     setId: collection.setId,
     setName: set

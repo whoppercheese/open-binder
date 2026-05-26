@@ -161,6 +161,9 @@ export const collections = pgTable(
     id: uuid("id").primaryKey().defaultRandom(),
     name: text("name").notNull(),
     imageUrl: text("image_url"),
+    coverCardId: text("cover_card_id").references(() => cards.id, {
+      onDelete: "set null",
+    }),
     type: collectionTypeEnum("type").notNull(),
     setId: text("set_id").references(() => sets.id, { onDelete: "set null" }),
     createdAt: timestamp("created_at", { withTimezone: true })
@@ -287,6 +290,10 @@ export const cardVariantsRelations = relations(cardVariants, ({ one, many }) => 
 
 export const collectionsRelations = relations(collections, ({ one, many }) => ({
   set: one(sets, { fields: [collections.setId], references: [sets.id] }),
+  coverCard: one(cards, {
+    fields: [collections.coverCardId],
+    references: [cards.id],
+  }),
   userCards: many(userCards),
   collectionCards: many(collectionCards),
 }));
