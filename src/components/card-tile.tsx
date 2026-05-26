@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { CheckCircle2 } from "lucide-react";
+import { CheckCircle2, ListChecks } from "lucide-react";
 import { CardFlagBadge } from "@/components/card-flag-badge";
 import { CardFrame } from "@/components/card-frame";
 import { CardImage } from "@/components/card-image";
@@ -27,6 +27,8 @@ export type CardPreview = {
   flagged?: boolean;
   setName?: string;
   officialCode?: string | null;
+  collectionName?: string;
+  checklistCount?: number;
   price?: number | null;
 };
 
@@ -54,9 +56,16 @@ export function CardTile({
     onTap: onLongPress ? onClick : undefined,
   });
 
+  const setIdFallback = (() => {
+    const id = card.setId?.trim();
+    if (id) return id;
+    const separator = card.id.lastIndexOf("-");
+    return separator > 0 ? card.id.slice(0, separator) : card.id;
+  })();
+
   const setLabel = resolveSetDisplayCode({
     officialCode: card.officialCode,
-    setId: card.setId,
+    setId: setIdFallback,
   });
   const rootClassName = cn(
     "group relative w-full cursor-pointer select-none text-left transition-transform active:scale-[0.98] [-webkit-touch-callout:none] [touch-action:pan-y]",
@@ -74,7 +83,7 @@ export function CardTile({
         />
         <CardImage
           cardId={card.id}
-          setId={card.setId}
+          setId={setIdFallback}
           officialCode={card.officialCode}
           number={card.number}
           remoteImageUrl={card.remoteImageUrl ?? card.imageUrl}
@@ -83,6 +92,20 @@ export function CardTile({
         />
         {card.flagged ? (
           <CardFlagBadge className="pointer-events-none absolute left-1 top-1 z-10" />
+        ) : null}
+        {card.checklistCount != null && card.checklistCount > 0 ? (
+          <div
+            className="pointer-events-none absolute right-1.5 top-1.5 z-10 flex items-center gap-1 rounded-md bg-black/80 px-1.5 py-1 text-[11px] font-semibold text-emerald-200"
+            title={t.plural("sets.checklistTileCount", card.checklistCount, {
+              count: card.checklistCount,
+            })}
+            aria-label={t.plural("sets.checklistTileCount", card.checklistCount, {
+              count: card.checklistCount,
+            })}
+          >
+            <ListChecks className="h-3.5 w-3.5 shrink-0" aria-hidden />
+            <span className="tabular-nums">{card.checklistCount}</span>
+          </div>
         ) : null}
         {card.owned ? (
           <div
@@ -109,6 +132,11 @@ export function CardTile({
             <p className="truncate text-[10px] text-zinc-500">
               {[setLabel, card.number].filter(Boolean).join(" · ")}
             </p>
+            {card.collectionName ? (
+              <p className="truncate text-[10px] font-medium text-emerald-400/90">
+                {card.collectionName}
+              </p>
+            ) : null}
           </>
         ) : (
           <>
@@ -117,6 +145,11 @@ export function CardTile({
             </p>
             {setLabel ? (
               <p className="truncate text-[10px] text-zinc-500">{setLabel}</p>
+            ) : null}
+            {card.collectionName ? (
+              <p className="truncate text-[10px] font-medium text-emerald-400/90">
+                {card.collectionName}
+              </p>
             ) : null}
           </>
         )}
