@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { CardModal, type CardDetail } from "@/components/card-modal";
+import { CardGrid } from "@/components/card-grid";
 import { CardTile } from "@/components/card-tile";
 import {
   clearSavedScrollPosition,
@@ -254,7 +255,7 @@ export default function SearchPage() {
         <p className="text-sm text-zinc-500">{t("search.noResults")}</p>
       ) : null}
 
-      <div className="grid grid-cols-3 gap-3 sm:grid-cols-4">
+      <CardGrid>
         {results.map((card) => (
           <CardTile
             key={card.id}
@@ -277,7 +278,7 @@ export default function SearchPage() {
             }}
           />
         ))}
-      </div>
+      </CardGrid>
 
       {hasMore ? (
         <div

@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { ArrowRight, TrendingUp } from "lucide-react";
-import { CardFrame } from "@/components/card-frame";
-import { CardImage } from "@/components/card-image";
+import { CardGrid } from "@/components/card-grid";
+import { CardTile } from "@/components/card-tile";
 import { MobilePage, MobilePageHeader } from "@/components/mobile-page";
 import { SetListItem } from "@/components/set-list-item";
 import { getServerTranslator } from "@/lib/i18n/server";
@@ -84,27 +84,27 @@ export default async function DashboardPage() {
         {summary.recent.length === 0 ? (
           <p className="text-sm text-zinc-500">{t("dashboard.noEntries")}</p>
         ) : (
-          <div className="grid grid-cols-4 gap-3">
+          <CardGrid>
             {summary.recent.map((item) => (
-              <div key={item.cardId} className="space-y-1">
-                <CardFrame className="aspect-card w-full">
-                  <CardImage
-                    cardId={item.cardId}
-                    setId={item.setId}
-                    number={item.number}
-                    alt={item.cardName}
-                    className="h-full w-full"
-                  />
-                </CardFrame>
-                <p className="truncate text-[10px] font-medium text-zinc-300">
-                  {item.cardName}
-                </p>
-                <p className="truncate text-[10px] tabular-nums text-zinc-500">
-                  {item.officialCode ?? item.setId} · {item.number}
-                </p>
-              </div>
+              <CardTile
+                key={item.cardId}
+                compact
+                showPrice={false}
+                href={`/collection?cardId=${encodeURIComponent(item.cardId)}`}
+                card={{
+                  id: item.cardId,
+                  number: item.number,
+                  name: item.cardName,
+                  setId: item.setId,
+                  imageUrl: item.imageUrl,
+                  remoteImageUrl: item.imageUrl,
+                  setName: item.setName,
+                  officialCode: item.officialCode,
+                  ownedQuantity: item.quantity > 1 ? item.quantity : undefined,
+                }}
+              />
             ))}
-          </div>
+          </CardGrid>
         )}
       </section>
     </MobilePage>

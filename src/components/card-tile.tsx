@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { CheckCircle2 } from "lucide-react";
 import { CardFlagBadge } from "@/components/card-flag-badge";
 import { CardFrame } from "@/components/card-frame";
@@ -26,42 +27,37 @@ export type CardPreview = {
 
 type CardTileProps = {
   card: CardPreview;
+  href?: string;
   onClick?: () => void;
   onLongPress?: () => void;
   compact?: boolean;
+  showPrice?: boolean;
 };
 
 export function CardTile({
   card,
+  href,
   onClick,
   onLongPress,
   compact = false,
+  showPrice = true,
 }: CardTileProps) {
   const { locale } = useLocale();
   const t = useTranslations();
   const longPress = useLongPress<HTMLButtonElement>(() => onLongPress?.(), {
-    disabled: !onLongPress,
+    disabled: !onLongPress || Boolean(href),
     onTap: onLongPress ? onClick : undefined,
   });
 
   const setLabel = card.officialCode ?? card.setName ?? card.setId;
+  const rootClassName = cn(
+    "group relative w-full cursor-pointer select-none text-left transition-transform active:scale-[0.98] [-webkit-touch-callout:none] [touch-action:pan-y]",
+    onLongPress && longPress.showIndicator && "scale-100 touch-none",
+    compact ? "space-y-1" : "space-y-2",
+  );
 
-  return (
-    <button
-      type="button"
-      ref={onLongPress ? longPress.ref : undefined}
-      onClick={onLongPress ? undefined : onClick}
-      onPointerDown={onLongPress ? longPress.onPointerDown : undefined}
-      onPointerMove={onLongPress ? longPress.onPointerMove : undefined}
-      onPointerUp={onLongPress ? longPress.onPointerUp : undefined}
-      onPointerCancel={onLongPress ? longPress.onPointerCancel : undefined}
-      onContextMenu={onLongPress ? longPress.onContextMenu : undefined}
-      className={cn(
-        "group relative w-full cursor-pointer select-none text-left transition-transform active:scale-[0.98] [-webkit-touch-callout:none] [touch-action:pan-y]",
-        onLongPress && longPress.showIndicator && "scale-100 touch-none",
-        compact ? "space-y-1" : "space-y-2",
-      )}
-    >
+  const content = (
+    <>
       <CardFrame className="aspect-card w-full">
         <LongPressIndicator
           active={Boolean(onLongPress && longPress.showIndicator)}
@@ -118,19 +114,45 @@ export function CardTile({
             ) : null}
           </>
         )}
-        <p className="text-[10px] tabular-nums">
-          {hasCardPrice(card.price) ? (
-            <span className="font-semibold text-emerald-400">
-              {formatCurrency(card.price, "EUR", locale)}
-            </span>
-          ) : (
-            <span className="text-zinc-500">
-              <span className="font-normal">{t("common.price")} </span>
-              <span className="font-semibold">{t("common.priceUnavailable")}</span>
-            </span>
-          )}
-        </p>
+        {showPrice ? (
+          <p className="text-[10px] tabular-nums">
+            {hasCardPrice(card.price) ? (
+              <span className="font-semibold text-emerald-400">
+                {formatCurrency(card.price, "EUR", locale)}
+              </span>
+            ) : (
+              <span className="text-zinc-500">
+                <span className="font-normal">{t("common.price")} </span>
+                <span className="font-semibold">{t("common.priceUnavailable")}</span>
+              </span>
+            )}
+          </p>
+        ) : null}
       </div>
+    </>
+  );
+
+  if (href) {
+    return (
+      <Link href={href} className={rootClassName}>
+        {content}
+      </Link>
+    );
+  }
+
+  return (
+    <button
+      type="button"
+      ref={onLongPress ? longPress.ref : undefined}
+      onClick={onLongPress ? undefined : onClick}
+      onPointerDown={onLongPress ? longPress.onPointerDown : undefined}
+      onPointerMove={onLongPress ? longPress.onPointerMove : undefined}
+      onPointerUp={onLongPress ? longPress.onPointerUp : undefined}
+      onPointerCancel={onLongPress ? longPress.onPointerCancel : undefined}
+      onContextMenu={onLongPress ? longPress.onContextMenu : undefined}
+      className={rootClassName}
+    >
+      {content}
     </button>
   );
 }

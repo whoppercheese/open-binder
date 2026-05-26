@@ -5,6 +5,7 @@ import { useParams, useRouter } from "next/navigation";
 import { Loader2, Download, Ellipsis, RefreshCw, Trash2 } from "lucide-react";
 import { ActionSheet } from "@/components/action-sheet";
 import { CardModal, type CardDetail } from "@/components/card-modal";
+import { CardGrid } from "@/components/card-grid";
 import { CardTile } from "@/components/card-tile";
 import { ConfirmDialog } from "@/components/confirm-dialog";
 import { ProgressBar } from "@/components/progress-bar";
@@ -577,7 +578,7 @@ export default function SetDetailPage() {
           {t("sets.emptyFilteredCards")}
         </div>
       ) : (
-      <div className="grid grid-cols-3 gap-3 sm:grid-cols-4">
+      <CardGrid>
         {filteredCards.map((card) => (
           <CardTile
             key={card.id}
@@ -610,7 +611,7 @@ export default function SetDetailPage() {
             onLongPress={() => void handleQuickAdd(card)}
           />
         ))}
-      </div>
+      </CardGrid>
       )}
 
       <CardModal
