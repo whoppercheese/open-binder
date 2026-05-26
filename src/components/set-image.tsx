@@ -106,7 +106,10 @@ export function SetImage({
           }}
         />
       ) : (
-        <SetCodeLabel label={fallbackLabel ?? setId} />
+        <SetCodeLabel
+          label={fallbackLabel ?? setId}
+          className="rounded-none bg-transparent"
+        />
       )}
     </div>
   );
