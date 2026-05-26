@@ -32,9 +32,9 @@
   },
   "dashboard": {
     "title": "Dashboard",
-    "subtitle": "Inoffizielles Fan-Tool · Cardmarket EUR",
+    "subtitle": "Bestand, Werte und Fortschritt",
     "portfolioValue": "Portfolio-Wert",
-    "cardsSummary": "{cardsPart} · {entriesPart}",
+    "cardsSummary": "{uniqueCardsPart} · {copiesPart}",
     "cardsWithoutPriceSuffix": {
       "one": " · {count} Karte ohne Preis",
       "other": " · {count} Karten ohne Preis"
@@ -267,6 +267,14 @@
     "entryCount": {
       "one": "{count} Erfassung",
       "other": "{count} Erfassungen"
+    },
+    "uniqueCardCount": {
+      "one": "{count} verschiedene Karte",
+      "other": "{count} verschiedene Karten"
+    },
+    "copyCount": {
+      "one": "{count} Exemplar",
+      "other": "{count} Exemplare"
     }
   },
   "errors": {

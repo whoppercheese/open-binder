@@ -32,9 +32,9 @@
   },
   "dashboard": {
     "title": "Dashboard",
-    "subtitle": "Unofficial fan tool · Cardmarket EUR",
+    "subtitle": "Inventory, values, and progress",
     "portfolioValue": "Portfolio value",
-    "cardsSummary": "{cardsPart} · {entriesPart}",
+    "cardsSummary": "{uniqueCardsPart} · {copiesPart}",
     "cardsWithoutPriceSuffix": {
       "one": " · {count} card without price",
       "other": " · {count} cards without price"
@@ -267,6 +267,14 @@
     "entryCount": {
       "one": "{count} recording",
       "other": "{count} recordings"
+    },
+    "uniqueCardCount": {
+      "one": "{count} unique card",
+      "other": "{count} unique cards"
+    },
+    "copyCount": {
+      "one": "{count} copy",
+      "other": "{count} copies"
     }
   },
   "errors": {

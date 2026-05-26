@@ -28,6 +28,7 @@ export async function getPortfolioSummary(locale: UiLocale = "en") {
 
   const collectionRows = await db
     .select({
+      cardId: cards.id,
       quantity: userCards.quantity,
       trendEur: cardPrices.trendEur,
       lowEur: cardPrices.lowEur,
@@ -44,8 +45,12 @@ export async function getPortfolioSummary(locale: UiLocale = "en") {
   let totalValue = 0;
   let cardsWithPrice = 0;
   let totalCards = 0;
+  const uniqueCardIds = new Set<string>();
 
   for (const row of collectionRows) {
+    if (row.quantity > 0) {
+      uniqueCardIds.add(row.cardId);
+    }
     totalCards += row.quantity;
     const unit = pickPrice(row, preference);
     if (unit != null) {
@@ -132,7 +137,7 @@ export async function getPortfolioSummary(locale: UiLocale = "en") {
     totalValue,
     totalCards,
     cardsWithPrice,
-    uniqueEntries: collectionRows.length,
+    uniqueCards: uniqueCardIds.size,
     collections: topCollections,
     recent,
     sync: {

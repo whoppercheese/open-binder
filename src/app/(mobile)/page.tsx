@@ -20,8 +20,6 @@ export default async function DashboardPage() {
       <MobilePageHeader
         title={t("dashboard.title")}
         subtitle={t("dashboard.subtitle")}
-        subtitleClassName="text-xs text-zinc-500"
-        className="space-y-1"
       />
 
       <section className="rounded-3xl border border-emerald-500/20 bg-gradient-to-br from-emerald-500/10 to-transparent p-5">
@@ -34,8 +32,11 @@ export default async function DashboardPage() {
         </p>
         <p className="mt-1 text-sm text-zinc-400">
           {t("dashboard.cardsSummary", {
-            cardsPart: t.plural("common.cardCount", summary.totalCards),
-            entriesPart: t.plural("common.entryCount", summary.uniqueEntries),
+            uniqueCardsPart: t.plural(
+              "common.uniqueCardCount",
+              summary.uniqueCards,
+            ),
+            copiesPart: t.plural("common.copyCount", summary.totalCards),
           })}
           {summary.cardsWithPrice < summary.totalCards
             ? t.plural(
