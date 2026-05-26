@@ -1,4 +1,4 @@
-import { eq, sql } from "drizzle-orm";
+import { and, eq, sql } from "drizzle-orm";
 import { db } from "@/db/client";
 import {
   cardPrices,
@@ -8,6 +8,8 @@ import {
   syncJobs,
   userCards,
 } from "@/db/schema";
+import { listCollections } from "@/lib/collections.server";
+import { getChecklistCountsForCardIds } from "@/lib/checklist-membership.server";
 import {
   localizedCardNameSql,
   localizedSetNameSql,
@@ -52,28 +54,15 @@ export async function getPortfolioSummary(locale: UiLocale = "en") {
     }
   }
 
-  const setProgress = await db.execute<{
-    set_id: string;
-    set_name: string;
-    owned: number;
-    total: number;
-  }>(sql`
-    SELECT
-      s.id AS set_id,
-      coalesce(s.names->>${locale}, s.names->>'en', ${UNKNOWN_LABEL}) AS set_name,
-      COUNT(DISTINCT CASE WHEN uc.id IS NOT NULL THEN c.id END)::int AS owned,
-      COUNT(DISTINCT c.id)::int AS total
-    FROM sets s
-    INNER JOIN cards c ON c.set_id = s.id
-    INNER JOIN card_variants cv ON cv.card_id = c.id
-    LEFT JOIN user_cards uc ON uc.variant_id = cv.id
-    GROUP BY s.id, s.names, s.release_date
-    ORDER BY s.release_date DESC NULLS LAST
-  `);
+  const allCollections = await listCollections(locale);
+  const topCollections = [...allCollections]
+    .sort((a, b) => b.percent - a.percent || b.ownedCount - a.ownedCount)
+    .slice(0, 6);
 
   const recentRows = await db.execute<{
-    id: string;
     card_id: string;
+    collection_id: string;
+    collection_name: string;
     card_name: string;
     set_id: string;
     set_name: string;
@@ -83,32 +72,42 @@ export async function getPortfolioSummary(locale: UiLocale = "en") {
     quantity: number;
     updated_at: Date;
   }>(sql`
-    SELECT *
-    FROM (
-      SELECT DISTINCT ON (c.id)
-        uc.id,
-        c.id AS card_id,
-        coalesce(c.names->>${locale}, c.names->>'en', ${UNKNOWN_LABEL}) AS card_name,
-        s.id AS set_id,
-        coalesce(s.names->>${locale}, s.names->>'en', ${UNKNOWN_LABEL}) AS set_name,
-        s.official_code AS set_code,
-        c.number,
-        c.image_url,
-        uc.quantity,
-        uc.updated_at
-      FROM user_cards uc
-      INNER JOIN card_variants cv ON uc.variant_id = cv.id
-      INNER JOIN cards c ON cv.card_id = c.id
-      INNER JOIN sets s ON c.set_id = s.id
-      ORDER BY c.id, uc.updated_at DESC
-    ) recent_cards
-    ORDER BY updated_at DESC
+    SELECT
+      c.id AS card_id,
+      col.id AS collection_id,
+      col.name AS collection_name,
+      coalesce(c.names->>${locale}, c.names->>'en', ${UNKNOWN_LABEL}) AS card_name,
+      s.id AS set_id,
+      coalesce(s.names->>${locale}, s.names->>'en', ${UNKNOWN_LABEL}) AS set_name,
+      s.official_code AS set_code,
+      c.number,
+      c.image_url,
+      sum(uc.quantity)::int AS quantity,
+      max(uc.updated_at) AS updated_at
+    FROM user_cards uc
+    INNER JOIN collections col ON uc.collection_id = col.id
+    INNER JOIN card_variants cv ON uc.variant_id = cv.id
+    INNER JOIN cards c ON cv.card_id = c.id
+    INNER JOIN sets s ON c.set_id = s.id
+    GROUP BY
+      c.id,
+      col.id,
+      col.name,
+      c.names,
+      s.id,
+      s.names,
+      s.official_code,
+      c.number,
+      c.image_url
+    ORDER BY max(uc.updated_at) DESC
     LIMIT 8
   `);
 
   const recent = recentRows.map((row) => ({
-    id: row.id,
+    id: `${row.card_id}:${row.collection_id}`,
     cardId: row.card_id,
+    collectionId: row.collection_id,
+    collectionName: row.collection_name,
     cardName: row.card_name,
     setId: row.set_id,
     setName: row.set_name,
@@ -134,16 +133,7 @@ export async function getPortfolioSummary(locale: UiLocale = "en") {
     totalCards,
     cardsWithPrice,
     uniqueEntries: collectionRows.length,
-    setProgress: setProgress.map((row) => ({
-      setId: row.set_id,
-      setName: row.set_name,
-      owned: Number(row.owned),
-      total: Number(row.total),
-      percent:
-        Number(row.total) > 0
-          ? Math.round((Number(row.owned) / Number(row.total)) * 100)
-          : 0,
-    })),
+    collections: topCollections,
     recent,
     sync: {
       catalog: latestCatalogSync ?? null,
@@ -172,14 +162,13 @@ export async function getSetWithCards(setId: string, locale: UiLocale = "en") {
       variantId: cardVariants.id,
       variantType: cardVariants.variantType,
       cardmarketProductId: cardVariants.cardmarketProductId,
-      ownedQuantity: sql<number>`coalesce(sum(${userCards.quantity}), 0)::int`,
-      flagged: sql<boolean>`coalesce(bool_or(${userCards.flagged}), false)`,
+      ownedQuantity: sql<number>`0::int`,
+      flagged: sql<boolean>`false`,
       trendEur: cardPrices.trendEur,
       lowEur: cardPrices.lowEur,
     })
     .from(cards)
     .innerJoin(cardVariants, eq(cardVariants.cardId, cards.id))
-    .leftJoin(userCards, eq(userCards.variantId, cardVariants.id))
     .leftJoin(cardPrices, eq(cardPrices.variantId, cardVariants.id))
     .where(eq(cards.setId, setId))
     .groupBy(
@@ -207,6 +196,7 @@ export async function getSetWithCards(setId: string, locale: UiLocale = "en") {
       owned: boolean;
       ownedQuantity: number;
       flagged: boolean;
+      checklistCount: number;
       variants: Array<{
         id: string;
         variantType: string;
@@ -227,6 +217,7 @@ export async function getSetWithCards(setId: string, locale: UiLocale = "en") {
       owned: false,
       ownedQuantity: 0,
       flagged: false,
+      checklistCount: 0,
       variants: [],
     };
 
@@ -241,6 +232,12 @@ export async function getSetWithCards(setId: string, locale: UiLocale = "en") {
   }
 
   const cardsList = Array.from(grouped.values());
+  const checklistCounts = await getChecklistCountsForCardIds(
+    cardsList.map((card) => card.id),
+  );
+  for (const card of cardsList) {
+    card.checklistCount = checklistCounts.get(card.id) ?? 0;
+  }
   const ownedCards = cardsList.filter((card) => card.owned).length;
   const totalCards = cardsList.length;
   const collectionEntryCount = await getSetCollectionEntryCount(setId);
@@ -269,6 +266,7 @@ export async function getSetWithCards(setId: string, locale: UiLocale = "en") {
 export async function getCardWithVariants(
   cardId: string,
   locale: UiLocale = "en",
+  collectionId?: string,
 ) {
   const preference = await getPricePreference();
   const cardNameSql = localizedCardNameSql(locale);
@@ -293,7 +291,15 @@ export async function getCardWithVariants(
     .from(cards)
     .innerJoin(sets, eq(cards.setId, sets.id))
     .innerJoin(cardVariants, eq(cardVariants.cardId, cards.id))
-    .leftJoin(userCards, eq(userCards.variantId, cardVariants.id))
+    .leftJoin(
+      userCards,
+      collectionId
+        ? and(
+            eq(userCards.variantId, cardVariants.id),
+            eq(userCards.collectionId, collectionId),
+          )
+        : sql`false`,
+    )
     .leftJoin(cardPrices, eq(cardPrices.variantId, cardVariants.id))
     .where(eq(cards.id, cardId))
     .groupBy(

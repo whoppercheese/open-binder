@@ -1,7 +1,7 @@
 "use client";
 
-import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import { Minus, Plus, Trash2, X } from "lucide-react";
 import { CardFlagBadge } from "@/components/card-flag-badge";
 import { ConditionBadge } from "@/components/condition-badge";
@@ -14,12 +14,12 @@ import {
   type CollectionEntry,
 } from "@/components/card-modal";
 import { ConfirmDialog } from "@/components/confirm-dialog";
-import { MobilePage, MobilePageHeader } from "@/components/mobile-page";
 import { SearchBar } from "@/components/search-bar";
 import { apiUrl, useLocale, useTranslations } from "@/lib/i18n/context";
 import {
   formatCardPriceLabel,
   formatCurrency,
+  resolveSetDisplayCode,
 } from "@/lib/utils";
 
 const PAGE_SIZE = 20;
@@ -50,6 +50,7 @@ type CollectionItem = {
   number: string;
   setId: string;
   setName: string;
+  setOfficialCode: string | null;
   imageUrl: string | null;
   price: number | null;
   value: number | null;
@@ -58,6 +59,7 @@ type CollectionItem = {
 type CollectionGroup = {
   setId: string;
   setName: string;
+  setOfficialCode: string | null;
   items: CollectionItem[];
 };
 
@@ -80,6 +82,7 @@ function groupBySet(items: CollectionItem[]): CollectionGroup[] {
       groups.set(item.setId, {
         setId: item.setId,
         setName: item.setName,
+        setOfficialCode: item.setOfficialCode,
         items: [item],
       });
     }
@@ -88,10 +91,22 @@ function groupBySet(items: CollectionItem[]): CollectionGroup[] {
   return Array.from(groups.values());
 }
 
-function CollectionPageContent() {
+type CollectionEntriesViewProps = {
+  collectionId: string;
+  cardId?: string;
+  refreshKey?: number;
+  onCardFilterClear?: () => void;
+  onEntriesMutated?: () => void;
+};
+
+export function CollectionEntriesView({
+  collectionId,
+  cardId = "",
+  refreshKey = 0,
+  onCardFilterClear,
+  onEntriesMutated,
+}: CollectionEntriesViewProps) {
   const router = useRouter();
-  const searchParams = useSearchParams();
-  const cardId = searchParams.get("cardId")?.trim() ?? "";
   const { locale } = useLocale();
   const t = useTranslations();
 
@@ -138,6 +153,7 @@ function CollectionPageContent() {
       }
 
       const params = new URLSearchParams({
+        collectionId,
         limit: String(PAGE_SIZE),
         offset: String(offsetRef.current),
       });
@@ -176,7 +192,7 @@ function CollectionPageContent() {
         setLoadingMore(false);
       }
     },
-    [locale],
+    [collectionId, locale],
   );
 
   useEffect(() => {
@@ -185,7 +201,7 @@ function CollectionPageContent() {
     }, query.trim() ? 300 : 0);
 
     return () => clearTimeout(timer);
-  }, [query, cardId, loadPage]);
+  }, [query, cardId, loadPage, refreshKey]);
 
   useEffect(() => {
     if (!hasMore || loading || loadingMore) {
@@ -225,6 +241,7 @@ function CollectionPageContent() {
         setTotalValue((value) => value - removedValue);
       }
       setTotal((current) => Math.max(0, current - 1));
+      onEntriesMutated?.();
     } finally {
       setUpdatingId((current) => (current === item.id ? null : current));
     }
@@ -265,6 +282,7 @@ function CollectionPageContent() {
       if (unitPrice != null) {
         setTotalValue((value) => value + unitPrice * delta);
       }
+      onEntriesMutated?.();
     } finally {
       setUpdatingId((current) => (current === item.id ? null : current));
     }
@@ -283,7 +301,11 @@ function CollectionPageContent() {
   }
 
   function clearCardFilter() {
-    router.push("/collection");
+    if (onCardFilterClear) {
+      onCardFilterClear();
+      return;
+    }
+    router.replace(`/collections/${collectionId}`);
   }
 
   function resetSearch() {
@@ -300,7 +322,12 @@ function CollectionPageContent() {
 
     setEditLoadingId(item.id);
     try {
-      const response = await fetch(apiUrl(`/api/cards/${item.cardId}`, locale));
+      const response = await fetch(
+        apiUrl(
+          `/api/cards/${item.cardId}?collectionId=${encodeURIComponent(collectionId)}`,
+          locale,
+        ),
+      );
       const payload = (await response.json()) as CardDetail & { errorCode?: string };
       if (!response.ok) {
         throw new Error(payload.errorCode ?? "CARD_LOAD_FAILED");
@@ -334,17 +361,16 @@ function CollectionPageContent() {
     ? t("collection.emptyForCard")
     : query.trim()
       ? t("collection.emptyForSearch")
-      : t("collection.emptyDefault");
+      : t("collections.emptyEntries");
 
   return (
-    <MobilePage>
-      <MobilePageHeader
-        title={t("collection.title")}
-        subtitle={t("collection.entriesSummary", {
+    <div className="space-y-4">
+      <p className="text-sm text-zinc-400">
+        {t("collection.entriesSummary", {
           entriesPart: t.plural("common.entryCount", total),
           value: formatCurrency(totalValue, "EUR", locale),
         })}
-      />
+      </p>
 
       {cardId ? (
         <div className="flex items-center gap-2 rounded-2xl border border-emerald-500/20 bg-emerald-500/10 px-3 py-2 text-sm text-emerald-100">
@@ -386,9 +412,19 @@ function CollectionPageContent() {
       ) : null}
 
       <div className="space-y-6">
-        {groups.map((group) => (
+        {groups.map((group) => {
+          const setCode = resolveSetDisplayCode({
+            officialCode: group.setOfficialCode,
+            setId: group.setId,
+          });
+          return (
           <section key={group.setId} className="space-y-3">
-            <h2 className="text-lg font-semibold text-white">{group.setName}</h2>
+            <h2 className="text-lg font-semibold text-white">
+              {group.setName}
+              {setCode ? (
+                <span className="font-normal text-zinc-500"> · {setCode}</span>
+              ) : null}
+            </h2>
             <div className="space-y-3">
               {group.items.map((item) => (
                 <article
@@ -432,7 +468,9 @@ function CollectionPageContent() {
                     <p className="mt-1 flex flex-wrap items-center gap-1.5 text-xs text-zinc-400">
                       <span>{variantLabel(item.variantType)}</span>
                       <ConditionBadge condition={item.condition} />
-                      <span>{t(LANGUAGE_KEYS[item.language] ?? "common.unknown")}</span>
+                      <span>
+                        {t(LANGUAGE_KEYS[item.language] ?? "common.unknown")}
+                      </span>
                     </p>
                     {item.notes ? (
                       <p className="mt-1 text-xs text-zinc-500">{item.notes}</p>
@@ -442,7 +480,11 @@ function CollectionPageContent() {
                     >
                       {item.value != null
                         ? formatCurrency(item.value, "EUR", locale)
-                        : formatCardPriceLabel(null, t("collection.valueLabel"), locale)}
+                        : formatCardPriceLabel(
+                            null,
+                            t("collection.valueLabel"),
+                            locale,
+                          )}
                     </p>
                   </button>
                   <div
@@ -486,7 +528,8 @@ function CollectionPageContent() {
               ))}
             </div>
           </section>
-        ))}
+          );
+        })}
       </div>
 
       {hasMore ? (
@@ -510,10 +553,14 @@ function CollectionPageContent() {
       <CardModal
         key={editEntry?.id ?? "closed"}
         card={editCard}
+        collectionId={collectionId}
         entry={editEntry}
         open={editOpen}
         onClose={closeEdit}
-        onSaved={() => void loadPage(true, query, cardId)}
+        onSaved={() => {
+          void loadPage(true, query, cardId);
+          onEntriesMutated?.();
+        }}
       />
 
       <ConfirmDialog
@@ -528,22 +575,6 @@ function CollectionPageContent() {
         onConfirm={() => void confirmDelete()}
         onCancel={() => setDeleteCandidate(null)}
       />
-    </MobilePage>
-  );
-}
-
-export default function CollectionPage() {
-  const t = useTranslations();
-
-  return (
-    <Suspense
-      fallback={
-        <div className="px-4 pt-6 text-sm text-zinc-400">
-          {t("collection.loading")}
-        </div>
-      }
-    >
-      <CollectionPageContent />
-    </Suspense>
+    </div>
   );
 }

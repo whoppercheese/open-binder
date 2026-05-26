@@ -1,9 +1,17 @@
-import { eq, sql } from "drizzle-orm";
+import { and, eq, sql } from "drizzle-orm";
 import { db } from "@/db/client";
 import { cards, cardVariants, sets, userCards } from "@/db/schema";
 import { deleteCardImage } from "@/lib/image-storage";
 
-export async function getSetCollectionEntryCount(setId: string): Promise<number> {
+export async function getSetCollectionEntryCount(
+  setId: string,
+  collectionId?: string,
+): Promise<number> {
+  const filters = [eq(cards.setId, setId)];
+  if (collectionId) {
+    filters.push(eq(userCards.collectionId, collectionId));
+  }
+
   const [row] = await db
     .select({
       count: sql<number>`count(${userCards.id})::int`,
@@ -11,7 +19,7 @@ export async function getSetCollectionEntryCount(setId: string): Promise<number>
     .from(userCards)
     .innerJoin(cardVariants, eq(userCards.variantId, cardVariants.id))
     .innerJoin(cards, eq(cardVariants.cardId, cards.id))
-    .where(eq(cards.setId, setId));
+    .where(and(...filters));
 
   return Number(row?.count ?? 0);
 }

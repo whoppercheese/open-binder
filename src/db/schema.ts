@@ -51,6 +51,8 @@ export const syncJobStatusEnum = pgEnum("sync_job_status", [
   "failed",
 ]);
 
+export const collectionTypeEnum = pgEnum("collection_type", ["set", "custom"]);
+
 export const sets = pgTable("sets", {
   id: text("id").primaryKey(),
   names: jsonb("names").$type<Record<string, string>>().notNull().default({}),
@@ -153,10 +155,53 @@ export const cardPrices = pgTable(
   },
 );
 
+export const collections = pgTable(
+  "collections",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    name: text("name").notNull(),
+    imageUrl: text("image_url"),
+    type: collectionTypeEnum("type").notNull(),
+    setId: text("set_id").references(() => sets.id, { onDelete: "set null" }),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [index("collections_set_id_idx").on(table.setId)],
+);
+
+export const collectionCards = pgTable(
+  "collection_cards",
+  {
+    collectionId: uuid("collection_id")
+      .notNull()
+      .references(() => collections.id, { onDelete: "cascade" }),
+    cardId: text("card_id")
+      .notNull()
+      .references(() => cards.id, { onDelete: "cascade" }),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    uniqueIndex("collection_cards_collection_card_idx").on(
+      table.collectionId,
+      table.cardId,
+    ),
+    index("collection_cards_collection_id_idx").on(table.collectionId),
+  ],
+);
+
 export const userCards = pgTable(
   "user_cards",
   {
     id: uuid("id").primaryKey().defaultRandom(),
+    collectionId: uuid("collection_id")
+      .notNull()
+      .references(() => collections.id, { onDelete: "cascade" }),
     variantId: uuid("variant_id")
       .notNull()
       .references(() => cardVariants.id, { onDelete: "cascade" }),
@@ -173,7 +218,14 @@ export const userCards = pgTable(
       .notNull()
       .defaultNow(),
   },
-  (table) => [index("user_cards_variant_idx").on(table.variantId)],
+  (table) => [
+    index("user_cards_variant_idx").on(table.variantId),
+    index("user_cards_collection_id_idx").on(table.collectionId),
+    index("user_cards_collection_variant_idx").on(
+      table.collectionId,
+      table.variantId,
+    ),
+  ],
 );
 
 export const syncJobs = pgTable(
@@ -233,7 +285,28 @@ export const cardVariantsRelations = relations(cardVariants, ({ one, many }) => 
   userCards: many(userCards),
 }));
 
+export const collectionsRelations = relations(collections, ({ one, many }) => ({
+  set: one(sets, { fields: [collections.setId], references: [sets.id] }),
+  userCards: many(userCards),
+  collectionCards: many(collectionCards),
+}));
+
+export const collectionCardsRelations = relations(collectionCards, ({ one }) => ({
+  collection: one(collections, {
+    fields: [collectionCards.collectionId],
+    references: [collections.id],
+  }),
+  card: one(cards, {
+    fields: [collectionCards.cardId],
+    references: [cards.id],
+  }),
+}));
+
 export const userCardsRelations = relations(userCards, ({ one }) => ({
+  collection: one(collections, {
+    fields: [userCards.collectionId],
+    references: [collections.id],
+  }),
   variant: one(cardVariants, {
     fields: [userCards.variantId],
     references: [cardVariants.id],

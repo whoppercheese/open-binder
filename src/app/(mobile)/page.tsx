@@ -3,7 +3,7 @@ import { ArrowRight, TrendingUp } from "lucide-react";
 import { CardGrid } from "@/components/card-grid";
 import { CardTile } from "@/components/card-tile";
 import { MobilePage, MobilePageHeader } from "@/components/mobile-page";
-import { SetListItem } from "@/components/set-list-item";
+import { CollectionListItem } from "@/components/collection-list-item";
 import { getServerTranslator } from "@/lib/i18n/server";
 import { getPortfolioSummary } from "@/lib/portfolio";
 import { formatCurrency } from "@/lib/utils";
@@ -11,8 +11,8 @@ import { formatCurrency } from "@/lib/utils";
 export default async function DashboardPage() {
   const { locale, t } = await getServerTranslator();
   const summary = await getPortfolioSummary(locale);
-  const topSets = summary.setProgress
-    .filter((set) => set.owned > 0)
+  const topCollections = summary.collections
+    .filter((collection) => collection.totalCount > 0)
     .slice(0, 6);
 
   return (
@@ -48,49 +48,45 @@ export default async function DashboardPage() {
 
       <section className="space-y-3">
         <div className="flex items-center justify-between">
-          <h2 className="text-lg font-semibold">{t("dashboard.setProgress")}</h2>
-          <Link href="/sets" className="inline-flex items-center gap-1 text-sm text-emerald-400">
-            {t("dashboard.allSets")}
+          <h2 className="text-lg font-semibold">{t("dashboard.collections")}</h2>
+          <Link href="/collections" className="inline-flex items-center gap-1 text-sm text-emerald-400">
+            {t("dashboard.allCollections")}
             <ArrowRight className="h-4 w-4" />
           </Link>
         </div>
-        {topSets.length === 0 ? (
+        {topCollections.length === 0 ? (
           <div className="rounded-2xl border border-dashed border-white/10 p-6 text-center text-sm text-zinc-500">
             {t("dashboard.emptyCollection")}
           </div>
         ) : (
-          topSets.map((set) => (
-            <SetListItem
-              key={set.setId}
-              id={set.setId}
-              name={set.setName}
-              cardsSynced
-              owned={set.owned}
-              total={set.total}
-              percent={set.percent}
+          topCollections.map((collection) => (
+            <CollectionListItem
+              key={collection.id}
+              id={collection.id}
+              name={collection.name}
+              imageUrl={collection.imageUrl}
+              setId={collection.setId}
+              setOfficialCode={collection.setOfficialCode}
+              owned={collection.ownedCount}
+              total={collection.totalCount}
+              percent={collection.percent}
             />
           ))
         )}
       </section>
 
       <section className="space-y-3">
-        <div className="flex items-center justify-between">
-          <h2 className="text-lg font-semibold">{t("dashboard.recentlyAdded")}</h2>
-          <Link href="/collection" className="inline-flex items-center gap-1 text-sm text-emerald-400">
-            {t("dashboard.collectionLink")}
-            <ArrowRight className="h-4 w-4" />
-          </Link>
-        </div>
+        <h2 className="text-lg font-semibold">{t("dashboard.recentlyAdded")}</h2>
         {summary.recent.length === 0 ? (
           <p className="text-sm text-zinc-500">{t("dashboard.noEntries")}</p>
         ) : (
           <CardGrid>
             {summary.recent.map((item) => (
               <CardTile
-                key={item.cardId}
+                key={item.id}
                 compact
                 showPrice={false}
-                href={`/collection?cardId=${encodeURIComponent(item.cardId)}`}
+                href={`/collections/${item.collectionId}?view=entries&cardId=${encodeURIComponent(item.cardId)}`}
                 card={{
                   id: item.cardId,
                   number: item.number,
@@ -100,6 +96,7 @@ export default async function DashboardPage() {
                   remoteImageUrl: item.imageUrl,
                   setName: item.setName,
                   officialCode: item.officialCode,
+                  collectionName: item.collectionName,
                   ownedQuantity: item.quantity > 1 ? item.quantity : undefined,
                 }}
               />

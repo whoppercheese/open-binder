@@ -128,7 +128,7 @@ function matchesSetFilters(
     return false;
   }
 
-  if (filters.has("collection") && (set.progress?.owned ?? 0) <= 0) {
+  if (filters.has("collection") && !set.progress?.hasCollection) {
     return false;
   }
 

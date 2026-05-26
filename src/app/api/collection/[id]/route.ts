@@ -1,7 +1,7 @@
 import { eq } from "drizzle-orm";
 import { NextResponse } from "next/server";
 import { db } from "@/db/client";
-import { userCards } from "@/db/schema";
+import { collections, userCards } from "@/db/schema";
 
 export async function PATCH(
   request: Request,
@@ -35,6 +35,11 @@ export async function PATCH(
       .where(eq(userCards.id, id))
       .returning();
 
+    await db
+      .update(collections)
+      .set({ updatedAt: new Date() })
+      .where(eq(collections.id, existing.collectionId));
+
     return NextResponse.json({ item: updated });
   } catch (error) {
     console.error(error);
@@ -51,7 +56,20 @@ export async function DELETE(
 ) {
   try {
     const { id } = await context.params;
+    const existing = await db.query.userCards.findFirst({
+      where: eq(userCards.id, id),
+    });
+    if (!existing) {
+      return NextResponse.json({ errorCode: "ENTRY_NOT_FOUND" }, { status: 404 });
+    }
+
     await db.delete(userCards).where(eq(userCards.id, id));
+
+    await db
+      .update(collections)
+      .set({ updatedAt: new Date() })
+      .where(eq(collections.id, existing.collectionId));
+
     return NextResponse.json({ ok: true });
   } catch (error) {
     console.error(error);

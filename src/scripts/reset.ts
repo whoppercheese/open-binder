@@ -12,6 +12,8 @@ async function clearDatabase(sql: postgres.Sql) {
   await sql.unsafe(`
     TRUNCATE TABLE
       user_cards,
+      collection_cards,
+      collections,
       card_prices,
       card_variants,
       cards,

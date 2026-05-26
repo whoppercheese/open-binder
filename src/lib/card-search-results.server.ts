@@ -1,6 +1,6 @@
 import "server-only";
 
-import { eq, inArray } from "drizzle-orm";
+import { and, eq, inArray, sql } from "drizzle-orm";
 import { db } from "@/db/client";
 import { cardPrices, cards, cardVariants, sets, userCards } from "@/db/schema";
 import {
@@ -9,6 +9,7 @@ import {
 } from "@/lib/localized-names";
 import { getLocalizedString } from "@/lib/catalog-languages";
 import { buildCardVariantEntry } from "@/lib/card-variants.server";
+import { getChecklistCountsForCardIds } from "@/lib/checklist-membership.server";
 import type { UiLocale } from "@/lib/i18n/locale";
 import { getPricePreference } from "@/lib/settings";
 
@@ -22,6 +23,7 @@ export type CardSearchResult = {
   setName: string;
   officialCode: string | null;
   owned: boolean;
+  checklistCount: number;
   variants: Array<{
     id: string;
     variantType: string;
@@ -35,6 +37,7 @@ export async function loadCardSearchResults(
   cardIds: readonly string[],
   locale: UiLocale,
   imageUrlOverrides?: ReadonlyMap<string, string | null | undefined>,
+  collectionId?: string,
 ): Promise<CardSearchResult[]> {
   if (cardIds.length === 0) {
     return [];
@@ -64,7 +67,15 @@ export async function loadCardSearchResults(
     .from(cards)
     .innerJoin(sets, eq(cards.setId, sets.id))
     .innerJoin(cardVariants, eq(cardVariants.cardId, cards.id))
-    .leftJoin(userCards, eq(userCards.variantId, cardVariants.id))
+    .leftJoin(
+      userCards,
+      collectionId
+        ? and(
+            eq(userCards.variantId, cardVariants.id),
+            eq(userCards.collectionId, collectionId),
+          )
+        : sql`false`,
+    )
     .leftJoin(cardPrices, eq(cardPrices.variantId, cardVariants.id))
     .where(inArray(cards.id, cardIds))
     .orderBy(nameSql);
@@ -82,6 +93,7 @@ export async function loadCardSearchResults(
       setName: row.setName,
       officialCode: row.officialCode,
       owned: false,
+      checklistCount: 0,
       variants: [],
     };
 
@@ -130,8 +142,16 @@ export async function loadCardSearchResults(
         : setId,
       officialCode: setMeta?.officialCode ?? null,
       owned: false,
+      checklistCount: 0,
       variants: [],
     });
+  }
+
+  const checklistCounts = await getChecklistCountsForCardIds(
+    ordered.map((card) => card.id),
+  );
+  for (const card of ordered) {
+    card.checklistCount = checklistCounts.get(card.id) ?? 0;
   }
 
   return ordered;

@@ -1,6 +1,6 @@
 import type { UiLocale } from "@/lib/i18n/locale";
 import { getLocalizedString } from "@/lib/catalog-languages";
-import { getPortfolioSummary } from "@/lib/portfolio";
+import { listCollections } from "@/lib/collections.server";
 
 type SetWithCounts = {
   id: string;
@@ -12,16 +12,29 @@ export type SetProgress = {
   owned: number;
   total: number;
   percent: number;
+  hasCollection: boolean;
 };
 
 export async function buildSetProgressMap(
   locale: UiLocale,
   allSets: readonly SetWithCounts[],
 ): Promise<Map<string, SetProgress>> {
-  const summary = await getPortfolioSummary(locale);
-  const progressBySet = new Map(
-    summary.setProgress.map((item) => [item.setId, item]),
-  );
+  const allCollections = await listCollections(locale);
+  const progressBySet = new Map<string, SetProgress>();
+
+  for (const col of allCollections) {
+    if (col.type !== "set" || !col.setId) {
+      continue;
+    }
+    if (!progressBySet.has(col.setId)) {
+      progressBySet.set(col.setId, {
+        owned: col.ownedCount,
+        total: col.totalCount,
+        percent: col.percent,
+        hasCollection: true,
+      });
+    }
+  }
 
   return new Map(
     allSets.map((set) => [
@@ -30,6 +43,7 @@ export async function buildSetProgressMap(
         owned: 0,
         total: set.cardCountOfficial || set.cardCountTotal,
         percent: 0,
+        hasCollection: false,
       },
     ]),
   );

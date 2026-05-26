@@ -12,6 +12,7 @@ export type SetListEntry = SetSummary & {
     owned: number;
     total: number;
     percent: number;
+    hasCollection?: boolean;
   } | null;
 };
 

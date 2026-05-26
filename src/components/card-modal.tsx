@@ -3,13 +3,16 @@
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import {
+  ChevronRight,
   ExternalLink,
   Loader2,
   Minus,
   Plus,
+  Trash2,
   WalletCards,
   X,
 } from "lucide-react";
+import { ConfirmDialog } from "@/components/confirm-dialog";
 import { CardFlagBadge } from "@/components/card-flag-badge";
 import { ConditionBadgeButton } from "@/components/condition-badge";
 import { CardFrame } from "@/components/card-frame";
@@ -24,7 +27,7 @@ import {
   translateCollectionError,
   updateCollection,
 } from "@/lib/collection-client";
-import { useLocale, useTranslations } from "@/lib/i18n/context";
+import { apiUrl, useLocale, useTranslations } from "@/lib/i18n/context";
 import { cardmarketIsFoilForVariant, type VariantType } from "@/lib/tcgdex";
 import { useDefaultCondition } from "@/lib/use-default-condition";
 import {
@@ -68,9 +71,13 @@ export type CollectionEntry = {
 
 type CardModalProps = {
   card: CardDetail | null;
+  collectionId?: string;
+  collectionName?: string;
+  collectionType?: "set" | "custom";
   open: boolean;
   onClose: () => void;
   onSaved?: () => void;
+  onRemovedFromChecklist?: () => void;
   entry?: CollectionEntry | null;
 };
 
@@ -90,6 +97,7 @@ function createInitialFormState(
   card: CardDetail | null,
   entry?: CollectionEntry | null,
   defaultCondition: CardCondition = "nm",
+  defaultLanguage: string = "de",
 ) {
   if (entry) {
     return {
@@ -107,7 +115,7 @@ function createInitialFormState(
       variantId: "",
       quantity: 1,
       condition: defaultCondition,
-      language: "de",
+      language: defaultLanguage,
       notes: "",
       flagged: false,
     };
@@ -117,7 +125,7 @@ function createInitialFormState(
     variantId: pickDefaultVariantId(card.variants) ?? "",
     quantity: 1,
     condition: defaultCondition,
-    language: "de",
+    language: defaultLanguage,
     notes: "",
     flagged: false,
   };
@@ -125,16 +133,24 @@ function createInitialFormState(
 
 type CardModalFormProps = {
   card: CardDetail;
+  collectionId?: string;
+  collectionName?: string;
+  collectionType?: "set" | "custom";
   onClose: () => void;
   onSaved?: () => void;
+  onRemovedFromChecklist?: () => void;
   entry?: CollectionEntry | null;
   defaultCondition: CardCondition;
 };
 
 function CardModalForm({
   card,
+  collectionId,
+  collectionName,
+  collectionType,
   onClose,
   onSaved,
+  onRemovedFromChecklist,
   entry = null,
   defaultCondition,
 }: CardModalFormProps) {
@@ -145,7 +161,12 @@ function CardModalForm({
     officialCode: card.officialCode,
     setId: card.setId,
   });
-  const initialForm = createInitialFormState(card, entry, defaultCondition);
+  const initialForm = createInitialFormState(
+    card,
+    entry,
+    defaultCondition,
+    locale,
+  );
 
   const defaultVariant = useMemo(() => {
     const variantId = pickDefaultVariantId(card.variants);
@@ -161,6 +182,11 @@ function CardModalForm({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [imageExpanded, setImageExpanded] = useState(false);
+  const [confirmRemoveOpen, setConfirmRemoveOpen] = useState(false);
+  const [removingFromChecklist, setRemovingFromChecklist] = useState(false);
+
+  const canRemoveFromChecklist =
+    Boolean(collectionId) && !isEdit;
 
   function variantLabel(type: string) {
     const key = VARIANT_KEYS[type];
@@ -169,11 +195,41 @@ function CardModalForm({
 
   function handleClose() {
     setImageExpanded(false);
+    setConfirmRemoveOpen(false);
     onClose();
   }
 
+  async function handleRemoveFromChecklist() {
+    if (!collectionId) return;
+    setRemovingFromChecklist(true);
+    setError(null);
+    try {
+      const params = new URLSearchParams({ cardId: card.id });
+      const response = await fetch(
+        apiUrl(`/api/collections/${collectionId}/cards?${params}`, locale),
+        { method: "DELETE" },
+      );
+      if (!response.ok) {
+        setError(t("collections.removeFromChecklistFailed"));
+        return;
+      }
+      setConfirmRemoveOpen(false);
+      onRemovedFromChecklist?.();
+      handleClose();
+    } catch {
+      setError(t("collections.removeFromChecklistFailed"));
+    } finally {
+      setRemovingFromChecklist(false);
+    }
+  }
+
   function resetForm() {
-    const initial = createInitialFormState(card, entry, defaultCondition);
+    const initial = createInitialFormState(
+      card,
+      entry,
+      defaultCondition,
+      locale,
+    );
     setVariantId(initial.variantId);
     setQuantity(initial.quantity);
     setCondition(initial.condition);
@@ -204,9 +260,10 @@ function CardModalForm({
       ? card.imageUrl
       : null;
   const needsSetDownload = card.variants.length === 0 && !isEdit;
+  const needsCollection = !collectionId && !isEdit;
 
   async function handleSave() {
-    if (!activeVariantId) return;
+    if (!activeVariantId || !collectionId) return;
     setLoading(true);
     setError(null);
     try {
@@ -220,6 +277,7 @@ function CardModalForm({
         });
       } else {
         await addToCollection({
+          collectionId,
           variantId: activeVariantId,
           quantity,
           condition,
@@ -455,6 +513,23 @@ function CardModalForm({
               </div>
             ) : null}
 
+            {ownedCount > 0 && !isEdit && collectionId ? (
+              <Link
+                href={`/collections/${collectionId}?view=entries&cardId=${encodeURIComponent(card.id)}`}
+                onClick={handleClose}
+                className="mb-3 flex w-full items-center gap-2 rounded-2xl border border-white/10 px-4 py-3 text-sm font-medium text-white transition hover:bg-white/5"
+              >
+                <WalletCards className="h-4 w-4 shrink-0" />
+                <span className="min-w-0 flex-1 text-center">
+                  {t("cardModal.viewInCollection", { count: ownedCount })}
+                </span>
+                <ChevronRight
+                  className="h-4 w-4 shrink-0 text-zinc-400"
+                  aria-hidden
+                />
+              </Link>
+            ) : null}
+
             {!needsSetDownload && selectedVariant ? (
               <p className="mb-3 text-sm">
                 {selectedVariant.cardmarketProductId &&
@@ -499,38 +574,76 @@ function CardModalForm({
               </p>
             ) : null}
 
-            {error ? (
-              <p className="mb-3 text-sm text-red-400">{error}</p>
-            ) : null}
-
-            {ownedCount > 0 && !isEdit ? (
-              <Link
-                href={`/collection?cardId=${encodeURIComponent(card.id)}`}
-                onClick={handleClose}
-                className="mb-3 flex w-full items-center justify-center gap-2 rounded-2xl border border-white/10 px-4 py-3 text-sm font-medium text-white transition hover:bg-white/5"
-              >
-                <WalletCards className="h-4 w-4" />
-                {t("cardModal.viewInCollection", { count: ownedCount })}
-              </Link>
-            ) : null}
-
             {!needsSetDownload ? (
-            <button
-              type="button"
-              disabled={loading || !activeVariantId}
-              onClick={handleSave}
-              className={cn(
-                "flex w-full items-center justify-center gap-2 rounded-2xl bg-emerald-500 px-4 py-3 font-semibold text-black transition",
-                (loading || !activeVariantId) && "opacity-60",
-              )}
-            >
-              {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-              {isEdit ? t("cardModal.save") : t("cardModal.addToCollection")}
-            </button>
+              <div
+                className={cn(
+                  "space-y-3",
+                  ((ownedCount > 0 && !isEdit && collectionId) ||
+                    (!needsSetDownload && selectedVariant)) &&
+                    "border-t border-white/10 pt-3",
+                )}
+              >
+                {error ? <p className="text-sm text-red-400">{error}</p> : null}
+
+                {needsCollection ? (
+                  <p className="text-sm text-zinc-400">
+                    {t("collections.pickCollectionHint")}
+                  </p>
+                ) : null}
+
+                {!needsCollection ? (
+                  <button
+                    type="button"
+                    disabled={loading || !activeVariantId}
+                    onClick={handleSave}
+                    className={cn(
+                      "flex w-full items-center justify-center gap-2 rounded-2xl bg-emerald-500 px-4 py-3 font-semibold text-black transition",
+                      (loading || !activeVariantId) && "opacity-60",
+                    )}
+                  >
+                    {loading ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : isEdit ? null : (
+                      <Plus className="h-4 w-4 shrink-0" strokeWidth={2.5} />
+                    )}
+                    {isEdit ? t("cardModal.save") : t("cardModal.addToCollection")}
+                  </button>
+                ) : null}
+
+                {canRemoveFromChecklist ? (
+                  <button
+                    type="button"
+                    disabled={loading || removingFromChecklist}
+                    onClick={() => setConfirmRemoveOpen(true)}
+                    className={cn(
+                      "flex w-full items-center justify-center gap-2 rounded-2xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm font-medium text-red-300 transition hover:bg-red-500/20",
+                      (loading || removingFromChecklist) && "opacity-60",
+                    )}
+                  >
+                    <Trash2 className="h-4 w-4 shrink-0" />
+                    {t("collections.removeFromChecklist")}
+                  </button>
+                ) : null}
+              </div>
             ) : null}
           </div>
         </div>
       </Portal>
+
+      <ConfirmDialog
+        open={confirmRemoveOpen}
+        title={t("collections.removeFromChecklistTitle")}
+        message={t("collections.removeFromChecklistMessage", {
+          cardName: card.name,
+          collectionName: collectionName ?? "",
+        })}
+        confirmLabel={t("collections.removeFromChecklist")}
+        loading={removingFromChecklist}
+        onConfirm={() => void handleRemoveFromChecklist()}
+        onCancel={() => {
+          if (!removingFromChecklist) setConfirmRemoveOpen(false);
+        }}
+      />
 
       <CardImageLightbox
         open={imageExpanded}
@@ -547,21 +660,30 @@ function CardModalForm({
 
 export function CardModal({
   card,
+  collectionId,
+  collectionName,
+  collectionType,
   open,
   onClose,
   onSaved,
+  onRemovedFromChecklist,
   entry = null,
 }: CardModalProps) {
   const { defaultCondition } = useDefaultCondition();
+  const { locale } = useLocale();
 
   if (!open || !card) return null;
 
   return (
     <CardModalForm
-      key={`${card.id}-${entry?.id ?? "new"}-${defaultCondition}`}
+      key={`${card.id}-${entry?.id ?? "new"}-${defaultCondition}-${locale}`}
       card={card}
+      collectionId={collectionId}
+      collectionName={collectionName}
+      collectionType={collectionType}
       onClose={onClose}
       onSaved={onSaved}
+      onRemovedFromChecklist={onRemovedFromChecklist}
       entry={entry}
       defaultCondition={defaultCondition}
     />

@@ -5,7 +5,7 @@
 <h1 align="center">OpenBinder</h1>
 
 <p align="center">
-  Mobile-first, self-hostable web app to manage your Pokémon TCG collection — with set checklists and Cardmarket EUR portfolio values.
+  Mobile-first, self-hostable web app to manage your Pokémon TCG collection — with multiple collections, checklists, inventory tracking, and Cardmarket EUR portfolio values.
 </p>
 
 ---
@@ -14,9 +14,36 @@
 
 OpenBinder is an unofficial fan tool for collectors. Card data comes from [TCGdex](https://tcgdex.dev); prices from Cardmarket (via TCGdex). The app runs as a **Progressive Web App (PWA)** in the browser or as an installable home-screen app — optimized for mobile with a fixed bottom navigation bar.
 
-> **Language focus:** The UI and catalog are **German-first** today: card names, set names, search, and labels are in German (`de`). The catalog is synced from TCGdex with `lang=de`. Collection entries can still track English cards via the language field. Broader locale support may come later; for now, expect German content throughout the app.
+> **Language focus:** The UI and catalog are **German-first** today: card names, set names, search, and labels are in German (`de`). The catalog is synced from TCGdex with `lang=de`. Inventory entries can still track English cards via the language field. Broader locale support may come later; for now, expect German content throughout the app.
 
-**Navigation:** Dashboard · Sets · Search (*Suche*) · Collection (*Sammlung*) · Settings (*Einstellungen*)
+**Navigation:** Dashboard · Sets · Collections (*Sammlungen*) · Search (*Suche*) · Settings (*Einstellungen*)
+
+---
+
+## Collections — how it works
+
+OpenBinder organizes your cards in **multiple collections** (*Sammlungen*) — think of them as binders or folders. Each collection has two layers:
+
+| Layer | EN | DE | What it means |
+| --- | --- | --- | --- |
+| **Checklist** | Checklist | Checkliste | Which cards you want to track in this collection |
+| **Inventory** | Inventory | Bestand | Physical copies you have actually recorded (variant, condition, quantity, notes, value) |
+
+**Set pages are catalogs**, not ownership trackers. To track progress for a set, create a **set collection** from that set. Search and set browsing help you **add cards to checklists**; **recording copies** always happens inside a collection.
+
+### Collection types
+
+- **Set collection** (*Set-Sammlung*) — created from a downloaded set. The checklist is **pre-filled with every card in the set**. You can create several set collections for the same set (e.g. “Master Set” and “Trade Binder”).
+- **Custom collection** (*Eigene Sammlung*) — starts empty. Add cards to the checklist via Search or Sets. Can mix cards from different sets.
+
+### Typical workflow
+
+1. **Create a collection** — from the Collections tab or from a set detail page.
+2. **Build the checklist** — automatic for set collections; pick cards individually for custom collections (Search / Sets → *Add to checklist* / *Zur Checkliste hinzufügen*).
+3. **Record what you own** — open the collection, switch to the **Checklist** tab, tap or long-press a card to add copies to **Inventory** (*Bestand*).
+4. **Review inventory** — the **Inventory** tab lists all recorded copies with quantity, value, search, and edit/delete.
+
+The dashboard **portfolio value** sums inventory across **all collections**. The legacy route `/collection` redirects to `/collections`.
 
 ---
 
@@ -24,57 +51,77 @@ OpenBinder is an unofficial fan tool for collectors. Card data comes from [TCGde
 
 ### Dashboard (`/`)
 
-Home screen with a snapshot of your collection:
+Home screen with a snapshot across all collections:
 
 - **Portfolio value** — estimated total in EUR (Cardmarket, based on your Trend/Low price setting)
-- **Cards & entries** — physical card count vs. collection entries (different variants/conditions count separately)
-- **Set progress** — top six sets by owned cards with progress bars; link to all sets
-- **Recently added** — preview of the latest collection entries with card images
-- **Sync status** — last catalog and price sync with a link to settings
+- **Cards & entries** — physical card count vs. inventory entries (different variants/conditions count separately)
+- **Your collections** — up to six collections by progress (*X of Y in inventory* / *X von Y im Bestand*); link to all collections
+- **Recently recorded** (*Zuletzt erfasst*) — latest inventory entries; tap opens that collection’s Inventory tab filtered to the card
 
 ### Sets (`/sets`)
 
-All Pokémon sets, grouped by series (e.g. Base, Neo, …):
+All Pokémon sets, grouped by series (e.g. Base, Neo, …) — browse the catalog and create set collections:
 
 - **Search** by set name or official code (e.g. “Base Set”, “BS”)
-- **Progress** per set (owned/total, percent) — once card data has been loaded
+- **Filters** — *Cards loaded* (*Karten geladen*), *Has collection* (*Mit Sammlung*)
+- **Progress** per set — shown once you have a set collection for that set (owned checklist cards / total)
 - **Load cards** — card data is synced **on demand per set**, not all at once
 - **Live sync indicator** — shows running catalog or set-card sync jobs and queue status
 - Set logos and placeholders are cached locally during sync
 
 ### Set detail (`/sets/[id]`)
 
-Checklist view for a single set:
+Catalog view for a single set — browse cards and manage set collections:
 
-- **Progress bar** — how many cards you own
-- **Filters**
-  - *Owned* / *Missing*
-  - by **rarity** (Common, Rare, Ultra Rare, … — German labels in the UI)
-- **Card grid** (3–4 columns) with number, name, and Cardmarket price
-- **Ownership badge** — green checkmark on owned cards; `×N` badge for multiple copies
-- **Tap** → card detail modal (see below)
-- **Long-press (Quick Add)** → add a card to your collection instantly (see below)
+- **Your collections for this set** — list with progress; **Create collection from set** (*Sammlung aus Set erstellen*)
+- Hint: *“To track your progress, create a collection from this set.”*
+- **Card grid** (3–4 columns) with number, name, Cardmarket price, and checklist badge (*On N checklist(s)* / *Auf N Checkliste(n)*)
+- **Tap** → card preview modal → **Add to checklist** (see below)
+- **Filters** by **rarity** (Common, Rare, Ultra Rare, … — German labels in the UI)
 - If card data is missing: **Load cards** button with progress indicator
 
 ### Search (`/search`)
 
-Find cards across the full catalog:
+Find cards across the full catalog and add them to checklists:
 
 - **Full-text search** (German) from 2 characters, with 300 ms debounce
 - Query patterns:
   - **Name** — e.g. “Glurak” (Charizard)
   - **Number** — e.g. “4”
   - **Set + number** — e.g. “Dschungel 60” or “BS 4”
-- Results show set name, Cardmarket price, and ownership status
-- **Tap** → card detail modal
+- Results show set name, Cardmarket price, and checklist badge
+- **Tap** → card preview modal → **Add to checklist**
+- With `?collectionId=…` (from a custom collection’s *Go to search* link): subtitle becomes *“Add cards to checklist”*
 
-### Collection (`/collection`)
+### Collections list (`/collections`)
 
-All saved cards, grouped by set:
+All your collections (*Deine Ordner und Set-Checklisten*):
+
+- **Create** (*Erstellen*) — choose **Custom collection** or **Create collection from set** (redirects to Sets)
+- Each row: cover image, name, progress (*X of Y in inventory*), percent complete
+- Empty checklist: *“Checklist empty”* (*Checkliste leer*)
+
+### Collection detail (`/collections/[id]`)
+
+Inside a single collection — where progress and ownership live:
+
+- **Header** — cover, name, link to set (set collections) or *Custom collection* label
+- **Progress bar** — checklist cards with at least one inventory entry / total checklist cards
+- **⋮ menu** → **Delete collection** (removes checklist and all inventory entries)
+- **Two tabs** (*Collection view* / *Sammlungsansicht*):
+
+#### Checklist tab (*Checkliste*)
+
+- Grid of checklist cards with filters *In inventory* / *Not in inventory* and by rarity
+- **Tap** → card modal → record or edit inventory (*Add to inventory* / *Zum Bestand hinzufügen*)
+- **Long-press (Quick Add)** → record a copy with defaults (see below)
+- Custom collections: links to Search and Sets to add more cards to the checklist
+
+#### Inventory tab (*Bestand*)
 
 - **Summary** — entry count and total value
 - **Search** by name, number, or set
-- **Card filter** — via URL `?cardId=…` (e.g. from the card modal: “View in collection”)
+- **Card filter** — via URL `?view=entries&cardId=…` (e.g. from the card modal or dashboard)
 - **Infinite scroll** — loads more entries while scrolling (20 per page)
 - Per entry:
   - Card image (tap → lightbox with zoom)
@@ -83,9 +130,12 @@ All saved cards, grouped by set:
   - **Quantity** via +/- (at 0 → confirm delete)
   - **Delete** with confirmation dialog
 
+**Removing from a custom collection:** in the card modal → *Remove from collection* — removes the card from the checklist and deletes all inventory entries for that card in this collection.
+
 ### Settings (`/settings`)
 
 - **Cardmarket price** — *Trend* or *Low* for portfolio calculation and display
+- **Default condition** (*Standard-Zustand*) — used for Quick Add and as preset when recording new copies in the card modal
 - **Manual sync**
   - *Sync sets* — refresh set metadata from the catalog
   - *Sync prices now* — fetch Cardmarket prices immediately
@@ -94,27 +144,41 @@ All saved cards, grouped by set:
 
 ---
 
-## Card detail modal
+## Card preview modal
 
-Opened from search and set detail (tap a card):
+Opened from Search and set detail (tap a card):
+
+- Set code, card number, rarity, German card name, Cardmarket prices per variant
+- **Card image** — tap for full-screen lightbox
+- **Add to checklist** (*Zur Checkliste hinzufügen*) — opens the checklist picker:
+  - **Already on checklist** — set collections for that card’s set (locked) plus custom collections that already contain the card; tap to open
+  - **Add to** — select one or more custom collections, confirm **Add**
+- Shows how many checklists already contain the card
+
+Without a collection context, you cannot record inventory here — only add cards to checklists.
+
+## Card modal (inside a collection)
+
+Opened from a collection’s Checklist or Inventory tab:
 
 - Set link (official code), card number, and German card name
 - **Card image** — tap for full-screen lightbox
-- **Add to collection** with:
+- **Add to inventory** / edit existing entry with:
   - **Variant** — Normal, Holo, Reverse Holo, 1st Edition (per card); Cardmarket price per variant
   - **Quantity** (1–999)
   - **Condition** — Mint, NM, LP, MP, HP
   - **Language** — German, English
   - **Notes** (free text)
-  - **Purchase price** (EUR, optional)
+  - **Flag** — mark cards for your own purposes (reason can go in notes)
 - **Cardmarket link** — direct product link (foil/non-foil mapped correctly)
-- **View in collection** — if you already own the card, link to the filtered collection view
+- **View recorded copies** — link to the filtered Inventory tab if entries exist
+- **Remove from collection** — custom collections only; removes checklist entry and all inventory for that card
 
 ---
 
 ## Card image — full view & zoom
 
-Available from the modal and collection (tap the card image):
+Available from the card modals and Inventory tab (tap the card image):
 
 - **Full-screen lightbox** on a dark backdrop
 - **Pinch-to-zoom** — 1× to 5×
@@ -126,17 +190,17 @@ Available from the modal and collection (tap the card image):
 
 ## Quick Add (long-press)
 
-On the set checklist (`/sets/[id]`) you can add cards **without opening the modal**:
+On a collection’s **Checklist** tab (`/collections/[id]`) you can record copies **without opening the modal**:
 
 1. **Press and hold** (~1.2 s) on a card
 2. Progress ring shows the hold timer
 3. Short **vibration feedback** (where supported)
-4. Card is saved with **defaults**:
+4. Card is saved to **inventory** with **defaults**:
    - Variant: already-owned variant if any, otherwise the first available
-   - Quantity: 1 · Condition: NM · Language: German
-5. Toast confirmation at the bottom of the screen
+   - Quantity: 1 · Condition: from Settings (*Standard-Zustand*, default NM) · Language: German
+5. Toast confirmation at the bottom of the screen (*recorded* / *erfasst*)
 
-A normal **tap** still opens the detail modal for fine-grained input.
+A normal **tap** still opens the card modal for fine-grained input.
 
 ---
 
@@ -168,7 +232,8 @@ For faster local testing, use `CATALOG_SET_IDS` and `CATALOG_SET_CARD_LIMIT` (se
 - Values based on **Cardmarket EUR** via TCGdex
 - Configurable: **Trend price** (default) or **Low price**
 - Separate price per **variant** (Normal vs. Holo vs. Reverse Holo vs. 1st Edition)
-- Portfolio = Σ (price × quantity) across all collection entries
+- Portfolio = Σ (price × quantity) across all **inventory entries in all collections**
+- Per-collection totals appear on each collection’s Inventory tab
 - Cards without a price are counted but excluded from the total value
 
 ---
@@ -227,7 +292,7 @@ If you already synced before adding local image caching, run **Sync sets** in Se
 
 ## Reset (Dev)
 
-Clear catalog, collection, sync jobs, pg-boss queue, and cached card images:
+Clear catalog, collections, sync jobs, pg-boss queue, and cached card images:
 
 ```bash
 npm run reset -- --force

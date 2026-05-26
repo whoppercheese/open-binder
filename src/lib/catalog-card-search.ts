@@ -477,6 +477,7 @@ async function getRankedCatalogSearchBriefs(
 export type CatalogSearchPageOptions = {
   offset?: number;
   limit?: number;
+  collectionId?: string;
 };
 
 export async function searchCatalogCards(
@@ -515,6 +516,7 @@ export async function searchCatalogCards(
     matchingBriefs.map((brief) => brief.id),
     locale,
     imageUrlOverrides,
+    options.collectionId,
   );
 
   return {

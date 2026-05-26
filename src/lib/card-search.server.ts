@@ -39,7 +39,8 @@ export async function searchCards(
   const scope = searchParams.get("scope");
 
   if (scope === "all") {
-    return searchCatalogCards(trimmed, locale, { offset, limit });
+    const collectionId = searchParams.get("collectionId")?.trim() || undefined;
+    return searchCatalogCards(trimmed, locale, { offset, limit, collectionId });
   }
 
   const parsed = parseSearchQuery(trimmed);
@@ -48,7 +49,13 @@ export async function searchCards(
   );
   const hasMore = idRows.length > limit;
   const cardIds = idRows.slice(0, limit).map((row) => row.id);
-  const results = await loadCardSearchResults(cardIds, locale);
+  const collectionId = searchParams.get("collectionId")?.trim() || undefined;
+  const results = await loadCardSearchResults(
+    cardIds,
+    locale,
+    undefined,
+    collectionId,
+  );
 
   return { results, hasMore };
 }

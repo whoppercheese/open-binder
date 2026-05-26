@@ -98,7 +98,7 @@ const LEGACY_MESSAGE_PATTERNS: Array<{
     mapParams: (m) => ({ updated: Number(m[1]), total: Number(m[2]) }),
   },
   {
-    pattern: /^Preis-Sync abgeschlossen \(keine Karten in der Sammlung\)\.$/,
+    pattern: /^Preis-Sync abgeschlossen \(nichts erfasst\)\.$/,
     key: "pricesCompletedEmpty",
   },
   {

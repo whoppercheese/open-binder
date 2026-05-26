@@ -9,7 +9,9 @@ export async function GET(
   try {
     const { locale } = getRequestTranslator(request);
     const { id } = await context.params;
-    const card = await getCardWithVariants(id, locale);
+    const { searchParams } = new URL(request.url);
+    const collectionId = searchParams.get("collectionId")?.trim() || undefined;
+    const card = await getCardWithVariants(id, locale, collectionId);
     if (!card) {
       return NextResponse.json({ errorCode: "CARD_NOT_FOUND" }, { status: 404 });
     }

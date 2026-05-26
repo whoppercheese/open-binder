@@ -13,8 +13,8 @@ export function BottomNav() {
   const items = [
     { href: "/", label: t("nav.dashboard"), icon: Home },
     { href: "/sets", label: t("nav.sets"), icon: Layers },
+    { href: "/collections", label: t("nav.collection"), icon: WalletCards },
     { href: "/search", label: t("nav.search"), icon: Search },
-    { href: "/collection", label: t("nav.collection"), icon: WalletCards },
     { href: "/settings", label: t("nav.settings"), icon: Settings },
   ];
 

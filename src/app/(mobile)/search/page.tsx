@@ -1,7 +1,9 @@
 "use client";
 
-import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
-import { CardModal, type CardDetail } from "@/components/card-modal";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { usePathname, useSearchParams } from "next/navigation";
+import type { CardDetail } from "@/components/card-modal";
+import { SetCardPreviewModal } from "@/components/set-card-preview-modal";
 import { CardGrid } from "@/components/card-grid";
 import { CardTile } from "@/components/card-tile";
 import {
@@ -12,6 +14,12 @@ import {
 import { MobilePage, MobilePageHeader } from "@/components/mobile-page";
 import { SearchBar } from "@/components/search-bar";
 import { apiUrl, useLocale, useTranslations } from "@/lib/i18n/context";
+import {
+  applyChecklistCountOverrides,
+  CHECKLIST_COUNT_CHANGED_EVENT,
+  type ChecklistCountChangedDetail,
+  writeChecklistCountOverride,
+} from "@/lib/checklist-count-overrides.client";
 import { isSearchableQuery } from "@/lib/search";
 import { useSearchPageState } from "@/lib/use-search-page-state";
 import { cn } from "@/lib/utils";
@@ -21,6 +29,8 @@ const PAGE_SIZE = 24;
 type SearchResult = CardDetail & {
   setName: string;
   owned: boolean;
+  checklistCount?: number;
+  rarity?: string | null;
 };
 
 function isSearchResult(value: unknown): value is SearchResult {
@@ -40,10 +50,25 @@ function isSearchResult(value: unknown): value is SearchResult {
 }
 
 function parseStoredResults(results: unknown[]): SearchResult[] {
-  return results.filter(isSearchResult);
+  return applyChecklistCountOverrides(results.filter(isSearchResult));
+}
+
+function patchStoredResultsChecklistCount(
+  results: unknown[],
+  cardId: string,
+  checklistCount: number,
+): unknown[] {
+  return results.map((item) =>
+    isSearchResult(item) && item.id === cardId
+      ? { ...item, checklistCount }
+      : item,
+  );
 }
 
 export default function SearchPage() {
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const collectionId = searchParams.get("collectionId")?.trim() ?? "";
   const { locale } = useLocale();
   const t = useTranslations();
   const {
@@ -58,11 +83,15 @@ export default function SearchPage() {
     setResultsState,
     clearStoredState,
   } = useSearchPageState();
-  const results = parseStoredResults(storedResults);
+  const results = useMemo(
+    () => parseStoredResults(storedResults),
+    [storedResults],
+  );
   const [loading, setLoading] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
-  const [selectedCard, setSelectedCard] = useState<CardDetail | null>(null);
-  const [open, setOpen] = useState(false);
+  const [previewCard, setPreviewCard] = useState<CardDetail | null>(null);
+  const [previewRarity, setPreviewRarity] = useState<string | null>(null);
+  const [previewOpen, setPreviewOpen] = useState(false);
   const searchRequestIdRef = useRef(0);
   const skipNextSearchRef = useRef(false);
   const initialSearchHandledRef = useRef(false);
@@ -70,11 +99,106 @@ export default function SearchPage() {
   const resultsRef = useRef(results);
   const sentinelRef = useRef<HTMLDivElement>(null);
   const skipScrollRestoreRef = useRef(false);
+  const storedResultsRef = useRef(storedResults);
+
+  useEffect(() => {
+    storedResultsRef.current = storedResults;
+  }, [storedResults]);
 
   useEffect(() => {
     offsetRef.current = offset;
     resultsRef.current = results;
   }, [offset, results]);
+
+  const syncChecklistCountsToStoredResults = useCallback(
+    (counts: Record<string, number>) => {
+      const current = storedResultsRef.current;
+      let changed = false;
+      const next = current.map((item) => {
+        if (!isSearchResult(item)) {
+          return item;
+        }
+        const count = counts[item.id];
+        if (count == null || item.checklistCount === count) {
+          return item;
+        }
+        changed = true;
+        writeChecklistCountOverride(item.id, count);
+        return { ...item, checklistCount: count };
+      });
+      if (changed) {
+        setResultsState({ results: next, hasMore, offset });
+      }
+    },
+    [hasMore, offset, setResultsState],
+  );
+
+  const refreshCachedChecklistCounts = useCallback(async () => {
+    const parsed = parseStoredResults(storedResultsRef.current);
+    if (parsed.length === 0) {
+      return;
+    }
+
+    const ids = [...new Set(parsed.map((card) => card.id))];
+    const params = new URLSearchParams({ ids: ids.join(",") });
+    try {
+      const response = await fetch(
+        apiUrl(`/api/cards/checklist-counts?${params}`, locale),
+      );
+      if (!response.ok) {
+        return;
+      }
+      const payload = (await response.json()) as {
+        counts?: Record<string, number>;
+      };
+      if (payload.counts) {
+        syncChecklistCountsToStoredResults(payload.counts);
+      }
+    } catch {
+      // ignore — cached counts / overrides still apply
+    }
+  }, [locale, syncChecklistCountsToStoredResults]);
+
+  useEffect(() => {
+    if (!hydrated || pathname !== "/search") {
+      return;
+    }
+    void refreshCachedChecklistCounts();
+  }, [hydrated, pathname, refreshCachedChecklistCounts]);
+
+  useEffect(() => {
+    if (!hydrated) {
+      return;
+    }
+
+    function onChecklistCountChanged(event: Event) {
+      const { cardId, count } = (event as CustomEvent<ChecklistCountChangedDetail>)
+        .detail;
+      const hasCard = storedResultsRef.current.some(
+        (item) => isSearchResult(item) && item.id === cardId,
+      );
+      if (!hasCard) {
+        return;
+      }
+      setResultsState({
+        results: patchStoredResultsChecklistCount(
+          storedResultsRef.current,
+          cardId,
+          count,
+        ),
+        hasMore,
+        offset,
+      });
+    }
+
+    window.addEventListener(CHECKLIST_COUNT_CHANGED_EVENT, onChecklistCountChanged);
+    return () => {
+      window.removeEventListener(
+        CHECKLIST_COUNT_CHANGED_EVENT,
+        onChecklistCountChanged,
+      );
+    };
+  }, [hydrated, hasMore, offset, setResultsState]);
 
   const hasActiveSearch =
     query.trim().length > 0 || results.length > 0 || searchAllSets;
@@ -109,6 +233,9 @@ export default function SearchPage() {
         if (allSets) {
           params.set("scope", "all");
         }
+        if (collectionId) {
+          params.set("collectionId", collectionId);
+        }
         const response = await fetch(
           apiUrl(`/api/cards/search?${params}`, locale),
         );
@@ -136,7 +263,7 @@ export default function SearchPage() {
         }
       }
     },
-    [locale, setResultsState],
+    [collectionId, locale, setResultsState],
   );
 
   const resetSearch = useCallback(() => {
@@ -144,11 +271,12 @@ export default function SearchPage() {
     clearStoredState();
     setLoading(false);
     setLoadingMore(false);
-    setSelectedCard(null);
-    setOpen(false);
+    setPreviewCard(null);
+    setPreviewRarity(null);
+    setPreviewOpen(false);
     clearSavedScrollPosition("/search");
     scrollMainToTop();
-  }, [clearStoredState, setOpen]);
+  }, [clearStoredState]);
 
   useEffect(() => {
     if (!hydrated || initialSearchHandledRef.current) {
@@ -222,7 +350,11 @@ export default function SearchPage() {
     <MobilePage>
       <MobilePageHeader
         title={t("search.title")}
-        subtitle={t("search.subtitle")}
+        subtitle={
+          collectionId
+            ? t("search.subtitleCollection")
+            : t("search.subtitle")
+        }
       />
 
       <div className="space-y-3">
@@ -270,11 +402,22 @@ export default function SearchPage() {
               setName: card.setName,
               officialCode: card.officialCode,
               owned: card.owned,
+              checklistCount: card.checklistCount ?? 0,
               price: card.variants.find((variant) => variant.price != null)?.price,
             }}
             onClick={() => {
-              setSelectedCard(card);
-              setOpen(true);
+              setPreviewCard({
+                id: card.id,
+                number: card.number,
+                name: card.name,
+                imageUrl: card.imageUrl,
+                setId: card.setId,
+                setName: card.setName,
+                officialCode: card.officialCode,
+                variants: card.variants,
+              });
+              setPreviewRarity(card.rarity ?? null);
+              setPreviewOpen(true);
             }}
           />
         ))}
@@ -289,11 +432,27 @@ export default function SearchPage() {
         </div>
       ) : null}
 
-      <CardModal
-        key={selectedCard?.id ?? "closed"}
-        card={selectedCard}
-        open={open}
-        onClose={() => setOpen(false)}
+      <SetCardPreviewModal
+        card={previewCard}
+        rarity={previewRarity}
+        open={previewOpen}
+        onClose={() => {
+          setPreviewOpen(false);
+          setPreviewCard(null);
+          setPreviewRarity(null);
+        }}
+        onChecklistChanged={(cardId, checklistCount) => {
+          writeChecklistCountOverride(cardId, checklistCount);
+          setResultsState({
+            results: patchStoredResultsChecklistCount(
+              storedResultsRef.current,
+              cardId,
+              checklistCount,
+            ),
+            hasMore,
+            offset,
+          });
+        }}
       />
     </MobilePage>
   );

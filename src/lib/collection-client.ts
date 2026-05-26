@@ -17,6 +17,7 @@ export function pickDefaultVariantId(
 }
 
 export type AddToCollectionInput = {
+  collectionId: string;
   variantId: string;
   quantity?: number;
   condition?: string;
@@ -47,6 +48,7 @@ export function translateCollectionError(
 }
 
 export async function addToCollection({
+  collectionId,
   variantId,
   quantity = 1,
   condition = "nm",
@@ -59,6 +61,7 @@ export async function addToCollection({
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
+      collectionId,
       variantId,
       quantity,
       condition,

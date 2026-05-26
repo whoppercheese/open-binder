@@ -5,9 +5,12 @@ import {
   cardPrices,
   cards,
   cardVariants,
+  collectionCards,
+  collections,
   sets,
   userCards,
 } from "@/db/schema";
+import { getCollectionById } from "@/lib/collections.server";
 import {
   localizedCardNameSql,
   localizedSetNameSql,
@@ -36,6 +39,7 @@ function collectionSelect(locale: "en" | "de") {
     imageUrl: cards.imageUrl,
     setId: sets.id,
     setName: localizedSetNameSql(locale),
+    setOfficialCode: sets.officialCode,
     trendEur: cardPrices.trendEur,
     lowEur: cardPrices.lowEur,
   };
@@ -60,9 +64,11 @@ function buildSearchFilter(query: string, locale: "en" | "de"): SQL | undefined 
 function buildWhereClause(
   query: string,
   cardId: string,
+  collectionId: string,
   locale: "en" | "de",
 ): SQL | undefined {
   const filters = [
+    eq(userCards.collectionId, collectionId),
     buildSearchFilter(query, locale),
     cardId.trim() ? eq(cards.id, cardId.trim()) : undefined,
   ].filter((filter): filter is SQL => filter != null);
@@ -103,9 +109,25 @@ export async function GET(request: Request) {
       Number.parseInt(searchParams.get("offset") ?? "", 10) || 0,
       0,
     );
+    const collectionId = searchParams.get("collectionId")?.trim() ?? "";
+    if (!collectionId) {
+      return NextResponse.json(
+        { errorCode: "COLLECTION_ID_REQUIRED" },
+        { status: 400 },
+      );
+    }
+
+    const collection = await getCollectionById(collectionId);
+    if (!collection) {
+      return NextResponse.json(
+        { errorCode: "COLLECTION_NOT_FOUND" },
+        { status: 404 },
+      );
+    }
+
     const query = searchParams.get("q")?.trim() ?? "";
     const cardId = searchParams.get("cardId")?.trim() ?? "";
-    const whereClause = buildWhereClause(query, cardId, locale);
+    const whereClause = buildWhereClause(query, cardId, collectionId, locale);
     const selectFields = collectionSelect(locale);
 
     const preference = await getPricePreference();
@@ -199,6 +221,7 @@ export async function POST(request: Request) {
   try {
     const body = await request.json();
     const {
+      collectionId,
       variantId,
       quantity = 1,
       condition = "nm",
@@ -208,6 +231,13 @@ export async function POST(request: Request) {
       flagged = false,
     } = body;
 
+    if (!collectionId) {
+      return NextResponse.json(
+        { errorCode: "COLLECTION_ID_REQUIRED" },
+        { status: 400 },
+      );
+    }
+
     if (!variantId) {
       return NextResponse.json(
         { errorCode: "VARIANT_ID_REQUIRED" },
@@ -215,14 +245,33 @@ export async function POST(request: Request) {
       );
     }
 
+    const collection = await getCollectionById(collectionId);
+    if (!collection) {
+      return NextResponse.json(
+        { errorCode: "COLLECTION_NOT_FOUND" },
+        { status: 404 },
+      );
+    }
+
     const variant = await db.query.cardVariants.findFirst({
       where: eq(cardVariants.id, variantId),
+      with: { card: true },
     });
     if (!variant) {
       return NextResponse.json(
         { errorCode: "VARIANT_NOT_FOUND" },
         { status: 404 },
       );
+    }
+
+    if (collection.type === "custom") {
+      await db
+        .insert(collectionCards)
+        .values({
+          collectionId,
+          cardId: variant.cardId,
+        })
+        .onConflictDoNothing();
     }
 
     const normalizedNotes = notes || null;
@@ -232,6 +281,7 @@ export async function POST(request: Request) {
 
     const existing = await db.query.userCards.findFirst({
       where: and(
+        eq(userCards.collectionId, collectionId),
         eq(userCards.variantId, variantId),
         eq(userCards.condition, condition),
         eq(userCards.language, language),
@@ -255,12 +305,23 @@ export async function POST(request: Request) {
         .where(eq(userCards.id, existing.id))
         .returning();
 
+      await db
+        .update(collections)
+        .set({ updatedAt: new Date() })
+        .where(eq(collections.id, collectionId));
+
       return NextResponse.json({ item: entry });
     }
+
+    await db
+      .update(collections)
+      .set({ updatedAt: new Date() })
+      .where(eq(collections.id, collectionId));
 
     const [entry] = await db
       .insert(userCards)
       .values({
+        collectionId,
         variantId,
         quantity,
         condition,

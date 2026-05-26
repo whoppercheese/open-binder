@@ -50,6 +50,13 @@
       "when": 1780000000000,
       "tag": "0006_card_illustrator",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1780200000000,
+      "tag": "0008_set_collection_checklist",
+      "breakpoints": true
     }
   ]
 }

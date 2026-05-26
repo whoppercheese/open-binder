@@ -4,21 +4,28 @@ import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } fro
 import { useParams, useRouter } from "next/navigation";
 import { Loader2, Download, Ellipsis, RefreshCw, Trash2 } from "lucide-react";
 import { ActionSheet } from "@/components/action-sheet";
-import { CardModal, type CardDetail } from "@/components/card-modal";
 import { CardGrid } from "@/components/card-grid";
 import { CardTile } from "@/components/card-tile";
+import { CollectionListItem } from "@/components/collection-list-item";
 import { ConfirmDialog } from "@/components/confirm-dialog";
-import { ProgressBar } from "@/components/progress-bar";
+import { CreateCollectionSheet } from "@/components/create-collection-sheet";
 import {
-  QuickAddToast,
-  type QuickAddToastData,
-} from "@/components/quick-add-toast";
-import { addToCollection, pickDefaultVariantId } from "@/lib/collection-client";
+  SetCardPreviewModal,
+} from "@/components/set-card-preview-modal";
+import type { CardDetail } from "@/components/card-modal";
 import { apiUrl, useLocale, useTranslations } from "@/lib/i18n/context";
 import { formatSyncJobMessage } from "@/lib/sync-job-display";
 import { getRarityLabel, sortCanonicalRarities } from "@/lib/rarity";
-import { useDefaultCondition } from "@/lib/use-default-condition";
 import { cn } from "@/lib/utils";
+
+type SetCollectionSummary = {
+  id: string;
+  name: string;
+  imageUrl: string | null;
+  ownedCount: number;
+  totalCount: number;
+  percent: number;
+};
 
 type OwnershipFilter = "owned" | "missing";
 
@@ -65,6 +72,7 @@ type SetDetailResponse = {
     owned: boolean;
     ownedQuantity: number;
     flagged: boolean;
+    checklistCount: number;
     variants: Array<{
       id: string;
       variantType: string;
@@ -88,9 +96,11 @@ export default function SetDetailPage() {
   const t = useTranslations();
   const [data, setData] = useState<SetDetailResponse | null>(null);
   const [loading, setLoading] = useState(true);
-  const [selectedCard, setSelectedCard] = useState<CardDetail | null>(null);
-  const [open, setOpen] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
+  const [setCollections, setSetCollections] = useState<SetCollectionSummary[]>(
+    [],
+  );
+  const [createOpen, setCreateOpen] = useState(false);
   const [ownershipFilter, setOwnershipFilter] = useState<OwnershipFilter | null>(
     null,
   );
@@ -101,17 +111,14 @@ export default function SetDetailPage() {
   );
   const [loadingCards, setLoadingCards] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
-  const [quickAddToast, setQuickAddToast] = useState<QuickAddToastData | null>(
-    null,
-  );
   const [menuOpen, setMenuOpen] = useState(false);
   const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
   const [deletingCards, setDeletingCards] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
-  const addingCardIdsRef = useRef(new Set<string>());
-  const quickAddTimeoutRef = useRef<number | null>(null);
+  const [previewCard, setPreviewCard] = useState<CardDetail | null>(null);
+  const [previewRarity, setPreviewRarity] = useState<string | null>(null);
+  const [previewOpen, setPreviewOpen] = useState(false);
   const hadActiveSyncJobRef = useRef(false);
-  const { defaultCondition } = useDefaultCondition();
 
   const cardsSynced = data?.set?.cardsSyncedAt != null;
   const syncActive =
@@ -138,64 +145,20 @@ export default function SetDetailPage() {
 
   const hasActiveFilters = ownershipFilter != null || rarityFilter != null;
 
-  const showQuickAddToast = useCallback(
-    (toast: QuickAddToastData, duration = 2500) => {
-      setQuickAddToast(toast);
-      if (quickAddTimeoutRef.current != null) {
-        window.clearTimeout(quickAddTimeoutRef.current);
-      }
-      quickAddTimeoutRef.current = window.setTimeout(() => {
-        setQuickAddToast(null);
-        quickAddTimeoutRef.current = null;
-      }, duration);
-    },
-    [],
-  );
-
-  const handleQuickAdd = useCallback(
-    async (card: SetDetailResponse["cards"][number]) => {
-      if (addingCardIdsRef.current.has(card.id)) return;
-
-      const variantId = pickDefaultVariantId(card.variants);
-      if (!variantId) return;
-
-      addingCardIdsRef.current.add(card.id);
-      try {
-        await addToCollection({ variantId, condition: defaultCondition });
-        setRefreshKey((value) => value + 1);
-        showQuickAddToast({
-          kind: "success",
-          number: card.number,
-          name: card.name,
-          condition: defaultCondition,
-        });
-      } catch (error) {
-        showQuickAddToast(
-          {
-            kind: "error",
-            message:
-              error instanceof Error
-                ? error.message === "COLLECTION_ADD_FAILED"
-                  ? t("errors.addFailed")
-                  : error.message
-                : t("errors.addFailed"),
-          },
-          3000,
-        );
-      } finally {
-        addingCardIdsRef.current.delete(card.id);
-      }
-    },
-    [showQuickAddToast, defaultCondition],
-  );
-
-  useEffect(() => {
-    return () => {
-      if (quickAddTimeoutRef.current != null) {
-        window.clearTimeout(quickAddTimeoutRef.current);
-      }
-    };
-  }, []);
+  const loadSetCollections = useCallback(async () => {
+    const response = await fetch(apiUrl("/api/collections", locale));
+    const payload = await response.json();
+    if (!response.ok) {
+      setSetCollections([]);
+      return;
+    }
+    const items = (payload.items ?? []) as Array<
+      SetCollectionSummary & { setId: string | null; type: string }
+    >;
+    setSetCollections(
+      items.filter((item) => item.type === "set" && item.setId === params.id),
+    );
+  }, [locale, params.id]);
 
   const loadSet = useCallback(async () => {
     const response = await fetch(apiUrl(`/api/sets/${params.id}`, locale));
@@ -270,14 +233,14 @@ export default function SetDetailPage() {
     let cancelled = false;
 
     (async () => {
-      await loadSet();
+      await Promise.all([loadSet(), loadSetCollections()]);
       if (cancelled) return;
     })();
 
     return () => {
       cancelled = true;
     };
-  }, [loadSet, refreshKey]);
+  }, [loadSet, loadSetCollections, refreshKey]);
 
   useEffect(() => {
     let cancelled = false;
@@ -345,9 +308,8 @@ export default function SetDetailPage() {
 
       setConfirmDeleteOpen(false);
       setMenuOpen(false);
-      setSelectedCard(null);
-      setOpen(false);
       await loadSet();
+      await loadSetCollections();
       router.refresh();
     } finally {
       setDeletingCards(false);
@@ -510,15 +472,29 @@ export default function SetDetailPage() {
             </span>
           </div>
         ) : null}
-        <div>
-          <div className="mb-1 flex justify-between text-sm text-zinc-400">
-            <span>{t("sets.detailProgress")}</span>
-            <span>
-              {data.progress.ownedCards}/{data.progress.totalCards}
-            </span>
-          </div>
-          <ProgressBar value={data.progress.percent} />
-        </div>
+        <section className="space-y-2">
+          <p className="text-sm text-zinc-400">{t("collections.setCatalogHint")}</p>
+          {setCollections.map((collection) => (
+            <CollectionListItem
+              key={collection.id}
+              id={collection.id}
+              name={collection.name}
+              imageUrl={collection.imageUrl}
+              setId={params.id}
+              setOfficialCode={data.set.officialCode}
+              owned={collection.ownedCount}
+              total={collection.totalCount}
+              percent={collection.percent}
+            />
+          ))}
+          <button
+            type="button"
+            onClick={() => setCreateOpen(true)}
+            className="w-full rounded-2xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-sm font-medium text-emerald-200"
+          >
+            {t("collections.createFromSet")}
+          </button>
+        </section>
       </header>
 
       <section className="space-y-3">
@@ -592,11 +568,12 @@ export default function SetDetailPage() {
               ownedQuantity: card.ownedQuantity,
               flagged: card.flagged,
               officialCode: data.set.officialCode,
+              checklistCount: card.checklistCount,
               price: card.variants.find((variant) => variant.price != null)?.price,
             }}
             compact
             onClick={() => {
-              setSelectedCard({
+              setPreviewCard({
                 id: card.id,
                 number: card.number,
                 name: card.name,
@@ -606,23 +583,45 @@ export default function SetDetailPage() {
                 officialCode: data.set.officialCode,
                 variants: card.variants,
               });
-              setOpen(true);
+              setPreviewRarity(card.rarity);
+              setPreviewOpen(true);
             }}
-            onLongPress={() => void handleQuickAdd(card)}
           />
         ))}
       </CardGrid>
       )}
 
-      <CardModal
-        key={selectedCard?.id ?? "closed"}
-        card={selectedCard}
-        open={open}
-        onClose={() => setOpen(false)}
-        onSaved={() => setRefreshKey((value) => value + 1)}
+      <SetCardPreviewModal
+        card={previewCard}
+        rarity={previewRarity}
+        open={previewOpen}
+        onClose={() => {
+          setPreviewOpen(false);
+          setPreviewCard(null);
+          setPreviewRarity(null);
+        }}
+        onChecklistChanged={(cardId, checklistCount) => {
+          setData((current) => {
+            if (!current) return current;
+            return {
+              ...current,
+              cards: current.cards.map((card) =>
+                card.id === cardId ? { ...card, checklistCount } : card,
+              ),
+            };
+          });
+        }}
       />
 
-      {quickAddToast ? <QuickAddToast data={quickAddToast} /> : null}
+      <CreateCollectionSheet
+        open={createOpen}
+        setId={data.set.id}
+        defaultName={data.set.name}
+        onClose={() => {
+          setCreateOpen(false);
+          void loadSetCollections();
+        }}
+      />
 
       <ActionSheet
         open={menuOpen}
