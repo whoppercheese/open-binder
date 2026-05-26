@@ -110,9 +110,7 @@ export async function getCollectionProgress(
 }
 
 export async function listCollections(locale: UiLocale) {
-  const rows = await db.query.collections.findMany({
-    orderBy: [desc(collections.updatedAt)],
-  });
+  const rows = await db.query.collections.findMany();
 
   const setIds = rows
     .map((row) => row.setId)
@@ -127,7 +125,7 @@ export async function listCollections(locale: UiLocale) {
 
   const setById = new Map(setRows.map((set) => [set.id, set]));
 
-  return Promise.all(
+  const items = await Promise.all(
     rows.map(async (row) => {
       const progress = await getCollectionProgress(row);
       const setMeta = row.setId ? setById.get(row.setId) : undefined;
@@ -145,6 +143,13 @@ export async function listCollections(locale: UiLocale) {
         ...progress,
       };
     }),
+  );
+
+  return items.sort(
+    (a, b) =>
+      b.percent - a.percent ||
+      b.ownedCount - a.ownedCount ||
+      b.updatedAt.localeCompare(a.updatedAt),
   );
 }
 

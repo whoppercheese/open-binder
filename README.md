@@ -12,11 +12,45 @@
 
 ## Overview
 
-OpenBinder is an unofficial fan tool for collectors. Card data comes from [TCGdex](https://tcgdex.dev); prices from Cardmarket (via TCGdex). The app runs as a **Progressive Web App (PWA)** in the browser or as an installable home-screen app — optimized for mobile with a fixed bottom navigation bar.
+OpenBinder is an unofficial fan tool for Pokémon TCG collectors who want **multiple binders**, **set progress**, and a **live EUR portfolio** without spreadsheets. Card data comes from [TCGdex](https://tcgdex.dev); prices from Cardmarket (via TCGdex). The app runs as a **Progressive Web App (PWA)** — install it on your phone or use it in the browser, with a mobile-first layout and bottom navigation.
 
-> **Language focus:** The UI and catalog are **German-first** today: card names, set names, search, and labels are in German (`de`). The catalog is synced from TCGdex with `lang=de`. Inventory entries can still track English cards via the language field. Broader locale support may come later; for now, expect German content throughout the app.
+**Navigation:** Dashboard · Sets · Collections · Search · Settings
 
-**Navigation:** Dashboard · Sets · Collections (*Sammlungen*) · Search (*Suche*) · Settings (*Einstellungen*)
+> **Languages:** The UI is available in **English** and **German** (switch in Settings). Card and set names follow your UI language where TCGdex provides translations. Each inventory entry can still record **German** or **English** as the physical card language.
+
+### Why collectors use it
+
+| Need | How OpenBinder helps |
+| --- | --- |
+| Master a classic set | Create a **set collection** — checklist pre-filled with every card; track owned vs missing |
+| Chase cards across sets | Use a **custom collection** — mix Charizard, Mewtwo, etc. from different sets |
+| Know portfolio value | **Cardmarket EUR** (Trend or Low) per variant, summed across all copies |
+| Quick logging at a trade | **Long-press** on the checklist for Quick Add with your default condition |
+| Browse offline-ish | PWA shell + cached images after sync; catalog browsable once sets/cards are loaded |
+
+### Collector workflow (end to end)
+
+1. **Sync catalog** — worker loads set metadata; you **load cards** per set on demand (Base Set, etc.).
+2. **Create binders** — *Base Set Master* (set collection) + *Graded Chase Cards* (custom).
+3. **Browse & search** — Sets grid or Search (`Charizard`, `BS 4`) → card preview → add to checklist.
+4. **Record copies** — open collection → Checklist → tap card for variant/condition/notes, or long-press for Quick Add.
+5. **Review** — Dashboard portfolio, collection Inventory tab, filters (owned / rarity).
+
+### Screenshots
+
+| Dashboard | Sets | Set detail | Card preview |
+| --- | --- | --- | --- |
+| ![Dashboard — portfolio & recent adds](docs/screenshots/01-dashboard.png) | ![Sets — browse by series](docs/screenshots/02-sets.png) | ![Set detail — catalog + progress](docs/screenshots/03-set-detail.png) | ![Card preview — prices & checklist](docs/screenshots/04-card-preview.png) |
+
+| Search | Collections | Checklist | Card modal |
+| --- | --- | --- | --- |
+| ![Search — find cards across catalog](docs/screenshots/05-search.png) | ![Collections — all binders](docs/screenshots/06-collections.png) | ![Checklist — owned filter](docs/screenshots/07-collection-checklist.png) | ![Card modal — record a copy](docs/screenshots/08-card-modal.png) |
+
+| Inventory | Custom collection | | |
+| --- | --- | --- | --- |
+| ![Inventory — copies, qty, value](docs/screenshots/09-collection-inventory.png) | ![Custom collection — mixed chase cards](docs/screenshots/10-custom-collection.png) | | |
+
+To reproduce demo data locally: `npm run prepare:readme-screenshots` (requires app + worker on `http://localhost:3000`). Full screenshot workflow: [`docs/update-readme-screenshots.md`](docs/update-readme-screenshots.md).
 
 ---
 
@@ -161,7 +195,7 @@ Without a collection context, you cannot record inventory here — only add card
 
 Opened from a collection’s Checklist or Inventory tab:
 
-- Set link (official code), card number, and German card name
+- Set link (official code), card number, and localized card name
 - **Card image** — tap for full-screen lightbox
 - **Add to inventory** / edit existing entry with:
   - **Variant** — Normal, Holo, Reverse Holo, 1st Edition (per card); Cardmarket price per variant

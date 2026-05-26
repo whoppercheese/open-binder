@@ -34,6 +34,7 @@ export async function getSetListEntries(): Promise<SetListEntry[]> {
           owned: 0,
           total: set.cardCountOfficial || set.cardCountTotal,
           percent: 0,
+          hasCollection: false,
         })
       : null;
 
@@ -49,6 +50,7 @@ export async function getSetListEntries(): Promise<SetListEntry[]> {
             owned: progress.owned,
             total: progress.total,
             percent: progress.percent,
+            hasCollection: progress.hasCollection,
           }
         : null,
     };

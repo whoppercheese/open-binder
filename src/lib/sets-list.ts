@@ -34,7 +34,8 @@ export function areSetListsEqual(
       a.cardsSyncedAt !== b.cardsSyncedAt ||
       a.progress?.owned !== b.progress?.owned ||
       a.progress?.total !== b.progress?.total ||
-      a.progress?.percent !== b.progress?.percent
+      a.progress?.percent !== b.progress?.percent ||
+      a.progress?.hasCollection !== b.progress?.hasCollection
     ) {
       return false;
     }
