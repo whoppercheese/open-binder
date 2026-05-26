@@ -473,7 +473,11 @@ export default function SetDetailPage() {
           </div>
         ) : null}
         <section className="space-y-2">
-          <p className="text-sm text-zinc-400">{t("collections.setCatalogHint")}</p>
+          {setCollections.length === 0 ? (
+            <p className="text-sm text-zinc-400">
+              {t("collections.setCatalogHint")}
+            </p>
+          ) : null}
           {setCollections.map((collection) => (
             <CollectionListItem
               key={collection.id}

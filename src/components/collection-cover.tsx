@@ -25,17 +25,6 @@ export function CollectionCover({
   const fallbackLabel = setOfficialCode?.trim() || initials;
   const resolvedCoverUrl = coverImageUrl ?? imageUrl;
 
-  if (setId) {
-    return (
-      <SetImage
-        setId={setId}
-        alt={name}
-        className={cn("shrink-0", className)}
-        fallbackLabel={fallbackLabel}
-      />
-    );
-  }
-
   if (resolvedCoverUrl) {
     return (
       <div
@@ -52,6 +41,17 @@ export function CollectionCover({
           className="h-full w-full object-cover object-top"
         />
       </div>
+    );
+  }
+
+  if (setId) {
+    return (
+      <SetImage
+        setId={setId}
+        alt={name}
+        className={cn("shrink-0", className)}
+        fallbackLabel={fallbackLabel}
+      />
     );
   }
 

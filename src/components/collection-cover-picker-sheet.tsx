@@ -5,6 +5,7 @@ import { Loader2, X } from "lucide-react";
 import { CardGrid } from "@/components/card-grid";
 import { CardTile } from "@/components/card-tile";
 import { Portal } from "@/components/portal";
+import { SetImage } from "@/components/set-image";
 import {
   setCollectionCover,
   translateCollectionError,
@@ -22,10 +23,17 @@ type CoverPickerCard = {
   officialCode: string | null;
 };
 
+type CoverPickerSetLogo = {
+  setId: string;
+  setOfficialCode: string | null;
+  setName: string;
+};
+
 type CollectionCoverPickerSheetProps = {
   open: boolean;
   collectionId: string;
   cards: CoverPickerCard[];
+  setLogo?: CoverPickerSetLogo | null;
   selectedCardId?: string | null;
   onClose: () => void;
   onSaved: (update: CollectionCoverUpdate) => void;
@@ -35,20 +43,46 @@ export function CollectionCoverPickerSheet({
   open,
   collectionId,
   cards,
+  setLogo,
   selectedCardId,
   onClose,
   onSaved,
 }: CollectionCoverPickerSheetProps) {
   const t = useTranslations();
   const [savingCardId, setSavingCardId] = useState<string | null>(null);
+  const [savingSetLogo, setSavingSetLogo] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   if (!open) {
     return null;
   }
 
+  const isSetLogoSelected = setLogo != null && selectedCardId == null;
+  const isSaving = savingCardId != null || savingSetLogo;
+
+  async function handleSelectSetLogo() {
+    if (isSaving || isSetLogoSelected) {
+      onClose();
+      return;
+    }
+
+    setSavingSetLogo(true);
+    setError(null);
+    try {
+      const update = await setCollectionCover(collectionId, null);
+      onSaved(update);
+      onClose();
+    } catch (caught) {
+      const code =
+        caught instanceof Error ? caught.message : "SAVE_FAILED";
+      setError(translateCollectionError(code, t));
+    } finally {
+      setSavingSetLogo(false);
+    }
+  }
+
   async function handleSelect(cardId: string) {
-    if (savingCardId || cardId === selectedCardId) {
+    if (isSaving || cardId === selectedCardId) {
       onClose();
       return;
     }
@@ -98,13 +132,43 @@ export function CollectionCoverPickerSheet({
 
           <div className="min-h-0 flex-1 overflow-y-auto px-4 py-4">
             {error ? <p className="mb-3 text-sm text-red-400">{error}</p> : null}
-            {savingCardId ? (
+            {isSaving ? (
               <div className="mb-3 flex items-center gap-2 text-sm text-zinc-400">
                 <Loader2 className="h-4 w-4 animate-spin" />
                 {t("collections.coverSaving")}
               </div>
             ) : null}
             <CardGrid className="grid-cols-4 gap-2 sm:grid-cols-5 md:grid-cols-6">
+              {setLogo ? (
+                <div
+                  className={cn(
+                    "transition-opacity",
+                    !isSetLogoSelected && "opacity-65 hover:opacity-85",
+                    isSetLogoSelected && "z-10 scale-[1.04]",
+                  )}
+                >
+                  <button
+                    type="button"
+                    aria-label={t("collections.coverSetLogo")}
+                    aria-pressed={isSetLogoSelected}
+                    onClick={() => void handleSelectSetLogo()}
+                    className="group relative w-full cursor-pointer select-none text-left transition-[transform,opacity] active:scale-[0.98]"
+                  >
+                    <SetImage
+                      setId={setLogo.setId}
+                      alt={setLogo.setName}
+                      fallbackLabel={setLogo.setOfficialCode}
+                      className={cn(
+                        "aspect-[5/7] w-full text-sm",
+                        isSetLogoSelected && "ring-2 ring-emerald-400/70",
+                      )}
+                    />
+                    <p className="mt-1 truncate text-center text-[10px] text-zinc-400">
+                      {t("collections.coverSetLogo")}
+                    </p>
+                  </button>
+                </div>
+              ) : null}
               {cards.map((card) => {
                 const isSelected = card.id === selectedCardId;
                 return (

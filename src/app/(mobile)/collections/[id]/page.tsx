@@ -616,7 +616,9 @@ export default function CollectionDetailPage() {
   }
 
   const isCustom = data.collection.type === "custom";
-  const canChangeCover = isCustom && data.cards.length > 0;
+  const canChangeCover = isCustom
+    ? data.cards.length > 0
+    : data.set != null;
 
   return (
     <div className="flex min-h-0 flex-col space-y-5 px-4 pt-6">
@@ -708,6 +710,15 @@ export default function CollectionDetailPage() {
           open={coverPickerOpen}
           collectionId={collectionId}
           cards={data.cards}
+          setLogo={
+            data.set
+              ? {
+                  setId: data.set.id,
+                  setOfficialCode: data.set.officialCode,
+                  setName: data.set.name,
+                }
+              : null
+          }
           selectedCardId={data.collection.coverCardId}
           onClose={() => setCoverPickerOpen(false)}
           onSaved={handleCoverSaved}

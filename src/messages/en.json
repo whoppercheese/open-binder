@@ -99,6 +99,7 @@
     "setCover": "Use as collection image",
     "changeCover": "Change collection image",
     "coverPickerTitle": "Choose collection image",
+    "coverSetLogo": "Set logo",
     "coverSaving": "Saving…"
   },
   "collection": {

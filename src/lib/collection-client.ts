@@ -111,7 +111,7 @@ export type CollectionCoverUpdate = {
 
 export async function setCollectionCover(
   collectionId: string,
-  coverCardId: string,
+  coverCardId: string | null,
 ): Promise<CollectionCoverUpdate> {
   const response = await fetch(`/api/collections/${collectionId}`, {
     method: "PATCH",

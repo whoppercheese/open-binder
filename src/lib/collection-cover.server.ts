@@ -171,15 +171,13 @@ export async function setCollectionCover(
     return { error: "COLLECTION_NOT_FOUND" as const };
   }
 
-  if (collection.type !== "custom") {
-    return { error: "COVER_NOT_SUPPORTED" as const };
-  }
-
   if (cardId == null) {
     await clearCollectionCoverState(collectionId);
-    const fallbackCardId = await getFirstChecklistCardId(collectionId, locale);
-    if (fallbackCardId) {
-      await applyCollectionCover(collectionId, fallbackCardId);
+    if (collection.type === "custom") {
+      const fallbackCardId = await getFirstChecklistCardId(collectionId, locale);
+      if (fallbackCardId) {
+        await applyCollectionCover(collectionId, fallbackCardId);
+      }
     }
 
     const updated = await db.query.collections.findFirst({
@@ -240,7 +238,7 @@ export async function refreshCollectionCoverAfterRemoval(
     where: eq(collections.id, collectionId),
   });
 
-  if (!collection || collection.type !== "custom") {
+  if (!collection) {
     return;
   }
 
@@ -250,13 +248,15 @@ export async function refreshCollectionCoverAfterRemoval(
 
   await clearCollectionCoverState(collectionId);
 
-  const fallbackCardId = await getFallbackChecklistCardId(
-    collectionId,
-    locale,
-    removedCardId,
-  );
-  if (fallbackCardId) {
-    await applyCollectionCover(collectionId, fallbackCardId);
+  if (collection.type === "custom") {
+    const fallbackCardId = await getFallbackChecklistCardId(
+      collectionId,
+      locale,
+      removedCardId,
+    );
+    if (fallbackCardId) {
+      await applyCollectionCover(collectionId, fallbackCardId);
+    }
   }
 }
 
