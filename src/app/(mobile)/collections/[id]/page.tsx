@@ -202,19 +202,6 @@ function CollectionOverviewTab({
         </div>
       ) : (
         <>
-          <section className="space-y-2">
-            <CollectionNavLink
-              href={searchHref}
-              icon={Search}
-              label={t("collections.goToSearch")}
-            />
-            <CollectionNavLink
-              href="/sets"
-              icon={Layers}
-              label={t("collections.goToSets")}
-            />
-          </section>
-
           <section className="space-y-3">
             <div className="flex flex-wrap gap-2">
               <FilterChip
