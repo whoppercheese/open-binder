@@ -11,7 +11,34 @@ export type CardSearchFields = {
   setName: string;
   officialCode: string | null;
   number: string;
+  illustrator: string | null;
+  matchedIllustratorTokens?: readonly string[];
 };
+
+function illustratorMatchesToken(
+  illustrator: string | null | undefined,
+  token: string,
+): boolean {
+  if (!illustrator) {
+    return false;
+  }
+
+  return illustrator.toLowerCase().includes(token.toLowerCase());
+}
+
+function tokenMatchedViaIllustratorFetch(
+  token: string,
+  matchedIllustratorTokens?: readonly string[],
+): boolean {
+  if (!matchedIllustratorTokens?.length) {
+    return false;
+  }
+
+  const lowerToken = token.toLowerCase();
+  return matchedIllustratorTokens.some(
+    (matchedToken) => matchedToken.toLowerCase() === lowerToken,
+  );
+}
 
 export function parseSearchQuery(raw: string): ParsedSearchQuery {
   const trimmed = raw.trim();
@@ -56,7 +83,9 @@ export function tokenMatchesCardFields(
   return (
     fields.cardName.toLowerCase().includes(lowerToken) ||
     fields.setName.toLowerCase().includes(lowerToken) ||
-    (fields.officialCode?.toLowerCase() ?? "") === lowerToken
+    (fields.officialCode?.toLowerCase() ?? "") === lowerToken ||
+    illustratorMatchesToken(fields.illustrator, token) ||
+    tokenMatchedViaIllustratorFetch(token, fields.matchedIllustratorTokens)
   );
 }
 
@@ -79,7 +108,9 @@ export function tokenMatchesCatalogSearchFields(
   return (
     fields.cardName.toLowerCase().includes(lowerToken) ||
     fields.setName.toLowerCase() === lowerToken ||
-    (fields.officialCode?.toLowerCase() ?? "") === lowerToken
+    (fields.officialCode?.toLowerCase() ?? "") === lowerToken ||
+    illustratorMatchesToken(fields.illustrator, token) ||
+    tokenMatchedViaIllustratorFetch(token, fields.matchedIllustratorTokens)
   );
 }
 
@@ -101,10 +132,18 @@ export function cardMatchesCatalogSearchQuery(
 ): boolean {
   const normalizedQuery = normalizeSearchText(raw);
   const normalizedCardName = normalizeSearchText(fields.cardName);
+  const normalizedIllustrator = normalizeSearchText(fields.illustrator ?? "");
 
   if (
     normalizedQuery.length >= 2 &&
     normalizedCardName.includes(normalizedQuery)
+  ) {
+    return true;
+  }
+
+  if (
+    normalizedQuery.length >= 2 &&
+    normalizedIllustrator.includes(normalizedQuery)
   ) {
     return true;
   }
@@ -121,6 +160,8 @@ export function scoreCatalogSearchMatch(
   const lowerRaw = raw.trim().toLowerCase();
   const normalizedQuery = normalizeSearchText(raw);
   const normalizedName = normalizeSearchText(fields.cardName);
+  const normalizedIllustrator = normalizeSearchText(fields.illustrator ?? "");
+  const lowerIllustrator = fields.illustrator?.toLowerCase() ?? "";
 
   let score = 0;
 
@@ -133,6 +174,13 @@ export function scoreCatalogSearchMatch(
     normalizedName.includes(normalizedQuery)
   ) {
     score += 200;
+  } else if (
+    normalizedQuery.length >= 2 &&
+    normalizedIllustrator.includes(normalizedQuery)
+  ) {
+    score += 180;
+  } else if (lowerRaw.length > 0 && lowerIllustrator === lowerRaw) {
+    score += 900;
   }
 
   for (const token of tokens) {
@@ -159,6 +207,12 @@ export function scoreCatalogSearchMatch(
     }
     if (fields.setName.toLowerCase() === lowerToken) {
       score += 80;
+    }
+    if (illustratorMatchesToken(fields.illustrator, token)) {
+      score += 70;
+    }
+    if (tokenMatchedViaIllustratorFetch(token, fields.matchedIllustratorTokens)) {
+      score += 70;
     }
   }
 
@@ -244,11 +298,13 @@ export function buildTokenMatchSql(token: string, locale: UiLocale) {
   const cardNameExpr = localizedNameExpr("c", locale);
   const setNameExpr = localizedNameExpr("s", locale);
   const setCodeExpr = sql`lower(coalesce(s.official_code, ''))`;
+  const illustratorExpr = sql`lower(coalesce(c.illustrator, ''))`;
 
   return sql`(
     ${cardNameExpr} LIKE ${`%${lowerToken}%`}
     OR ${setNameExpr} LIKE ${`%${lowerToken}%`}
     OR ${setCodeExpr} = ${lowerToken}
+    OR ${illustratorExpr} LIKE ${`%${lowerToken}%`}
   )`;
 }
 

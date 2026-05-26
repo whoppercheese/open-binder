@@ -20,6 +20,7 @@ export async function rebuildCardSearchVectors(
           ${sql.raw(`'${tsConfig}'`)},
           coalesce(c.names->>${locale}, c.names->>'en', '') || ' ' ||
           coalesce(c.number, '') || ' ' ||
+          coalesce(c.illustrator, '') || ' ' ||
           coalesce(s.names->>${locale}, s.names->>'en', '') || ' ' ||
           coalesce(s.official_code, '')
         )

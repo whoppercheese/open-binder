@@ -3,7 +3,7 @@ import "server-only";
 import { Query } from "@tcgdex/sdk";
 import { inArray } from "drizzle-orm";
 import { db } from "@/db/client";
-import { sets } from "@/db/schema";
+import { cards, sets } from "@/db/schema";
 import {
   extractSetIdFromCardId,
   loadCardSearchResults,
@@ -37,6 +37,8 @@ const NUMBER_FETCH_PAGE_SIZE = 100;
 const NUMBER_FETCH_MAX_PAGES = 3;
 const NAME_FETCH_PAGE_SIZE = 100;
 const NAME_FETCH_MAX_PAGES = 5;
+const ILLUSTRATOR_FETCH_PAGE_SIZE = 100;
+const ILLUSTRATOR_FETCH_MAX_PAGES = 5;
 const CATALOG_SEARCH_CACHE_TTL_MS = 5 * 60 * 1000;
 
 type CatalogSearchCacheEntry = {
@@ -211,6 +213,47 @@ async function fetchCardsByNameToken(
   return matches;
 }
 
+async function fetchCardsByIllustratorToken(
+  token: string,
+  locale: UiLocale,
+): Promise<TcgdexCardBrief[]> {
+  const matches: TcgdexCardBrief[] = [];
+
+  for (let page = 1; page <= ILLUSTRATOR_FETCH_MAX_PAGES; page += 1) {
+    const batch = await listCatalogCards(
+      locale,
+      Query.create()
+        .contains("illustrator", token)
+        .paginate(page, ILLUSTRATOR_FETCH_PAGE_SIZE),
+    );
+
+    if (batch.length === 0) {
+      break;
+    }
+
+    matches.push(...batch);
+
+    if (batch.length < ILLUSTRATOR_FETCH_PAGE_SIZE) {
+      break;
+    }
+  }
+
+  return matches;
+}
+
+function markIllustratorTokenMatches(
+  matchesByCardId: Map<string, Set<string>>,
+  briefs: readonly TcgdexCardBrief[],
+  token: string,
+) {
+  const normalizedToken = token.toLowerCase();
+  for (const brief of briefs) {
+    const existing = matchesByCardId.get(brief.id) ?? new Set<string>();
+    existing.add(normalizedToken);
+    matchesByCardId.set(brief.id, existing);
+  }
+}
+
 async function fetchCardsBySetIds(
   setIds: readonly string[],
   locale: UiLocale,
@@ -234,7 +277,10 @@ async function fetchCardsBySetIds(
 async function fetchCandidateBriefs(
   parsed: ParsedSearchQuery,
   locale: UiLocale,
-): Promise<TcgdexCardBrief[]> {
+): Promise<{
+  briefs: TcgdexCardBrief[];
+  illustratorTokenMatches: Map<string, Set<string>>;
+}> {
   const { tokens, raw } = parsed;
   const numberTokens = tokens.filter(isNumberToken);
   const textTokens = tokens.filter((token) => !isNumberToken(token));
@@ -250,6 +296,7 @@ async function fetchCandidateBriefs(
     ),
   ];
   const batches: TcgdexCardBrief[][] = [];
+  const illustratorTokenMatches = new Map<string, Set<string>>();
 
   for (const number of numberTokens) {
     batches.push(await fetchCardsByExactNumber(number, locale));
@@ -280,14 +327,39 @@ async function fetchCandidateBriefs(
 
     if (raw.length >= 2) {
       batches.push(await fetchCardsByNameToken(raw, locale));
+      const illustratorMatches = await fetchCardsByIllustratorToken(raw, locale);
+      markIllustratorTokenMatches(illustratorTokenMatches, illustratorMatches, raw);
+      batches.push(illustratorMatches);
     }
 
     for (const token of textTokens) {
       batches.push(await fetchCardsByNameToken(token, locale));
+      const illustratorMatches = await fetchCardsByIllustratorToken(token, locale);
+      markIllustratorTokenMatches(illustratorTokenMatches, illustratorMatches, token);
+      batches.push(illustratorMatches);
     }
   }
 
-  return dedupeBriefs(batches.flat());
+  return {
+    briefs: dedupeBriefs(batches.flat()),
+    illustratorTokenMatches,
+  };
+}
+
+async function loadIllustratorsByCardId(
+  cardIds: readonly string[],
+): Promise<Map<string, string | null>> {
+  const uniqueCardIds = [...new Set(cardIds)];
+  if (uniqueCardIds.length === 0) {
+    return new Map();
+  }
+
+  const rows = await db
+    .select({ id: cards.id, illustrator: cards.illustrator })
+    .from(cards)
+    .where(inArray(cards.id, uniqueCardIds));
+
+  return new Map(rows.map((row) => [row.id, row.illustrator]));
 }
 
 async function loadSetMetadataById(
@@ -346,7 +418,8 @@ async function getRankedCatalogSearchBriefs(
     return cached.briefs;
   }
 
-  const candidateBriefs = await fetchCandidateBriefs(parsed, locale);
+  const { briefs: candidateBriefs, illustratorTokenMatches } =
+    await fetchCandidateBriefs(parsed, locale);
   if (candidateBriefs.length === 0) {
     catalogSearchCache.set(cacheKey, { fetchedAt: Date.now(), briefs: [] });
     return [];
@@ -354,15 +427,23 @@ async function getRankedCatalogSearchBriefs(
 
   const setIds = candidateBriefs.map((brief) => extractSetIdFromCardId(brief.id));
   const setMetadataById = await loadSetMetadataById(locale, setIds);
+  const illustratorsByCardId = await loadIllustratorsByCardId(
+    candidateBriefs.map((brief) => brief.id),
+  );
 
   const fieldsForBrief = (brief: TcgdexCardBrief): CardSearchFields => {
     const setId = extractSetIdFromCardId(brief.id);
     const setMeta = setMetadataById.get(setId);
+    const matchedIllustratorTokens = [
+      ...(illustratorTokenMatches.get(brief.id) ?? []),
+    ];
     return {
       cardName: brief.name,
       setName: setMeta?.name ?? "",
       officialCode: setMeta?.officialCode ?? null,
       number: decodeTcgdexLocalId(brief.localId),
+      illustrator: illustratorsByCardId.get(brief.id) ?? null,
+      matchedIllustratorTokens,
     };
   };
 

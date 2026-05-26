@@ -84,6 +84,7 @@ export const cards = pgTable(
     number: text("number").notNull(),
     names: jsonb("names").$type<Record<string, string>>().notNull().default({}),
     rarity: text("rarity"),
+    illustrator: text("illustrator"),
     imageUrl: text("image_url"),
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()
@@ -95,6 +96,7 @@ export const cards = pgTable(
   (table) => [
     index("cards_set_id_idx").on(table.setId),
     index("cards_number_idx").on(table.number),
+    index("cards_illustrator_idx").on(table.illustrator),
     uniqueIndex("cards_set_number_idx").on(table.setId, table.number),
   ],
 );

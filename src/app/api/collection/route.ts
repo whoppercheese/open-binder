@@ -51,6 +51,7 @@ function buildSearchFilter(query: string, locale: "en" | "de"): SQL | undefined 
   return or(
     sql`coalesce(${cards.names}->>${locale}, ${cards.names}->>'en', '') ILIKE ${pattern}`,
     ilike(cards.number, pattern),
+    ilike(cards.illustrator, pattern),
     sql`coalesce(${sets.names}->>${locale}, ${sets.names}->>'en', '') ILIKE ${pattern}`,
     ilike(sets.officialCode, pattern),
   );

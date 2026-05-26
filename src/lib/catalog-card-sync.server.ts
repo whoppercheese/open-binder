@@ -112,6 +112,7 @@ async function syncCard(
     card.rarity ?? null,
     lang === CATALOG_FALLBACK_LANG ? "en" : (lang as "de"),
   );
+  const illustrator = card.illustrator?.trim() || null;
 
   await db
     .insert(cards)
@@ -121,6 +122,7 @@ async function syncCard(
       number: card.localId,
       names: mergedNames,
       rarity: canonicalRarity,
+      illustrator,
       imageUrl,
       updatedAt: new Date(),
     })
@@ -131,6 +133,7 @@ async function syncCard(
         number: card.localId,
         names: mergedNames,
         rarity: canonicalRarity,
+        illustrator,
         imageUrl,
         updatedAt: new Date(),
       },

@@ -54,6 +54,7 @@ export type TcgdexCard = {
   id: string;
   localId: string;
   name: string;
+  illustrator?: string;
   rarity?: string;
   set: { id: string; name: string; serie?: { id: string; name: string } };
   variants?: TcgdexCardVariants;
