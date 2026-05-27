@@ -17,7 +17,7 @@
     "priceTrend": "Trend",
     "priceLow": "Low",
     "defaultCondition": "Standard-Zustand",
-    "defaultConditionHelp": "Wird beim Erfassen per Long-Press in der Set-Ansicht und als Voreinstellung beim Erfassen neuer Kopien im Karten-Dialog verwendet.",
+    "defaultConditionHelp": "Wird beim Erfassen per Long-Press in der Set-Ansicht und als Voreinstellung beim Erfassen neuer Exemplare im Karten-Dialog verwendet.",
     "dataSync": "Daten-Sync",
     "dataSyncHelp": "Sets wöchentlich, Preise täglich. Kartendaten pro Set in der Set-Liste. Der Worker muss laufen.",
     "syncSets": "Sets synchronisieren",
@@ -84,7 +84,7 @@
     "emptySet": "Keine Karten in diesem Set.",
     "delete": "Sammlung löschen",
     "deleteTitle": "Sammlung löschen?",
-    "deleteMessage": "„{name}“, die Checkliste und alle erfassten Kopien wirklich löschen?",
+    "deleteMessage": "„{name}“, die Checkliste und alle erfassten Exemplare wirklich löschen?",
     "setCatalogHint": "Um deinen Fortschritt zu tracken, erstelle eine Sammlung aus diesem Set.",
     "pickCollectionHint": "Öffne eine Sammlung oder lege zuerst eine an, um Karten hinzuzufügen.",
     "detailTabOverview": "Checkliste",
@@ -210,10 +210,10 @@
     "deleteCardDataTitle": "Kartendaten löschen?",
     "deleteConfirmIntro": "Alle heruntergeladenen Kartendaten dieses Sets werden gelöscht. Karten, Varianten, Preise und zwischengespeicherte Bilder.",
     "deleteConfirmWithEntries": {
-      "one": "Dabei wird auch {count} erfasste Kopie aus dem Bestand entfernt, die zu diesem Set gehört.",
-      "other": "Dabei werden auch {count} erfasste Kopien aus dem Bestand entfernt, die zu diesem Set gehören."
+      "one": "Dabei wird auch {count} erfasstes Exemplar aus dem Bestand entfernt, das zu diesem Set gehört.",
+      "other": "Dabei werden auch {count} erfasste Exemplare aus dem Bestand entfernt, die zu diesem Set gehören."
     },
-    "deleteConfirmNoEntries": "Es sind keine Kopien aus diesem Set erfasst.",
+    "deleteConfirmNoEntries": "Es sind keine Exemplare aus diesem Set erfasst.",
     "deleteConfirmResyncNote": "Das Set kann danach erneut synchronisiert werden."
   },
   "cardModal": {
@@ -230,7 +230,7 @@
     "increaseQuantity": "Anzahl erhöhen",
     "cardmarketLink": "Cardmarket: {price}",
     "cardmarketPrice": "Cardmarket-Preis",
-    "viewInCollection": "Erfasste Kopien ({count})",
+    "viewInCollection": "Erfasste Exemplare ({count})",
     "downloadSetHint": "Set zuerst herunterladen, um die Karte zu erfassen.",
     "goToSet": "Zum Set",
     "save": "Speichern",
