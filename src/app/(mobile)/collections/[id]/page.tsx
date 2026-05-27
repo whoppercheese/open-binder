@@ -426,6 +426,9 @@ export default function CollectionDetailPage() {
         params.set("view", "entries");
       } else {
         params.delete("view");
+        // Card filter applies to the inventory tab only; keep URL in sync when
+        // leaving it so "view in collection" links can switch tabs again.
+        params.delete("cardId");
       }
       const query = params.toString();
       router.replace(
@@ -541,8 +544,17 @@ export default function CollectionDetailPage() {
   }, []);
 
   useEffect(() => {
+    const viewParam = searchParams.get("view");
+    if (viewParam === "entries") {
+      setViewMode("entries");
+      return;
+    }
+    if (viewParam === "grid") {
+      setViewMode("grid");
+      return;
+    }
     setViewMode(initialViewMode);
-  }, [initialViewMode]);
+  }, [initialViewMode, searchParams]);
 
   async function handleDeleteCollection() {
     setDeleting(true);
