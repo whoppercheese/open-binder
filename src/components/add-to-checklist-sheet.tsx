@@ -3,6 +3,10 @@
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Check, ChevronRight, Loader2, X } from "lucide-react";
+import {
+  ChecklistCreateCollectionInline,
+  type CreatedChecklistCollection,
+} from "@/components/checklist-create-collection-inline";
 import { CollectionCover } from "@/components/collection-cover";
 import { Portal } from "@/components/portal";
 import { apiUrl, useLocale, useTranslations } from "@/lib/i18n/context";
@@ -133,6 +137,17 @@ export function AddToChecklistSheet({
     });
   }
 
+  function handleCollectionCreated(collection: CreatedChecklistCollection) {
+    setOptions((current) => {
+      if (current.some((item) => item.id === collection.id)) {
+        return current;
+      }
+      return [...current, collection];
+    });
+    setSelectedIds((current) => new Set([...current, collection.id]));
+    setError(null);
+  }
+
   async function fetchChecklistCount(): Promise<number> {
     const response = await fetch(apiUrl(`/api/cards/${cardId}/checklist`, locale));
     const payload = await response.json();
@@ -198,12 +213,13 @@ export function AddToChecklistSheet({
               <p className="py-8 text-center text-sm text-zinc-400">
                 {t("sets.checklistPickerLoading")}
               </p>
-            ) : options.length === 0 ? (
-              <p className="py-8 text-center text-sm text-zinc-500">
-                {t("sets.checklistPickerEmpty")}
-              </p>
             ) : (
               <div className="space-y-4">
+                {options.length === 0 ? (
+                  <p className="py-2 text-center text-sm text-zinc-500">
+                    {t("sets.checklistPickerEmpty")}
+                  </p>
+                ) : null}
                 {alreadyOnChecklist.length > 0 ? (
                   <section className="space-y-2">
                     <p className="text-xs font-medium uppercase tracking-wide text-emerald-400/90">
@@ -299,6 +315,10 @@ export function AddToChecklistSheet({
                     </ul>
                   </section>
                 ) : null}
+                <ChecklistCreateCollectionInline
+                  onCreated={handleCollectionCreated}
+                  disabled={saving}
+                />
               </div>
             )}
             {error ? <p className="mt-3 text-sm text-red-400">{error}</p> : null}
@@ -307,7 +327,7 @@ export function AddToChecklistSheet({
           <div className="border-t border-white/10 p-4">
             <button
               type="button"
-              disabled={saving || !hasSelection || addableOptions.length === 0}
+              disabled={saving || !hasSelection}
               onClick={() => void handleConfirm()}
               className={cn(
                 "flex w-full items-center justify-center gap-2 rounded-2xl bg-emerald-500 px-4 py-3 text-sm font-semibold text-black transition",
