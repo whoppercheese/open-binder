@@ -28,11 +28,12 @@ export function BottomNav() {
     <nav className="shrink-0 border-t border-white/10 bg-[#10131a]/95 backdrop-blur-md">
       <div className="mx-auto grid max-w-lg grid-cols-5 px-2 pb-[max(env(safe-area-inset-bottom),0.5rem)] pt-2">
         {items.map(({ href, label, icon: Icon }) => {
-          const active =
-            href === "/"
+          const isCollectionsNav = href === COLLECTIONS_HREF;
+          const active = isOfflineView
+            ? isCollectionsNav
+            : href === "/"
               ? pathname === "/"
               : pathname === href || pathname.startsWith(`${href}/`);
-          const isCollectionsNav = href === COLLECTIONS_HREF;
           const disabled = isOfflineView && !isCollectionsNav;
 
           if (disabled) {
@@ -49,7 +50,7 @@ export function BottomNav() {
           }
 
           const className = cn(
-            "flex flex-col items-center gap-1 rounded-xl px-2 py-2 text-[11px] font-medium transition-colors",
+            "flex w-full flex-col items-center gap-1 rounded-xl border-0 bg-transparent px-2 py-2 text-[11px] font-medium transition-colors appearance-none [-webkit-tap-highlight-color:transparent]",
             active
               ? "text-emerald-400"
               : "text-zinc-400 hover:text-zinc-200",
@@ -66,6 +67,7 @@ export function BottomNav() {
                   }
                 }}
                 className={className}
+                aria-current={active ? "page" : undefined}
               >
                 <Icon className="h-5 w-5" />
                 {label}

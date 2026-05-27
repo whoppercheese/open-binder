@@ -22,9 +22,9 @@ export default async function MobileLayout({
         <OfflineNavigationProvider>
           <div className="fixed inset-0 mx-auto flex w-full max-w-lg flex-col overflow-hidden bg-[#0b0d12] text-white">
             <OfflineBanner />
-            <OfflineShell>
-              <MobileScrollShell>{children}</MobileScrollShell>
-            </OfflineShell>
+            <MobileScrollShell>
+              <OfflineShell>{children}</OfflineShell>
+            </MobileScrollShell>
             <BottomNav />
           </div>
         </OfflineNavigationProvider>
