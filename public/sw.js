@@ -73,11 +73,43 @@ async function networkFirst(request) {
   }
 }
 
+async function matchCollectionsCache(cache, pathname, kind) {
+  if (kind === "rsc") {
+    const rscCached = await cache.match(
+      collectionsCacheRequest(pathname, "rsc"),
+    );
+    if (rscCached) {
+      return rscCached;
+    }
+  }
+
+  return cache.match(collectionsCacheRequest(pathname, "html"));
+}
+
 async function networkFirstCollections(request) {
   const url = new URL(request.url);
   const pathname = url.pathname;
   const kind = requestKind(request);
   const cache = await caches.open(CACHE_NAME);
+
+  if (kind) {
+    const cached = await matchCollectionsCache(cache, pathname, kind);
+    if (cached) {
+      // Serve cache before hitting the network. iOS Safari shows a native
+      // offline error for failed document navigations even when a fallback exists.
+      void fetch(request)
+        .then(async (response) => {
+          if (response.ok) {
+            await cache.put(
+              collectionsCacheRequest(pathname, kind),
+              response.clone(),
+            );
+          }
+        })
+        .catch(() => {});
+      return cached;
+    }
+  }
 
   try {
     const response = await fetch(request);
@@ -86,20 +118,9 @@ async function networkFirstCollections(request) {
     }
     return response;
   } catch (error) {
-    if (kind === "rsc") {
-      const rscCached = await cache.match(
-        collectionsCacheRequest(pathname, "rsc"),
-      );
-      if (rscCached) {
-        return rscCached;
-      }
-    }
-
-    const htmlCached = await cache.match(
-      collectionsCacheRequest(pathname, "html"),
-    );
-    if (htmlCached) {
-      return htmlCached;
+    const cached = await matchCollectionsCache(cache, pathname, kind);
+    if (cached) {
+      return cached;
     }
 
     throw error;

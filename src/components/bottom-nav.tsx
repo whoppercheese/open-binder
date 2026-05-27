@@ -53,15 +53,6 @@ export function BottomNav() {
               : "text-zinc-400 hover:text-zinc-200",
           );
 
-          if (isOfflineView) {
-            return (
-              <a key={href} href={href} className={className}>
-                <Icon className="h-5 w-5" />
-                {label}
-              </a>
-            );
-          }
-
           return (
             <Link key={href} href={href} prefetch={false} className={className}>
               <Icon className="h-5 w-5" />

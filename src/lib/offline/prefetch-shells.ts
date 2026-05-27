@@ -12,6 +12,21 @@ async function prefetchHtmlShell(path: string): Promise<void> {
   });
 }
 
+async function prefetchRscShell(path: string): Promise<void> {
+  await fetch(path, {
+    credentials: "same-origin",
+    headers: {
+      RSC: "1",
+      Accept: "text/x-component",
+    },
+  });
+}
+
+async function prefetchRouteShell(path: string): Promise<void> {
+  await prefetchHtmlShell(path);
+  await prefetchRscShell(path);
+}
+
 export async function prefetchCollectionShells(
   collectionIds: string[],
 ): Promise<void> {
@@ -26,7 +41,7 @@ export async function prefetchCollectionShells(
 
   await mapWithConcurrency(paths, SHELL_CONCURRENCY, async (path) => {
     try {
-      await prefetchHtmlShell(path);
+      await prefetchRouteShell(path);
     } catch {
       // Best-effort shell warm-up for offline navigation.
     }
