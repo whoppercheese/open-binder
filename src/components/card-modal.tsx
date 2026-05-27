@@ -319,13 +319,19 @@ function CardModalForm({
               <div>
                 <div className="mb-1 flex flex-wrap items-center gap-x-2 gap-y-1">
                   {card.setId ? (
-                    <Link
-                      href={`/sets/${card.setId}`}
-                      onClick={handleClose}
-                      className="inline-flex items-center rounded-lg bg-emerald-500/10 px-2 py-0.5 text-sm font-medium text-emerald-400 transition hover:bg-emerald-500/20 hover:text-emerald-300"
-                    >
-                      {setLabel}
-                    </Link>
+                    readOnly ? (
+                      <span className="inline-flex items-center rounded-lg border border-white/10 bg-white/5 px-2 py-0.5 text-sm font-medium text-zinc-400">
+                        {setLabel}
+                      </span>
+                    ) : (
+                      <Link
+                        href={`/sets/${card.setId}`}
+                        onClick={handleClose}
+                        className="inline-flex items-center rounded-lg bg-emerald-500/10 px-2 py-0.5 text-sm font-medium text-emerald-400 transition hover:bg-emerald-500/20 hover:text-emerald-300"
+                      >
+                        {setLabel}
+                      </Link>
+                    )
                   ) : (
                     <span className="text-sm font-medium text-zinc-400">
                       {setLabel}
@@ -517,7 +523,7 @@ function CardModalForm({
                 <p className="rounded-xl border border-amber-500/20 bg-amber-500/5 px-3 py-2.5 text-center text-sm text-amber-200">
                   {t("cardModal.downloadSetHint")}
                 </p>
-                {card.setId ? (
+                {card.setId && !readOnly ? (
                   <Link
                     href={`/sets/${card.setId}`}
                     onClick={handleClose}
@@ -569,7 +575,8 @@ function CardModalForm({
             {!needsSetDownload && selectedVariant ? (
               <p className="mb-3 text-sm">
                 {selectedVariant.cardmarketProductId &&
-                selectedVariant.price != null ? (
+                selectedVariant.price != null &&
+                !readOnly ? (
                   <a
                     href={getCardmarketProductUrl(
                       selectedVariant.cardmarketProductId,

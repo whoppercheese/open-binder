@@ -619,6 +619,7 @@ export function CollectionEntriesView({
         collectionId={collectionId}
         entry={editEntry}
         open={editOpen}
+        readOnly={readOnly}
         onClose={closeEdit}
         onSaved={() => {
           void loadPage(true, query, cardId);
