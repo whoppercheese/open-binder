@@ -461,6 +461,20 @@ export function CollectionDetailView({ collectionId }: { collectionId: string })
     [collectionId, isOfflineView, router, searchParams],
   );
 
+  const showEntriesForCard = useCallback(
+    (cardId: string) => {
+      setOfflineHighlightCardId(cardId);
+      setViewMode("entries");
+      if (!isOfflineView) {
+        router.replace(
+          `/collections/${collectionId}?view=entries&cardId=${encodeURIComponent(cardId)}`,
+          { scroll: false },
+        );
+      }
+    },
+    [collectionId, isOfflineView, router],
+  );
+
   const clearCardFilter = useCallback(() => {
     if (isOfflineView) {
       setOfflineHighlightCardId("");
@@ -721,6 +735,7 @@ export function CollectionDetailView({ collectionId }: { collectionId: string })
         collectionType={data.collection.type}
         open={open}
         readOnly={isOfflineView}
+        onViewInCollection={showEntriesForCard}
         onClose={() => {
           setOpen(false);
           setSelectedCard(null);

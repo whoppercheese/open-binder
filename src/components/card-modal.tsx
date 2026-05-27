@@ -79,6 +79,8 @@ type CardModalProps = {
   onClose: () => void;
   onSaved?: () => void;
   onRemovedFromChecklist?: () => void;
+  /** When set, avoids route navigation (required for offline collection drill-down). */
+  onViewInCollection?: (cardId: string) => void;
   entry?: CollectionEntry | null;
 };
 
@@ -141,6 +143,7 @@ type CardModalFormProps = {
   onClose: () => void;
   onSaved?: () => void;
   onRemovedFromChecklist?: () => void;
+  onViewInCollection?: (cardId: string) => void;
   entry?: CollectionEntry | null;
   defaultCondition: CardCondition;
 };
@@ -154,6 +157,7 @@ function CardModalForm({
   onClose,
   onSaved,
   onRemovedFromChecklist,
+  onViewInCollection,
   entry = null,
   defaultCondition,
 }: CardModalFormProps) {
@@ -526,20 +530,40 @@ function CardModalForm({
             ) : null}
 
             {ownedCount > 0 && !isEdit && collectionId ? (
-              <Link
-                href={`/collections/${collectionId}?view=entries&cardId=${encodeURIComponent(card.id)}`}
-                onClick={handleClose}
-                className="mb-3 flex w-full items-center gap-2 rounded-2xl border border-white/10 px-4 py-3 text-sm font-medium text-white transition hover:bg-white/5"
-              >
-                <WalletCards className="h-4 w-4 shrink-0" />
-                <span className="min-w-0 flex-1 text-center">
-                  {t("cardModal.viewInCollection", { count: ownedCount })}
-                </span>
-                <ChevronRight
-                  className="h-4 w-4 shrink-0 text-zinc-400"
-                  aria-hidden
-                />
-              </Link>
+              onViewInCollection ? (
+                <button
+                  type="button"
+                  onClick={() => {
+                    onViewInCollection(card.id);
+                    handleClose();
+                  }}
+                  className="mb-3 flex w-full items-center gap-2 rounded-2xl border border-white/10 bg-transparent px-4 py-3 text-sm font-medium text-white transition hover:bg-white/5"
+                >
+                  <WalletCards className="h-4 w-4 shrink-0" />
+                  <span className="min-w-0 flex-1 text-center">
+                    {t("cardModal.viewInCollection", { count: ownedCount })}
+                  </span>
+                  <ChevronRight
+                    className="h-4 w-4 shrink-0 text-zinc-400"
+                    aria-hidden
+                  />
+                </button>
+              ) : (
+                <Link
+                  href={`/collections/${collectionId}?view=entries&cardId=${encodeURIComponent(card.id)}`}
+                  onClick={handleClose}
+                  className="mb-3 flex w-full items-center gap-2 rounded-2xl border border-white/10 px-4 py-3 text-sm font-medium text-white transition hover:bg-white/5"
+                >
+                  <WalletCards className="h-4 w-4 shrink-0" />
+                  <span className="min-w-0 flex-1 text-center">
+                    {t("cardModal.viewInCollection", { count: ownedCount })}
+                  </span>
+                  <ChevronRight
+                    className="h-4 w-4 shrink-0 text-zinc-400"
+                    aria-hidden
+                  />
+                </Link>
+              )
             ) : null}
 
             {!needsSetDownload && selectedVariant ? (
@@ -679,6 +703,7 @@ export function CardModal({
   onClose,
   onSaved,
   onRemovedFromChecklist,
+  onViewInCollection,
   entry = null,
 }: CardModalProps) {
   const { defaultCondition } = useDefaultCondition();
@@ -697,6 +722,7 @@ export function CardModal({
       onClose={onClose}
       onSaved={onSaved}
       onRemovedFromChecklist={onRemovedFromChecklist}
+      onViewInCollection={onViewInCollection}
       entry={entry}
       defaultCondition={defaultCondition}
     />
