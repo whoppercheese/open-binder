@@ -1,21 +1,27 @@
-import { Plus } from "lucide-react";
+import { Plus, CheckSquare2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const RING_RADIUS = 15;
 const RING_CIRCUMFERENCE = 2 * Math.PI * RING_RADIUS;
 
+type LongPressIndicatorIcon = "plus" | "check";
+
 type LongPressIndicatorProps = {
   active: boolean;
   durationMs: number;
   compact?: boolean;
+  icon?: LongPressIndicatorIcon;
 };
 
 export function LongPressIndicator({
   active,
   durationMs,
   compact = false,
+  icon = "plus",
 }: LongPressIndicatorProps) {
   if (!active) return null;
+
+  const Icon = icon === "check" ? CheckSquare2 : Plus;
 
   return (
     <div
@@ -57,7 +63,7 @@ export function LongPressIndicator({
             }}
           />
         </svg>
-        <Plus
+        <Icon
           className="absolute inset-0 m-auto h-[22%] w-[22%] text-emerald-200"
           strokeWidth={2.5}
         />

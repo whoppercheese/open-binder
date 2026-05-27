@@ -4,7 +4,9 @@ import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } fro
 import { useParams, useRouter } from "next/navigation";
 import { Loader2, Download, Ellipsis, RefreshCw, Trash2 } from "lucide-react";
 import { ActionSheet } from "@/components/action-sheet";
+import { BulkAddToChecklistSheet } from "@/components/bulk-add-to-checklist-sheet";
 import { CardGrid } from "@/components/card-grid";
+import { CardSelectionToolbar } from "@/components/card-selection-toolbar";
 import { CardTile } from "@/components/card-tile";
 import { CollectionListItem } from "@/components/collection-list-item";
 import { ConfirmDialog } from "@/components/confirm-dialog";
@@ -16,6 +18,7 @@ import type { CardDetail } from "@/components/card-modal";
 import { apiUrl, useLocale, useTranslations } from "@/lib/i18n/context";
 import { formatSyncJobMessage } from "@/lib/sync-job-display";
 import { getRarityLabel, sortCanonicalRarities } from "@/lib/rarity";
+import { useCardGridSelection } from "@/lib/use-card-grid-selection";
 import { cn } from "@/lib/utils";
 
 type SetCollectionSummary = {
@@ -118,6 +121,8 @@ export default function SetDetailPage() {
   const [previewCard, setPreviewCard] = useState<CardDetail | null>(null);
   const [previewRarity, setPreviewRarity] = useState<string | null>(null);
   const [previewOpen, setPreviewOpen] = useState(false);
+  const [bulkChecklistOpen, setBulkChecklistOpen] = useState(false);
+  const selection = useCardGridSelection();
   const hadActiveSyncJobRef = useRef(false);
 
   const cardsSynced = data?.set?.cardsSyncedAt != null;
@@ -576,7 +581,23 @@ export default function SetDetailPage() {
               price: card.variants.find((variant) => variant.price != null)?.price,
             }}
             compact
+            selected={selection.isSelected(card.id)}
+            longPressPreset="select"
+            onLongPress={
+              selection.isSelecting
+                ? undefined
+                : () => selection.enterWith(card.id)
+            }
             onClick={() => {
+              if (selection.shouldIgnoreTap()) {
+                return;
+              }
+
+              if (selection.isSelecting) {
+                selection.toggle(card.id);
+                return;
+              }
+
               setPreviewCard({
                 id: card.id,
                 number: card.number,
@@ -644,6 +665,33 @@ export default function SetDetailPage() {
           if (!deletingCards) {
             setConfirmDeleteOpen(false);
           }
+        }}
+      />
+
+      <CardSelectionToolbar
+        selectedCount={selection.selectedCount}
+        onCancel={selection.clear}
+        onAddToChecklist={() => setBulkChecklistOpen(true)}
+      />
+
+      <BulkAddToChecklistSheet
+        cardIds={Array.from(selection.selectedIds)}
+        open={bulkChecklistOpen}
+        onClose={() => setBulkChecklistOpen(false)}
+        onSaved={(checklistCounts) => {
+          setData((current) => {
+            if (!current) return current;
+            return {
+              ...current,
+              cards: current.cards.map((card) =>
+                checklistCounts[card.id] != null
+                  ? { ...card, checklistCount: checklistCounts[card.id]! }
+                  : card,
+              ),
+            };
+          });
+          selection.clear();
+          setBulkChecklistOpen(false);
         }}
       />
     </div>

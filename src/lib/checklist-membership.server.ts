@@ -142,3 +142,135 @@ export async function addCardToChecklists(
 
   return { added, skipped };
 }
+
+export type BulkChecklistCollectionOption = ChecklistCollectionOption & {
+  cardsOnChecklist: number;
+  totalCards: number;
+};
+
+export async function getBulkChecklistMembership(cardIds: readonly string[]) {
+  const uniqueCardIds = [...new Set(cardIds.filter(Boolean))];
+  if (uniqueCardIds.length === 0) {
+    return { cardIds: [], collections: [] as BulkChecklistCollectionOption[] };
+  }
+
+  const allCollections = await db.query.collections.findMany({
+    orderBy: [desc(collections.updatedAt)],
+  });
+
+  const membershipRows = await db
+    .select({
+      collectionId: collectionCards.collectionId,
+      cardId: collectionCards.cardId,
+    })
+    .from(collectionCards)
+    .where(inArray(collectionCards.cardId, uniqueCardIds));
+
+  const countByCollection = new Map<string, number>();
+  for (const row of membershipRows) {
+    countByCollection.set(
+      row.collectionId,
+      (countByCollection.get(row.collectionId) ?? 0) + 1,
+    );
+  }
+
+  const totalCards = uniqueCardIds.length;
+  const options: BulkChecklistCollectionOption[] = allCollections.map(
+    (collection) => {
+      const cardsOnChecklist = countByCollection.get(collection.id) ?? 0;
+      const allOnChecklist = cardsOnChecklist >= totalCards;
+
+      return {
+        id: collection.id,
+        name: collection.name,
+        type: collection.type,
+        setId: collection.type === "set" ? collection.setId : null,
+        imageUrl: collection.imageUrl,
+        coverImageUrl: getCollectionCoverFields(collection).coverImageUrl,
+        onChecklist: allOnChecklist,
+        locked: allOnChecklist,
+        cardsOnChecklist,
+        totalCards,
+      };
+    },
+  );
+
+  return { cardIds: uniqueCardIds, collections: options };
+}
+
+export async function addCardsToChecklists(
+  cardIds: readonly string[],
+  collectionIds: readonly string[],
+) {
+  const uniqueCardIds = [...new Set(cardIds.filter(Boolean))];
+  const uniqueCollectionIds = [...new Set(collectionIds.filter(Boolean))];
+
+  if (uniqueCardIds.length === 0 || uniqueCollectionIds.length === 0) {
+    return { added: 0, skipped: 0, checklistCounts: new Map<string, number>() };
+  }
+
+  const existingCards = await db.query.cards.findMany({
+    where: inArray(cards.id, uniqueCardIds),
+    columns: { id: true },
+  });
+  const existingCardIds = new Set(existingCards.map((row) => row.id));
+  const missingCardIds = uniqueCardIds.filter((id) => !existingCardIds.has(id));
+
+  if (missingCardIds.length > 0) {
+    return {
+      error: "CARDS_NOT_FOUND" as const,
+      missingCardIds,
+    };
+  }
+
+  const collectionRows = await db.query.collections.findMany({
+    where: inArray(collections.id, uniqueCollectionIds),
+    columns: { id: true },
+  });
+
+  if (collectionRows.length === 0) {
+    return { error: "COLLECTION_NOT_FOUND" as const };
+  }
+
+  const membershipRows = await db
+    .select({
+      collectionId: collectionCards.collectionId,
+      cardId: collectionCards.cardId,
+    })
+    .from(collectionCards)
+    .where(
+      and(
+        inArray(collectionCards.cardId, uniqueCardIds),
+        inArray(collectionCards.collectionId, uniqueCollectionIds),
+      ),
+    );
+
+  const existingPairs = new Set(
+    membershipRows.map((row) => `${row.collectionId}:${row.cardId}`),
+  );
+
+  let added = 0;
+  let skipped = 0;
+
+  for (const collection of collectionRows) {
+    for (const cardId of uniqueCardIds) {
+      const pairKey = `${collection.id}:${cardId}`;
+      if (existingPairs.has(pairKey)) {
+        skipped += 1;
+        continue;
+      }
+
+      const result = await addCardToCollectionChecklist(collection.id, cardId);
+      if ("error" in result) {
+        return { error: result.error };
+      }
+
+      added += 1;
+      existingPairs.add(pairKey);
+    }
+  }
+
+  const checklistCounts = await getChecklistCountsForCardIds(uniqueCardIds);
+
+  return { added, skipped, checklistCounts };
+}

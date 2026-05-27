@@ -240,6 +240,26 @@
     "save": "Speichern",
     "addToCollection": "Zum Bestand hinzufügen"
   },
+  "selection": {
+    "cancel": "Auswahl abbrechen",
+    "actions": "Aktionen",
+    "addToChecklist": "Zur Checklist hinzufügen",
+    "selectedCount": {
+      "one": "{count} ausgewählt",
+      "other": "{count} ausgewählt"
+    }
+  },
+  "bulkChecklist": {
+    "title": "Zur Checklist hinzufügen",
+    "loadFailed": "Sammlungen konnten nicht geladen werden.",
+    "addFailed": "Karten konnten nicht zur Checklist hinzugefügt werden.",
+    "preparingCards": "Karten werden vorbereitet…",
+    "partialOnChecklist": "{count}/{total} bereits auf der Checklist",
+    "partialFailure": {
+      "one": "{count} Karte konnte nicht vorbereitet werden.",
+      "other": "{count} Karten konnten nicht vorbereitet werden."
+    }
+  },
   "common": {
     "cancel": "Abbrechen",
     "delete": "Löschen",

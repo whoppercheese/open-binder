@@ -240,6 +240,26 @@
     "save": "Save",
     "addToCollection": "Add to inventory"
   },
+  "selection": {
+    "cancel": "Cancel selection",
+    "actions": "Actions",
+    "addToChecklist": "Add to checklist",
+    "selectedCount": {
+      "one": "{count} selected",
+      "other": "{count} selected"
+    }
+  },
+  "bulkChecklist": {
+    "title": "Add to checklist",
+    "loadFailed": "Could not load collections.",
+    "addFailed": "Could not add cards to checklist.",
+    "preparingCards": "Preparing cards…",
+    "partialOnChecklist": "{count}/{total} already on checklist",
+    "partialFailure": {
+      "one": "{count} card could not be prepared.",
+      "other": "{count} cards could not be prepared."
+    }
+  },
   "common": {
     "cancel": "Cancel",
     "delete": "Delete",

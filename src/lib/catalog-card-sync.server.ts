@@ -84,7 +84,7 @@ function resolveCardNamesFromHints(
   return names;
 }
 
-async function syncCard(
+export async function syncSingleCard(
   cardId: string,
   seriesId: string,
   setId: string,
@@ -198,7 +198,7 @@ export async function syncSetCards(
     const hints = nameHints.get(localId);
 
     try {
-      await syncCard(cardSummary.id, seriesId, detail.id, catalogLang, hints);
+      await syncSingleCard(cardSummary.id, seriesId, detail.id, catalogLang, hints);
     } catch (error) {
       const message =
         error instanceof Error ? error.message : "Unbekannter Kartenfehler";

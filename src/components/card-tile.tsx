@@ -36,10 +36,16 @@ type CardTileProps = {
   href?: string;
   onClick?: () => void;
   onLongPress?: () => void;
+  longPressPreset?: "quickAdd" | "select";
   compact?: boolean;
   showPrice?: boolean;
   showMeta?: boolean;
   selected?: boolean;
+};
+
+const LONG_PRESS_PRESETS = {
+  quickAdd: { indicatorDelay: 200, holdDuration: 1000, icon: "plus" as const },
+  select: { indicatorDelay: 150, holdDuration: 450, icon: "check" as const },
 };
 
 export function CardTile({
@@ -47,6 +53,7 @@ export function CardTile({
   href,
   onClick,
   onLongPress,
+  longPressPreset = "quickAdd",
   compact = false,
   showPrice = true,
   showMeta = true,
@@ -54,9 +61,12 @@ export function CardTile({
 }: CardTileProps) {
   const { locale } = useLocale();
   const t = useTranslations();
+  const preset = LONG_PRESS_PRESETS[longPressPreset];
   const longPress = useLongPress<HTMLButtonElement>(() => onLongPress?.(), {
     disabled: !onLongPress || Boolean(href),
     onTap: onLongPress ? onClick : undefined,
+    indicatorDelay: preset.indicatorDelay,
+    holdDuration: preset.holdDuration,
   });
 
   const setIdFallback = (() => {
@@ -84,6 +94,7 @@ export function CardTile({
           active={Boolean(onLongPress && longPress.showIndicator)}
           durationMs={longPress.progressDurationMs}
           compact={compact}
+          icon={preset.icon}
         />
         <CardImage
           cardId={card.id}

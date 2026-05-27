@@ -3,8 +3,10 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { usePathname, useSearchParams } from "next/navigation";
 import type { CardDetail } from "@/components/card-modal";
+import { BulkAddToChecklistSheet } from "@/components/bulk-add-to-checklist-sheet";
 import { SetCardPreviewModal } from "@/components/set-card-preview-modal";
 import { CardGrid } from "@/components/card-grid";
+import { CardSelectionToolbar } from "@/components/card-selection-toolbar";
 import { CardTile } from "@/components/card-tile";
 import {
   clearSavedScrollPosition,
@@ -21,6 +23,7 @@ import {
   writeChecklistCountOverride,
 } from "@/lib/checklist-count-overrides.client";
 import { isSearchableQuery } from "@/lib/search";
+import { useCardGridSelection } from "@/lib/use-card-grid-selection";
 import { useSearchPageState } from "@/lib/use-search-page-state";
 import { cn } from "@/lib/utils";
 
@@ -65,6 +68,25 @@ function patchStoredResultsChecklistCount(
   );
 }
 
+function patchStoredResultsChecklistCounts(
+  results: unknown[],
+  checklistCounts: Record<string, number>,
+): unknown[] {
+  return results.map((item) => {
+    if (!isSearchResult(item)) {
+      return item;
+    }
+
+    const nextCount = checklistCounts[item.id];
+    if (nextCount == null) {
+      return item;
+    }
+
+    writeChecklistCountOverride(item.id, nextCount);
+    return { ...item, checklistCount: nextCount };
+  });
+}
+
 export default function SearchPage() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -92,6 +114,8 @@ export default function SearchPage() {
   const [previewCard, setPreviewCard] = useState<CardDetail | null>(null);
   const [previewRarity, setPreviewRarity] = useState<string | null>(null);
   const [previewOpen, setPreviewOpen] = useState(false);
+  const [bulkChecklistOpen, setBulkChecklistOpen] = useState(false);
+  const selection = useCardGridSelection();
   const searchRequestIdRef = useRef(0);
   const skipNextSearchRef = useRef(false);
   const initialSearchHandledRef = useRef(false);
@@ -404,7 +428,23 @@ export default function SearchPage() {
               checklistCount: card.checklistCount ?? 0,
               price: card.variants.find((variant) => variant.price != null)?.price,
             }}
+            selected={selection.isSelected(card.id)}
+            longPressPreset="select"
+            onLongPress={
+              selection.isSelecting
+                ? undefined
+                : () => selection.enterWith(card.id)
+            }
             onClick={() => {
+              if (selection.shouldIgnoreTap()) {
+                return;
+              }
+
+              if (selection.isSelecting) {
+                selection.toggle(card.id);
+                return;
+              }
+
               setPreviewCard({
                 id: card.id,
                 number: card.number,
@@ -451,6 +491,30 @@ export default function SearchPage() {
             hasMore,
             offset,
           });
+        }}
+      />
+
+      <CardSelectionToolbar
+        selectedCount={selection.selectedCount}
+        onCancel={selection.clear}
+        onAddToChecklist={() => setBulkChecklistOpen(true)}
+      />
+
+      <BulkAddToChecklistSheet
+        cardIds={Array.from(selection.selectedIds)}
+        open={bulkChecklistOpen}
+        onClose={() => setBulkChecklistOpen(false)}
+        onSaved={(checklistCounts) => {
+          setResultsState({
+            results: patchStoredResultsChecklistCounts(
+              storedResultsRef.current,
+              checklistCounts,
+            ),
+            hasMore,
+            offset,
+          });
+          selection.clear();
+          setBulkChecklistOpen(false);
         }}
       />
     </MobilePage>
