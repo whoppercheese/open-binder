@@ -430,11 +430,12 @@ export default function SearchPage() {
             }}
             selected={selection.isSelected(card.id)}
             longPressPreset="select"
-            onLongPress={
-              selection.isSelecting
-                ? undefined
-                : () => selection.enterWith(card.id)
-            }
+            longPressActive={!selection.isSelecting}
+            onLongPress={() => {
+              if (!selection.isSelecting) {
+                selection.enterWith(card.id);
+              }
+            }}
             onClick={() => {
               if (selection.shouldIgnoreTap()) {
                 return;

@@ -48,8 +48,14 @@ function setLocaleCookie(locale: UiLocale) {
   document.cookie = `${UI_LANGUAGE_COOKIE}=${locale};path=/;max-age=31536000;samesite=lax`;
 }
 
-export function LocaleProvider({ children }: { children: ReactNode }) {
-  const [locale, setLocaleState] = useState<UiLocale>(readLocaleFromCookie);
+export function LocaleProvider({
+  children,
+  initialLocale,
+}: {
+  children: ReactNode;
+  initialLocale: UiLocale;
+}) {
+  const [locale, setLocaleState] = useState<UiLocale>(initialLocale);
   const [ready, setReady] = useState(false);
 
   useEffect(() => {

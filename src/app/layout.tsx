@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { ServiceWorkerRegistration } from "@/components/service-worker-registration";
+import { getRequestLocale } from "@/lib/i18n/server";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -41,14 +42,16 @@ export const viewport: Viewport = {
   userScalable: false,
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const locale = await getRequestLocale();
+
   return (
     <html
-      lang="en"
+      lang={locale}
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
       <body className="h-full overflow-hidden bg-[#0b0d12] text-white">

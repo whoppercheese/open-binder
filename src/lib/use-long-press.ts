@@ -9,6 +9,8 @@ type UseLongPressOptions = {
   indicatorDelay?: number;
   moveThreshold?: number;
   disabled?: boolean;
+  /** When false, only short-tap handling runs (keeps release suppression for active gestures). */
+  longPressEnabled?: boolean;
   /** Short tap handler — invoked from pointerup, not from click (needed for iOS). */
   onTap?: () => void;
 };
@@ -25,6 +27,7 @@ export function useLongPress<T extends HTMLElement = HTMLElement>(
     indicatorDelay = DEFAULT_INDICATOR_DELAY,
     moveThreshold = 10,
     disabled = false,
+    longPressEnabled = true,
     onTap,
   }: UseLongPressOptions = {},
 ) {
@@ -208,6 +211,10 @@ export function useLongPress<T extends HTMLElement = HTMLElement>(
       clearAllTimers();
       hideIndicator();
 
+      if (!longPressEnabled) {
+        return;
+      }
+
       indicatorTimerRef.current = window.setTimeout(() => {
         indicatorTimerRef.current = null;
         if (pressingRef.current && !longPressFiredRef.current) {
@@ -233,6 +240,7 @@ export function useLongPress<T extends HTMLElement = HTMLElement>(
       disabled,
       hideIndicator,
       indicatorDelay,
+      longPressEnabled,
       totalDelay,
     ],
   );

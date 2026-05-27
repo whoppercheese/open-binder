@@ -36,6 +36,8 @@ type CardTileProps = {
   href?: string;
   onClick?: () => void;
   onLongPress?: () => void;
+  /** When false, long-press timers are off but tap/release handling stays active. */
+  longPressActive?: boolean;
   longPressPreset?: "quickAdd" | "select";
   compact?: boolean;
   showPrice?: boolean;
@@ -53,6 +55,7 @@ export function CardTile({
   href,
   onClick,
   onLongPress,
+  longPressActive = true,
   longPressPreset = "quickAdd",
   compact = false,
   showPrice = true,
@@ -64,6 +67,7 @@ export function CardTile({
   const preset = LONG_PRESS_PRESETS[longPressPreset];
   const longPress = useLongPress<HTMLButtonElement>(() => onLongPress?.(), {
     disabled: !onLongPress || Boolean(href),
+    longPressEnabled: longPressActive,
     onTap: onLongPress ? onClick : undefined,
     indicatorDelay: preset.indicatorDelay,
     holdDuration: preset.holdDuration,
