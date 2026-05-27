@@ -13,7 +13,10 @@ import {
 } from "@/lib/sync-job-display";
 import { useLocale, useTranslations } from "@/lib/i18n/context";
 import { ConditionBadgeButton } from "@/components/condition-badge";
+import { ConfirmDialog } from "@/components/confirm-dialog";
 import { MobilePage, MobilePageHeader } from "@/components/mobile-page";
+import { clearAllOfflineData, getOfflineCacheStats } from "@/lib/offline/db";
+import { useOffline } from "@/lib/offline/offline-provider";
 import { UI_LOCALES, type UiLocale } from "@/lib/i18n/locale";
 import {
   CARD_CONDITIONS,
@@ -42,17 +45,26 @@ export default function SettingsPage() {
   const [jobs, setJobs] = useState<SyncJob[]>([]);
   const [loading, setLoading] = useState<string | null>(null);
   const [syncError, setSyncError] = useState<string | null>(null);
+  const [cacheStats, setCacheStats] = useState({
+    collectionCount: 0,
+    lastFullSyncAt: null as string | null,
+  });
+  const [clearingCache, setClearingCache] = useState(false);
+  const [confirmClearOpen, setConfirmClearOpen] = useState(false);
+  const { syncing } = useOffline();
 
   const load = useCallback(async () => {
-    const [settingsRes, syncRes] = await Promise.all([
+    const [settingsRes, syncRes, offlineStats] = await Promise.all([
       fetch("/api/settings"),
       fetch("/api/sync"),
+      getOfflineCacheStats(),
     ]);
     const settings = await settingsRes.json();
     const sync = await syncRes.json();
     setPricePreference(settings.pricePreference ?? "trend");
     setDefaultCondition(settings.defaultCondition ?? "nm");
     setJobs(sync.jobs ?? []);
+    setCacheStats(offlineStats);
   }, []);
 
   useEffect(() => {
@@ -122,6 +134,17 @@ export default function SettingsPage() {
     setLoading(null);
   }
 
+  async function handleClearCache() {
+    setClearingCache(true);
+    try {
+      await clearAllOfflineData();
+      await load();
+    } finally {
+      setClearingCache(false);
+      setConfirmClearOpen(false);
+    }
+  }
+
   return (
     <MobilePage>
       <MobilePageHeader
@@ -183,6 +206,34 @@ export default function SettingsPage() {
             />
           ))}
         </div>
+      </section>
+
+      <section className="space-y-3 rounded-2xl border border-white/10 bg-white/[0.03] p-4">
+        <h2 className="font-medium">{t("offline.cacheTitle")}</h2>
+        <p className="text-sm text-zinc-400">{t("offline.cacheHelp")}</p>
+        <div className="space-y-1 text-sm text-zinc-300">
+          <p>
+            {t("offline.cacheCollections", {
+              count: cacheStats.collectionCount,
+            })}
+          </p>
+          <p className="text-zinc-500">
+            {cacheStats.lastFullSyncAt
+              ? t("offline.cacheLastSynced", {
+                  date: formatDate(cacheStats.lastFullSyncAt, locale),
+                })
+              : t("offline.cacheNeverSynced")}
+            {syncing ? ` · ${t("collections.loading")}` : null}
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={() => setConfirmClearOpen(true)}
+          disabled={clearingCache || cacheStats.collectionCount === 0}
+          className="rounded-xl bg-white/10 px-4 py-3 text-sm font-medium text-white disabled:opacity-50"
+        >
+          {clearingCache ? t("offline.cacheClearing") : t("offline.cacheClear")}
+        </button>
       </section>
 
       <section className="space-y-3 rounded-2xl border border-white/10 bg-white/[0.03] p-4">
@@ -295,6 +346,17 @@ export default function SettingsPage() {
       <p className="text-xs leading-relaxed text-zinc-600">
         {t("settings.disclaimer")}
       </p>
+
+      <ConfirmDialog
+        open={confirmClearOpen}
+        title={t("offline.cacheClear")}
+        message={t("offline.cacheClearConfirm")}
+        loading={clearingCache}
+        onConfirm={() => void handleClearCache()}
+        onCancel={() => {
+          if (!clearingCache) setConfirmClearOpen(false);
+        }}
+      />
     </MobilePage>
   );
 }

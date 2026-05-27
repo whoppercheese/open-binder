@@ -10,6 +10,7 @@ import {
 import { CollectionCover } from "@/components/collection-cover";
 import { Portal } from "@/components/portal";
 import { apiUrl, useLocale, useTranslations } from "@/lib/i18n/context";
+import { notifyCollectionMutated } from "@/lib/offline/types";
 import { cn } from "@/lib/utils";
 
 type ChecklistOption = {
@@ -171,6 +172,9 @@ export function AddToChecklistSheet({
       if (!response.ok) {
         setError(t("sets.checklistAddFailed"));
         return;
+      }
+      for (const collectionId of selectedIds) {
+        notifyCollectionMutated(collectionId);
       }
       const count = await fetchChecklistCount();
       onSaved?.(count);

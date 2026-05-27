@@ -75,6 +75,7 @@ type CardModalProps = {
   collectionName?: string;
   collectionType?: "set" | "custom";
   open: boolean;
+  readOnly?: boolean;
   onClose: () => void;
   onSaved?: () => void;
   onRemovedFromChecklist?: () => void;
@@ -136,6 +137,7 @@ type CardModalFormProps = {
   collectionId?: string;
   collectionName?: string;
   collectionType?: "set" | "custom";
+  readOnly?: boolean;
   onClose: () => void;
   onSaved?: () => void;
   onRemovedFromChecklist?: () => void;
@@ -148,6 +150,7 @@ function CardModalForm({
   collectionId,
   collectionName,
   collectionType,
+  readOnly = false,
   onClose,
   onSaved,
   onRemovedFromChecklist,
@@ -264,7 +267,7 @@ function CardModalForm({
     setError(null);
     try {
       if (isEdit && entry) {
-        await updateCollection(entry.id, {
+        await updateCollection(entry.id, collectionId, {
           quantity,
           condition,
           language,
@@ -371,7 +374,21 @@ function CardModalForm({
                   />
                 </CardFrame>
               </button>
-              {!needsSetDownload ? (
+              {!needsSetDownload && readOnly ? (
+                <div className="flex-1 space-y-2 text-sm">
+                  {card.variants.map((variant) => (
+                    <p key={variant.id} className="text-zinc-300">
+                      {variantLabel(variant.variantType)}
+                      {variant.ownedQuantity != null && variant.ownedQuantity > 0
+                        ? ` · ×${variant.ownedQuantity}`
+                        : ""}
+                      {" · "}
+                      {formatCardPriceLabel(variant.price, t("common.price"), locale)}
+                    </p>
+                  ))}
+                </div>
+              ) : null}
+              {!needsSetDownload && !readOnly ? (
               <div className="flex-1 space-y-3 text-sm">
                 <label className="block space-y-1">
                   <span className="text-zinc-400">{t("cardModal.variant")}</span>
@@ -569,7 +586,7 @@ function CardModalForm({
               </p>
             ) : null}
 
-            {!needsSetDownload ? (
+            {!needsSetDownload && !readOnly ? (
               <div
                 className={cn(
                   "space-y-3",
@@ -658,6 +675,7 @@ export function CardModal({
   collectionName,
   collectionType,
   open,
+  readOnly = false,
   onClose,
   onSaved,
   onRemovedFromChecklist,
@@ -675,6 +693,7 @@ export function CardModal({
       collectionId={collectionId}
       collectionName={collectionName}
       collectionType={collectionType}
+      readOnly={readOnly}
       onClose={onClose}
       onSaved={onSaved}
       onRemovedFromChecklist={onRemovedFromChecklist}

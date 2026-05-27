@@ -4,16 +4,20 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Home, Layers, Search, Settings, WalletCards } from "lucide-react";
 import { useTranslations } from "@/lib/i18n/context";
+import { useOffline } from "@/lib/offline/offline-provider";
 import { cn } from "@/lib/utils";
+
+const COLLECTIONS_HREF = "/collections";
 
 export function BottomNav() {
   const pathname = usePathname();
   const t = useTranslations();
+  const { isOfflineView } = useOffline();
 
   const items = [
     { href: "/", label: t("nav.dashboard"), icon: Home },
     { href: "/sets", label: t("nav.sets"), icon: Layers },
-    { href: "/collections", label: t("nav.collection"), icon: WalletCards },
+    { href: COLLECTIONS_HREF, label: t("nav.collection"), icon: WalletCards },
     { href: "/search", label: t("nav.search"), icon: Search },
     { href: "/settings", label: t("nav.settings"), icon: Settings },
   ];
@@ -26,17 +30,40 @@ export function BottomNav() {
             href === "/"
               ? pathname === "/"
               : pathname === href || pathname.startsWith(`${href}/`);
+          const isCollectionsNav = href === COLLECTIONS_HREF;
+          const disabled = isOfflineView && !isCollectionsNav;
+
+          if (disabled) {
+            return (
+              <span
+                key={href}
+                title={t("offline.navDisabled")}
+                className="flex flex-col items-center gap-1 rounded-xl px-2 py-2 text-[11px] font-medium text-zinc-600"
+              >
+                <Icon className="h-5 w-5" />
+                {label}
+              </span>
+            );
+          }
+
+          const className = cn(
+            "flex flex-col items-center gap-1 rounded-xl px-2 py-2 text-[11px] font-medium transition-colors",
+            active
+              ? "text-emerald-400"
+              : "text-zinc-400 hover:text-zinc-200",
+          );
+
+          if (isOfflineView) {
+            return (
+              <a key={href} href={href} className={className}>
+                <Icon className="h-5 w-5" />
+                {label}
+              </a>
+            );
+          }
+
           return (
-            <Link
-              key={href}
-              href={href}
-              className={cn(
-                "flex flex-col items-center gap-1 rounded-xl px-2 py-2 text-[11px] font-medium transition-colors",
-                active
-                  ? "text-emerald-400"
-                  : "text-zinc-400 hover:text-zinc-200",
-              )}
-            >
+            <Link key={href} href={href} prefetch={false} className={className}>
               <Icon className="h-5 w-5" />
               {label}
             </Link>

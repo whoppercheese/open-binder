@@ -1,4 +1,5 @@
 import type { TranslateFn } from "@/lib/i18n/messages";
+import { notifyCollectionMutated } from "@/lib/offline/types";
 
 export type CollectionVariantOption = {
   id: string;
@@ -76,6 +77,8 @@ export async function addToCollection({
     const payload = (await response.json()) as { errorCode?: string };
     throw new Error(payload.errorCode ?? "SAVE_FAILED");
   }
+
+  notifyCollectionMutated(collectionId);
 }
 
 export type UpdateCollectionInput = {
@@ -89,6 +92,7 @@ export type UpdateCollectionInput = {
 
 export async function updateCollection(
   entryId: string,
+  collectionId: string,
   input: UpdateCollectionInput,
 ): Promise<void> {
   const response = await fetch(`/api/collection/${entryId}`, {
@@ -101,6 +105,8 @@ export async function updateCollection(
     const payload = (await response.json()) as { errorCode?: string };
     throw new Error(payload.errorCode ?? "SAVE_FAILED");
   }
+
+  notifyCollectionMutated(collectionId);
 }
 
 export type CollectionCoverUpdate = {
@@ -137,6 +143,8 @@ export async function updateCollectionName(
     throw new Error("SAVE_FAILED");
   }
 
+  notifyCollectionMutated(collectionId);
+
   return {
     name: payload.collection.name,
     updatedAt: payload.collection.updatedAt,
@@ -168,6 +176,8 @@ export async function setCollectionCover(
   if (!payload.collection) {
     throw new Error("SAVE_FAILED");
   }
+
+  notifyCollectionMutated(collectionId);
 
   return {
     coverCardId: payload.collection.coverCardId,

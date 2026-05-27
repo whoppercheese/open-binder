@@ -6,6 +6,21 @@
     "collection": "Sammlungen",
     "settings": "Einstellungen"
   },
+  "offline": {
+    "banner": "Offline-Ansicht · nur Lesen",
+    "bannerWithDate": "Offline-Ansicht · Stand {date} · nur Lesen",
+    "navDisabled": "Offline nicht verfügbar",
+    "readOnly": "Nur Ansicht",
+    "noData": "Keine gecachten Sammlungen. App zuerst online öffnen.",
+    "cacheTitle": "Offline-Cache",
+    "cacheHelp": "Sammlungen werden lokal gespiegelt, solange du die App online nutzt. Kartenbilder sind offline nur verfügbar, wenn du sie zuvor geladen hast.",
+    "cacheCollections": "{count} Sammlungen gecacht",
+    "cacheLastSynced": "Zuletzt synchronisiert: {date}",
+    "cacheNeverSynced": "Noch nicht synchronisiert",
+    "cacheClear": "Cache leeren",
+    "cacheClearing": "Wird geleert…",
+    "cacheClearConfirm": "Alle lokal gecachten Sammlungsdaten und Bilder entfernen?"
+  },
   "settings": {
     "title": "Einstellungen",
     "subtitle": "Single-User · Self-Hosted",

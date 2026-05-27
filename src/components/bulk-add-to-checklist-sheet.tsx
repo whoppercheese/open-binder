@@ -10,6 +10,7 @@ import {
 import { CollectionCover } from "@/components/collection-cover";
 import { Portal } from "@/components/portal";
 import { apiUrl, useLocale, useTranslations } from "@/lib/i18n/context";
+import { notifyCollectionMutated } from "@/lib/offline/types";
 import { cn } from "@/lib/utils";
 
 type BulkChecklistOption = {
@@ -209,6 +210,10 @@ export function BulkAddToChecklistSheet({
         payload.checklistCounts && typeof payload.checklistCounts === "object"
           ? (payload.checklistCounts as Record<string, number>)
           : {};
+
+      for (const collectionId of selectedIds) {
+        notifyCollectionMutated(collectionId);
+      }
 
       onSaved?.(checklistCounts);
       onClose();

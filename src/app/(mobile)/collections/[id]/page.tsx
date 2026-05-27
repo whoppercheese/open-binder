@@ -7,7 +7,6 @@ import {
   ChevronRight,
   Ellipsis,
   Layers,
-  Loader2,
   Pencil,
   Search,
   Trash2,
@@ -29,6 +28,14 @@ import {
 } from "@/components/quick-add-toast";
 import { addToCollection, pickDefaultVariantId } from "@/lib/collection-client";
 import { apiUrl, useLocale, useTranslations } from "@/lib/i18n/context";
+import { useOffline } from "@/lib/offline/offline-provider";
+import {
+  cardDetailFromCollectionCard,
+  loadCardDetail,
+  loadCollectionDetail,
+} from "@/lib/offline/read";
+import type { CollectionDetailResponse } from "@/lib/offline/types";
+import { notifyFullMirror } from "@/lib/offline/types";
 import { getRarityLabel, sortCanonicalRarities } from "@/lib/rarity";
 import { useDefaultCondition } from "@/lib/use-default-condition";
 import { cn, resolveSetDisplayCode } from "@/lib/utils";
@@ -93,6 +100,7 @@ type CollectionDetailHeaderProps = {
   progress: CollectionDetailResponse["progress"];
   isCustom: boolean;
   canChangeCover: boolean;
+  readOnly?: boolean;
   onOpenMenu: () => void;
   onOpenCoverPicker: () => void;
 };
@@ -103,6 +111,7 @@ function CollectionDetailHeader({
   progress,
   isCustom,
   canChangeCover,
+  readOnly = false,
   onOpenMenu,
   onOpenCoverPicker,
 }: CollectionDetailHeaderProps) {
@@ -122,7 +131,7 @@ function CollectionDetailHeader({
   return (
     <header className="shrink-0 space-y-3">
       <div className="flex items-start gap-3">
-        {canChangeCover ? (
+        {canChangeCover && !readOnly ? (
           <button
             type="button"
             onClick={onOpenCoverPicker}
@@ -153,15 +162,17 @@ function CollectionDetailHeader({
             <p className="text-sm text-zinc-500">{t("collections.customLabel")}</p>
           ) : null}
         </div>
-        <button
-          type="button"
-          aria-label={t("collections.detailActions")}
-          aria-haspopup="menu"
-          onClick={onOpenMenu}
-          className="-mr-1 inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-zinc-500 transition hover:bg-white/5 hover:text-zinc-300 active:bg-white/10"
-        >
-          <Ellipsis className="h-5 w-5" strokeWidth={2} />
-        </button>
+        {!readOnly ? (
+          <button
+            type="button"
+            aria-label={t("collections.detailActions")}
+            aria-haspopup="menu"
+            onClick={onOpenMenu}
+            className="-mr-1 inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-zinc-500 transition hover:bg-white/5 hover:text-zinc-300 active:bg-white/10"
+          >
+            <Ellipsis className="h-5 w-5" strokeWidth={2} />
+          </button>
+        ) : null}
       </div>
 
       {progress.totalCards > 0 ? (
@@ -190,7 +201,7 @@ type CollectionOverviewTabProps = {
   onOwnershipFilterChange: (filter: OwnershipFilter | null) => void;
   onRarityFilterChange: (filter: string | null) => void;
   onOpenCard: (card: CollectionDetailResponse["cards"][number]) => void;
-  onQuickAdd: (card: CollectionDetailResponse["cards"][number]) => void;
+  onQuickAdd?: (card: CollectionDetailResponse["cards"][number]) => void;
 };
 
 function CollectionOverviewTab({
@@ -308,7 +319,9 @@ function CollectionOverviewTab({
                   }}
                   compact
                   onClick={() => void onOpenCard(card)}
-                  onLongPress={() => void onQuickAdd(card)}
+                  onLongPress={
+                    onQuickAdd ? () => void onQuickAdd(card) : undefined
+                  }
                 />
               ))}
             </CardGrid>
@@ -319,54 +332,13 @@ function CollectionOverviewTab({
   );
 }
 
-type CollectionDetailResponse = {
-  collection: {
-    id: string;
-    name: string;
-    imageUrl: string | null;
-    coverCardId: string | null;
-    coverImageUrl: string | null;
-    type: "set" | "custom";
-    setId: string | null;
-    setName: string | null;
-  };
-  cards: Array<{
-    id: string;
-    number: string;
-    name: string;
-    rarity: string | null;
-    imageUrl: string | null;
-    setId: string;
-    officialCode: string | null;
-    owned: boolean;
-    ownedQuantity: number;
-    flagged: boolean;
-    variants: Array<{
-      id: string;
-      variantType: string;
-      ownedQuantity: number;
-      price: number | null;
-      cardmarketProductId: number | null;
-    }>;
-  }>;
-  progress: {
-    ownedCards: number;
-    totalCards: number;
-    percent: number;
-  };
-  set: {
-    id: string;
-    name: string;
-    officialCode: string | null;
-  } | null;
-};
-
 export default function CollectionDetailPage() {
   const params = useParams<{ id: string }>();
   const router = useRouter();
   const searchParams = useSearchParams();
   const { locale } = useLocale();
   const t = useTranslations();
+  const { isOfflineView } = useOffline();
   const [data, setData] = useState<CollectionDetailResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [selectedCard, setSelectedCard] = useState<CardDetail | null>(null);
@@ -546,16 +518,13 @@ export default function CollectionDetailPage() {
   );
 
   const load = useCallback(async () => {
-    const response = await fetch(
-      apiUrl(`/api/collections/${collectionId}/cards`, locale),
-    );
-    const payload = await response.json();
-    if (!response.ok || !payload.collection) {
+    const result = await loadCollectionDetail(collectionId, locale);
+    if (!result.ok || !result.data.collection) {
       setData(null);
       setLoading(false);
       return;
     }
-    setData(payload as CollectionDetailResponse);
+    setData(result.data);
     setLoading(false);
   }, [collectionId, locale]);
 
@@ -592,6 +561,7 @@ export default function CollectionDetailPage() {
         { method: "DELETE" },
       );
       if (response.ok) {
+        notifyFullMirror();
         router.push("/collections");
       }
     } finally {
@@ -601,29 +571,24 @@ export default function CollectionDetailPage() {
   }
 
   async function openCardModal(card: CollectionDetailResponse["cards"][number]) {
-    const response = await fetch(
-      apiUrl(
-        `/api/cards/${card.id}?collectionId=${encodeURIComponent(collectionId)}`,
-        locale,
-      ),
+    const fallback = data
+      ? cardDetailFromCollectionCard(card, data)
+      : null;
+    const result = await loadCardDetail(
+      card.id,
+      collectionId,
+      locale,
+      fallback,
     );
-    const payload = await response.json();
-    if (response.ok) {
-      setSelectedCard(payload as CardDetail);
+    if (result.ok) {
+      setSelectedCard(result.data);
       setOpen(true);
       return;
     }
-    setSelectedCard({
-      id: card.id,
-      number: card.number,
-      name: card.name,
-      imageUrl: card.imageUrl,
-      setId: card.setId,
-      setName: data?.set?.name ?? data?.collection.setName ?? undefined,
-      officialCode: card.officialCode,
-      variants: card.variants,
-    });
-    setOpen(true);
+    if (fallback) {
+      setSelectedCard(fallback);
+      setOpen(true);
+    }
   }
 
   const collectionActionItems = useMemo(
@@ -675,6 +640,7 @@ export default function CollectionDetailPage() {
           progress={data.progress}
           isCustom={isCustom}
           canChangeCover={canChangeCover}
+          readOnly={isOfflineView}
           onOpenMenu={() => setMenuOpen(true)}
           onOpenCoverPicker={() => setCoverPickerOpen(true)}
         />
@@ -696,6 +662,7 @@ export default function CollectionDetailPage() {
             collectionId={collectionId}
             cardId={highlightCardId}
             refreshKey={refreshKey}
+            readOnly={isOfflineView}
             onCardFilterClear={clearCardFilter}
             onEntriesMutated={bumpRefresh}
           />
@@ -711,7 +678,7 @@ export default function CollectionDetailPage() {
             onOwnershipFilterChange={setOwnershipFilter}
             onRarityFilterChange={setRarityFilter}
             onOpenCard={openCardModal}
-            onQuickAdd={handleQuickAdd}
+            onQuickAdd={isOfflineView ? undefined : handleQuickAdd}
           />
         )}
       </div>
@@ -723,6 +690,7 @@ export default function CollectionDetailPage() {
         collectionName={data.collection.name}
         collectionType={data.collection.type}
         open={open}
+        readOnly={isOfflineView}
         onClose={() => {
           setOpen(false);
           setSelectedCard(null);
@@ -733,50 +701,54 @@ export default function CollectionDetailPage() {
 
       {quickAddToast ? <QuickAddToast data={quickAddToast} /> : null}
 
-      <ActionSheet
-        open={menuOpen}
-        title={t("collections.detailActions")}
-        items={collectionActionItems}
-        onClose={() => setMenuOpen(false)}
-      />
+      {!isOfflineView ? (
+        <>
+          <ActionSheet
+            open={menuOpen}
+            title={t("collections.detailActions")}
+            items={collectionActionItems}
+            onClose={() => setMenuOpen(false)}
+          />
 
-      <RenameCollectionSheet
-        open={renameOpen}
-        collectionId={collectionId}
-        currentName={data.collection.name}
-        onClose={() => setRenameOpen(false)}
-        onSaved={handleNameSaved}
-      />
+          <RenameCollectionSheet
+            open={renameOpen}
+            collectionId={collectionId}
+            currentName={data.collection.name}
+            onClose={() => setRenameOpen(false)}
+            onSaved={handleNameSaved}
+          />
 
-      <ConfirmDialog
-        open={confirmDeleteOpen}
-        title={t("collections.deleteTitle")}
-        message={t("collections.deleteMessage", { name: data.collection.name })}
-        loading={deleting}
-        onConfirm={() => void handleDeleteCollection()}
-        onCancel={() => {
-          if (!deleting) setConfirmDeleteOpen(false);
-        }}
-      />
+          <ConfirmDialog
+            open={confirmDeleteOpen}
+            title={t("collections.deleteTitle")}
+            message={t("collections.deleteMessage", { name: data.collection.name })}
+            loading={deleting}
+            onConfirm={() => void handleDeleteCollection()}
+            onCancel={() => {
+              if (!deleting) setConfirmDeleteOpen(false);
+            }}
+          />
 
-      {canChangeCover ? (
-        <CollectionCoverPickerSheet
-          open={coverPickerOpen}
-          collectionId={collectionId}
-          cards={data.cards}
-          setLogo={
-            data.set
-              ? {
-                  setId: data.set.id,
-                  setOfficialCode: data.set.officialCode,
-                  setName: data.set.name,
-                }
-              : null
-          }
-          selectedCardId={data.collection.coverCardId}
-          onClose={() => setCoverPickerOpen(false)}
-          onSaved={handleCoverSaved}
-        />
+          {canChangeCover ? (
+            <CollectionCoverPickerSheet
+              open={coverPickerOpen}
+              collectionId={collectionId}
+              cards={data.cards}
+              setLogo={
+                data.set
+                  ? {
+                      setId: data.set.id,
+                      setOfficialCode: data.set.officialCode,
+                      setName: data.set.name,
+                    }
+                  : null
+              }
+              selectedCardId={data.collection.coverCardId}
+              onClose={() => setCoverPickerOpen(false)}
+              onSaved={handleCoverSaved}
+            />
+          ) : null}
+        </>
       ) : null}
     </div>
   );

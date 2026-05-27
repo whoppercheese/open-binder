@@ -30,6 +30,31 @@ self.addEventListener("activate", (event) => {
   );
 });
 
+function isCollectionsRoute(url) {
+  return (
+    url.pathname === "/collections" || url.pathname.startsWith("/collections/")
+  );
+}
+
+function collectionsCacheRequest(pathname, kind) {
+  return new Request(
+    new URL(`${pathname}?__offline=${kind}`, self.location.origin).href,
+  );
+}
+
+function requestKind(request) {
+  if (request.headers.get("RSC") === "1") {
+    return "rsc";
+  }
+  if (
+    request.mode === "navigate" ||
+    request.headers.get("accept")?.includes("text/html")
+  ) {
+    return "html";
+  }
+  return null;
+}
+
 async function networkFirst(request) {
   const cache = await caches.open(CACHE_NAME);
 
@@ -44,6 +69,39 @@ async function networkFirst(request) {
     if (cached) {
       return cached;
     }
+    throw error;
+  }
+}
+
+async function networkFirstCollections(request) {
+  const url = new URL(request.url);
+  const pathname = url.pathname;
+  const kind = requestKind(request);
+  const cache = await caches.open(CACHE_NAME);
+
+  try {
+    const response = await fetch(request);
+    if (response.ok && kind) {
+      await cache.put(collectionsCacheRequest(pathname, kind), response.clone());
+    }
+    return response;
+  } catch (error) {
+    if (kind === "rsc") {
+      const rscCached = await cache.match(
+        collectionsCacheRequest(pathname, "rsc"),
+      );
+      if (rscCached) {
+        return rscCached;
+      }
+    }
+
+    const htmlCached = await cache.match(
+      collectionsCacheRequest(pathname, "html"),
+    );
+    if (htmlCached) {
+      return htmlCached;
+    }
+
     throw error;
   }
 }
@@ -75,16 +133,31 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
+  if (url.pathname.startsWith("/api/images/")) {
+    event.respondWith(networkFirst(request));
+    return;
+  }
+
+  if (url.pathname.startsWith("/api/collection-covers/")) {
+    event.respondWith(networkFirst(request));
+    return;
+  }
+
+  if (isCollectionsRoute(url)) {
+    event.respondWith(networkFirstCollections(request));
+    return;
+  }
+
+  if (url.pathname.startsWith("/_next/")) {
+    event.respondWith(networkFirst(request));
+    return;
+  }
+
   if (
     request.mode === "navigate" ||
     request.headers.get("accept")?.includes("text/html")
   ) {
     event.respondWith(fetch(request));
-    return;
-  }
-
-  if (url.pathname.startsWith("/_next/static/")) {
-    event.respondWith(networkFirst(request));
     return;
   }
 

@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { ChevronRight, Loader2, X } from "lucide-react";
 import { Portal } from "@/components/portal";
 import { apiUrl, useLocale, useTranslations } from "@/lib/i18n/context";
+import { notifyFullMirror } from "@/lib/offline/types";
 import { cn } from "@/lib/utils";
 
 type CreateCollectionSheetProps = {
@@ -67,6 +68,7 @@ export function CreateCollectionSheet({
         );
         return;
       }
+      notifyFullMirror();
       handleClose();
       router.push(`/collections/${payload.collection.id}`);
     } catch {
@@ -95,6 +97,7 @@ export function CreateCollectionSheet({
         setError(t("collections.errorCreate"));
         return;
       }
+      notifyFullMirror();
       handleClose();
       router.push(`/collections/${payload.collection.id}`);
     } catch {

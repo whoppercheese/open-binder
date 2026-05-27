@@ -6,6 +6,21 @@
     "collection": "Collections",
     "settings": "Settings"
   },
+  "offline": {
+    "banner": "Offline view · read-only",
+    "bannerWithDate": "Offline view · as of {date} · read-only",
+    "navDisabled": "Not available offline",
+    "readOnly": "Read-only",
+    "noData": "No cached collections. Open the app online first.",
+    "cacheTitle": "Offline cache",
+    "cacheHelp": "Collections are mirrored locally while you use the app online. Card images are only available offline if you loaded them before.",
+    "cacheCollections": "{count} collections cached",
+    "cacheLastSynced": "Last synced: {date}",
+    "cacheNeverSynced": "Not synced yet",
+    "cacheClear": "Clear cache",
+    "cacheClearing": "Clearing…",
+    "cacheClearConfirm": "Remove all locally cached collection data and images?"
+  },
   "settings": {
     "title": "Settings",
     "subtitle": "Single-user · Self-hosted",

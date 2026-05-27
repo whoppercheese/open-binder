@@ -14,8 +14,21 @@ import {
   isUiLocale,
   type UiLocale,
 } from "@/lib/i18n/locale";
+import { getIsOnline } from "@/lib/offline/connection-state";
 import { createTranslator, type TranslateFn } from "@/lib/i18n/messages";
 import { UI_LANGUAGE_COOKIE } from "@/lib/i18n/constants";
+
+function readLocaleFromCookie(): UiLocale {
+  if (typeof document === "undefined") {
+    return DEFAULT_LOCALE;
+  }
+
+  const match = document.cookie.match(
+    new RegExp(`(?:^|; )${UI_LANGUAGE_COOKIE}=([^;]*)`),
+  );
+  const value = match?.[1];
+  return value && isUiLocale(value) ? value : DEFAULT_LOCALE;
+}
 
 type LocaleContextValue = {
   locale: UiLocale;
@@ -36,11 +49,22 @@ function setLocaleCookie(locale: UiLocale) {
 }
 
 export function LocaleProvider({ children }: { children: ReactNode }) {
-  const [locale, setLocaleState] = useState<UiLocale>(DEFAULT_LOCALE);
+  const [locale, setLocaleState] = useState<UiLocale>(readLocaleFromCookie);
   const [ready, setReady] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
+    syncDocumentLang(locale);
+
+    if (!navigator.onLine) {
+      setReady(true);
+      return;
+    }
+
+    if (!getIsOnline()) {
+      setReady(true);
+      return;
+    }
 
     (async () => {
       try {
@@ -51,7 +75,7 @@ export function LocaleProvider({ children }: { children: ReactNode }) {
         const next =
           data.uiLanguage && isUiLocale(data.uiLanguage)
             ? data.uiLanguage
-            : DEFAULT_LOCALE;
+            : readLocaleFromCookie();
         setLocaleState(next);
         setLocaleCookie(next);
         syncDocumentLang(next);

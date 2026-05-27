@@ -15,7 +15,9 @@ import {
 } from "@/components/card-modal";
 import { ConfirmDialog } from "@/components/confirm-dialog";
 import { SearchBar } from "@/components/search-bar";
-import { apiUrl, useLocale, useTranslations } from "@/lib/i18n/context";
+import { useLocale, useTranslations } from "@/lib/i18n/context";
+import { loadCardDetail, loadCollectionEntriesPage } from "@/lib/offline/read";
+import { notifyCollectionMutated } from "@/lib/offline/types";
 import {
   formatCardPriceLabel,
   formatCurrency,
@@ -95,6 +97,7 @@ type CollectionEntriesViewProps = {
   collectionId: string;
   cardId?: string;
   refreshKey?: number;
+  readOnly?: boolean;
   onCardFilterClear?: () => void;
   onEntriesMutated?: () => void;
 };
@@ -103,6 +106,7 @@ export function CollectionEntriesView({
   collectionId,
   cardId = "",
   refreshKey = 0,
+  readOnly = false,
   onCardFilterClear,
   onEntriesMutated,
 }: CollectionEntriesViewProps) {
@@ -152,41 +156,43 @@ export function CollectionEntriesView({
         setLoadingMore(true);
       }
 
-      const params = new URLSearchParams({
-        collectionId,
-        limit: String(PAGE_SIZE),
-        offset: String(offsetRef.current),
-      });
       const trimmed = searchQuery.trim();
-      if (trimmed) {
-        params.set("q", trimmed);
-      }
-      if (filterCardId) {
-        params.set("cardId", filterCardId);
-      }
 
       try {
-        const response = await fetch(
-          apiUrl(`/api/collection?${params}`, locale),
-        );
-        const payload = await response.json();
-        const newItems: CollectionItem[] = payload.items ?? [];
+        const result = await loadCollectionEntriesPage(collectionId, locale, {
+          offset: reset ? 0 : offsetRef.current,
+          limit: PAGE_SIZE,
+          query: trimmed,
+          cardId: filterCardId,
+        });
+
+        if (!result.ok) {
+          if (reset) {
+            setItems([]);
+            setTotal(0);
+            setTotalValue(0);
+            setFilterCard(null);
+          }
+          setHasMore(false);
+          return;
+        }
+
+        const payload = result.data;
+        const newItems = payload.items;
 
         if (reset) {
           setItems(newItems);
-          setTotal(payload.total ?? newItems.length);
-          setTotalValue(payload.totalValue ?? 0);
-          if (filterCardId) {
-            setFilterCard(payload.filterCard ?? null);
-          } else {
-            setFilterCard(null);
-          }
+          setTotal(payload.total);
+          setTotalValue(payload.totalValue);
+          setFilterCard(payload.filterCard);
         } else {
           setItems((current) => [...current, ...newItems]);
         }
 
-        offsetRef.current += newItems.length;
-        setHasMore(Boolean(payload.hasMore));
+        offsetRef.current = reset
+          ? newItems.length
+          : offsetRef.current + newItems.length;
+        setHasMore(payload.hasMore);
       } finally {
         setLoading(false);
         setLoadingMore(false);
@@ -236,6 +242,7 @@ export function CollectionEntriesView({
     setUpdatingId(item.id);
     try {
       await fetch(`/api/collection/${item.id}`, { method: "DELETE" });
+      notifyCollectionMutated(collectionId);
       setItems((current) => current.filter((entry) => entry.id !== item.id));
       if (removedValue != null) {
         setTotalValue((value) => value - removedValue);
@@ -264,6 +271,8 @@ export function CollectionEntriesView({
       if (!response.ok) {
         return;
       }
+
+      notifyCollectionMutated(collectionId);
 
       setItems((current) =>
         current.map((entry) =>
@@ -322,18 +331,33 @@ export function CollectionEntriesView({
 
     setEditLoadingId(item.id);
     try {
-      const response = await fetch(
-        apiUrl(
-          `/api/cards/${item.cardId}?collectionId=${encodeURIComponent(collectionId)}`,
-          locale,
-        ),
+      const result = await loadCardDetail(
+        item.cardId,
+        collectionId,
+        locale,
+        {
+          id: item.cardId,
+          number: item.number,
+          name: item.name,
+          imageUrl: item.imageUrl,
+          setId: item.setId,
+          setName: item.setName,
+          officialCode: item.setOfficialCode,
+          variants: [
+            {
+              id: item.variantId,
+              variantType: item.variantType,
+              ownedQuantity: item.quantity,
+              price: item.price,
+            },
+          ],
+        },
       );
-      const payload = (await response.json()) as CardDetail & { errorCode?: string };
-      if (!response.ok) {
-        throw new Error(payload.errorCode ?? "CARD_LOAD_FAILED");
+      if (!result.ok) {
+        throw new Error("CARD_LOAD_FAILED");
       }
 
-      setEditCard(payload);
+      setEditCard(result.data);
       setEditEntry({
         id: item.id,
         variantId: item.variantId,
@@ -454,39 +478,77 @@ export function CollectionEntriesView({
                       />
                     </CardFrame>
                   </button>
-                  <button
-                    type="button"
-                    disabled={editLoadingId === item.id}
-                    onClick={() => void openEdit(item)}
-                    className="min-w-0 flex-1 cursor-pointer text-left transition hover:opacity-90 disabled:opacity-60"
-                  >
-                    <p className="flex min-w-0 items-center gap-1.5 font-medium text-white">
-                      {item.flagged ? <CardFlagBadge size="sm" /> : null}
-                      <span className="truncate">{item.name}</span>
-                    </p>
-                    <p className="text-xs text-zinc-500">{item.number}</p>
-                    <p className="mt-1 flex flex-wrap items-center gap-1.5 text-xs text-zinc-400">
-                      <span>{variantLabel(item.variantType)}</span>
-                      <ConditionBadge condition={item.condition} />
-                      <span>
-                        {t(LANGUAGE_KEYS[item.language] ?? "common.unknown")}
-                      </span>
-                    </p>
-                    {item.notes ? (
-                      <p className="mt-1 text-xs text-zinc-500">{item.notes}</p>
-                    ) : null}
-                    <p
-                      className={`mt-1 text-sm font-semibold ${item.value != null ? "text-emerald-400" : "text-zinc-500"}`}
+                  {readOnly ? (
+                    <div className="min-w-0 flex-1 text-left">
+                      <p className="flex min-w-0 items-center gap-1.5 font-medium text-white">
+                        {item.flagged ? <CardFlagBadge size="sm" /> : null}
+                        <span className="truncate">{item.name}</span>
+                      </p>
+                      <p className="text-xs text-zinc-500">{item.number}</p>
+                      <p className="mt-1 flex flex-wrap items-center gap-1.5 text-xs text-zinc-400">
+                        <span>{variantLabel(item.variantType)}</span>
+                        <ConditionBadge condition={item.condition} />
+                        <span>
+                          {t(LANGUAGE_KEYS[item.language] ?? "common.unknown")}
+                        </span>
+                      </p>
+                      {item.notes ? (
+                        <p className="mt-1 text-xs text-zinc-500">{item.notes}</p>
+                      ) : null}
+                      <p
+                        className={`mt-1 text-sm font-semibold ${item.value != null ? "text-emerald-400" : "text-zinc-500"}`}
+                      >
+                        {item.value != null
+                          ? formatCurrency(item.value, "EUR", locale)
+                          : formatCardPriceLabel(
+                              null,
+                              t("collection.valueLabel"),
+                              locale,
+                            )}
+                      </p>
+                    </div>
+                  ) : (
+                    <button
+                      type="button"
+                      disabled={editLoadingId === item.id}
+                      onClick={() => void openEdit(item)}
+                      className="min-w-0 flex-1 cursor-pointer text-left transition hover:opacity-90 disabled:opacity-60"
                     >
-                      {item.value != null
-                        ? formatCurrency(item.value, "EUR", locale)
-                        : formatCardPriceLabel(
-                            null,
-                            t("collection.valueLabel"),
-                            locale,
-                          )}
-                    </p>
-                  </button>
+                      <p className="flex min-w-0 items-center gap-1.5 font-medium text-white">
+                        {item.flagged ? <CardFlagBadge size="sm" /> : null}
+                        <span className="truncate">{item.name}</span>
+                      </p>
+                      <p className="text-xs text-zinc-500">{item.number}</p>
+                      <p className="mt-1 flex flex-wrap items-center gap-1.5 text-xs text-zinc-400">
+                        <span>{variantLabel(item.variantType)}</span>
+                        <ConditionBadge condition={item.condition} />
+                        <span>
+                          {t(LANGUAGE_KEYS[item.language] ?? "common.unknown")}
+                        </span>
+                      </p>
+                      {item.notes ? (
+                        <p className="mt-1 text-xs text-zinc-500">{item.notes}</p>
+                      ) : null}
+                      <p
+                        className={`mt-1 text-sm font-semibold ${item.value != null ? "text-emerald-400" : "text-zinc-500"}`}
+                      >
+                        {item.value != null
+                          ? formatCurrency(item.value, "EUR", locale)
+                          : formatCardPriceLabel(
+                              null,
+                              t("collection.valueLabel"),
+                              locale,
+                            )}
+                      </p>
+                    </button>
+                  )}
+                  {readOnly ? (
+                    <div className="flex shrink-0 items-center self-stretch">
+                      <span className="min-w-8 text-center text-sm font-semibold tabular-nums text-white">
+                        ×{item.quantity}
+                      </span>
+                    </div>
+                  ) : (
                   <div
                     className="flex shrink-0 flex-col items-end justify-between self-stretch"
                     onClick={(event) => event.stopPropagation()}
@@ -524,6 +586,7 @@ export function CollectionEntriesView({
                       <Trash2 className="h-4 w-4" />
                     </button>
                   </div>
+                  )}
                 </article>
               ))}
             </div>
