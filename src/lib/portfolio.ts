@@ -105,7 +105,7 @@ export async function getPortfolioSummary(locale: UiLocale = "en") {
       c.number,
       c.image_url
     ORDER BY max(uc.updated_at) DESC
-    LIMIT 8
+    LIMIT 12
   `);
 
   const recent = recentRows.map((row) => ({
