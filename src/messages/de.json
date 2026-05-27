@@ -12,7 +12,7 @@
     "language": "Sprache",
     "languageEn": "Englisch",
     "languageDe": "Deutsch",
-    "languageHelp": "Legt die Anzeigesprache für Menüs, Labels und Sync-Meldungen fest. Set- und Kartennamen werden in dieser Sprache angezeigt (Fallback: Englisch). Auch die Suche richtet sich danach — Kartennamen sollten in der gewählten Sprache eingegeben werden.",
+    "languageHelp": "Legt die Anzeigesprache für Menüs, Labels und Sync-Meldungen fest. Set- und Kartennamen werden in dieser Sprache angezeigt (Fallback: Englisch). Kartendaten nach Sprachwechsel in der Set-Liste erneut synchronisieren. Hinweis: Bei älteren Sets (z. B. Base, Fossil) stellt TCGdex oft nur englische Kartenbilder bereit — deutsche Drucke sind dort nicht verfügbar.",
     "cardmarketPrice": "Cardmarket Preis",
     "priceTrend": "Trend",
     "priceLow": "Low",

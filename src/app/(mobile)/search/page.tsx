@@ -398,7 +398,6 @@ export default function SearchPage() {
               name: card.name,
               setId: card.setId,
               imageUrl: card.imageUrl,
-              remoteImageUrl: card.imageUrl,
               setName: card.setName,
               officialCode: card.officialCode,
               owned: card.owned,

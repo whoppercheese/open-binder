@@ -82,11 +82,6 @@ export function SetCardPreviewModal({
       })
     : null;
 
-  const remoteImageUrl =
-    card?.imageUrl?.startsWith("https://assets.tcgdex.net")
-      ? card.imageUrl
-      : null;
-
   const rarityLabel = rarity ? getRarityLabel(rarity, t) ?? rarity : null;
 
   const variantLines = useMemo(() => {
@@ -172,7 +167,6 @@ export function SetCardPreviewModal({
                       setId={card.setId}
                       officialCode={card.officialCode}
                       number={card.number}
-                      remoteImageUrl={remoteImageUrl}
                       alt={card.name}
                       className="h-full w-full"
                     />
@@ -196,7 +190,6 @@ export function SetCardPreviewModal({
                       setId={card.setId}
                       officialCode={card.officialCode}
                       number={card.number}
-                      remoteImageUrl={remoteImageUrl}
                       alt={card.name}
                       className="h-full w-full"
                     />
@@ -266,7 +259,6 @@ export function SetCardPreviewModal({
         cardId={card.id}
         setId={card.setId}
         number={card.number}
-        remoteImageUrl={remoteImageUrl}
         alt={card.name}
         onClose={() => setImageExpanded(false)}
       />

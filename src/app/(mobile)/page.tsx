@@ -95,7 +95,6 @@ export default async function DashboardPage() {
                   name: item.cardName,
                   setId: item.setId,
                   imageUrl: item.imageUrl,
-                  remoteImageUrl: item.imageUrl,
                   setName: item.setName,
                   officialCode: item.officialCode,
                   collectionName: item.collectionName,

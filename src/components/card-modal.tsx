@@ -255,10 +255,6 @@ function CardModalForm({
       ),
     [card],
   );
-  const remoteImageUrl =
-    card.imageUrl?.startsWith("https://assets.tcgdex.net")
-      ? card.imageUrl
-      : null;
   const needsSetDownload = card.variants.length === 0 && !isEdit;
   const needsCollection = !collectionId && !isEdit;
 
@@ -370,7 +366,6 @@ function CardModalForm({
                     setId={card.setId}
                     officialCode={card.officialCode}
                     number={card.number}
-                    remoteImageUrl={remoteImageUrl}
                     alt={card.name}
                     className="h-full w-full"
                   />
@@ -650,7 +645,6 @@ function CardModalForm({
         cardId={card.id}
         setId={card.setId}
         number={card.number}
-        remoteImageUrl={remoteImageUrl}
         alt={card.name}
         onClose={() => setImageExpanded(false)}
       />

@@ -12,7 +12,7 @@
     "language": "Language",
     "languageEn": "English",
     "languageDe": "German",
-    "languageHelp": "Sets the display language for menus, labels, and sync messages. Set and card names are shown in this language (English as fallback). Search also uses this language — enter card names in the language you've selected.",
+    "languageHelp": "Sets the display language for menus, labels, and sync messages. Set and card names use this language (English as fallback). Re-sync set cards from the set list after changing language. Note: for older sets (e.g. Base, Fossil), TCGdex often only provides English card images — German prints are not available there.",
     "cardmarketPrice": "Cardmarket price",
     "priceTrend": "Trend",
     "priceLow": "Low",

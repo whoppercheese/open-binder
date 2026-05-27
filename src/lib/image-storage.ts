@@ -2,8 +2,23 @@ import { copyFile, existsSync } from "node:fs";
 import { mkdir, readFile, unlink, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { promisify } from "node:util";
-import type { SetImageKind } from "@/lib/image-paths";
-import { resolveTcgdexAssetUrl } from "@/lib/tcgdex";
+import { eq } from "drizzle-orm";
+import { db } from "@/db/client";
+import { cards, sets } from "@/db/schema";
+import {
+  resolveTcgdexImageLocale,
+  type SetImageKind,
+} from "@/lib/image-paths";
+import { extractSetIdFromCardId } from "@/lib/card-id";
+import type { UiLocale } from "@/lib/i18n/locale";
+import {
+  fetchCard,
+  fetchCardWithFallback,
+  resolveCardImageCandidates,
+  resolveTcgdexAssetUrl,
+  type TcgdexCard,
+} from "@/lib/tcgdex";
+import { getTcgdexClient } from "@/lib/tcgdex-client";
 
 const copyFileAsync = promisify(copyFile);
 
@@ -24,12 +39,48 @@ function sanitizeId(id: string): string {
   return id.replace(/[^a-zA-Z0-9._-]/g, "_");
 }
 
-export function getCardImageRelativePath(cardId: string): string {
-  return path.join(CARD_IMAGES_SUBDIR, `${sanitizeId(cardId)}.webp`);
+function getCardImageFileName(cardId: string): string {
+  return `${sanitizeId(cardId)}.webp`;
 }
 
-export function getCardImageAbsolutePath(cardId: string): string {
-  return path.join(getImageStorageRoot(), getCardImageRelativePath(cardId));
+function resolveCardImageSetId(cardId: string, setId?: string): string {
+  return setId ?? extractSetIdFromCardId(cardId);
+}
+
+/** cards/{setId}/{lang}/{cardId}.webp */
+export function getCardImageRelativePath(
+  cardId: string,
+  lang: UiLocale,
+  setId?: string,
+): string {
+  const resolvedSetId = resolveCardImageSetId(cardId, setId);
+  return path.join(
+    CARD_IMAGES_SUBDIR,
+    sanitizeId(resolvedSetId),
+    lang,
+    getCardImageFileName(cardId),
+  );
+}
+
+export function getCardImageAbsolutePath(
+  cardId: string,
+  lang: UiLocale,
+  setId?: string,
+): string {
+  return path.join(
+    getImageStorageRoot(),
+    getCardImageRelativePath(cardId, lang, setId),
+  );
+}
+
+/** Pre-set/lang layout: cards/{cardId}-{lang}.webp or cards/{cardId}.webp */
+function getLegacyFlatCardImageAbsolutePath(
+  cardId: string,
+  lang?: UiLocale,
+): string {
+  const base = sanitizeId(cardId);
+  const fileName = lang ? `${base}-${lang}.webp` : `${base}.webp`;
+  return path.join(getImageStorageRoot(), CARD_IMAGES_SUBDIR, fileName);
 }
 
 export function getSetImageRelativePath(
@@ -82,8 +133,246 @@ export type StoredSetImage = {
   contentType: "image/webp" | "image/svg+xml";
 };
 
-export function cardImageExists(cardId: string): boolean {
-  return existsSync(getCardImageAbsolutePath(cardId));
+export function cardImageExists(cardId: string, lang?: UiLocale): boolean {
+  return getCardImageServePaths(cardId, lang).some((filePath) =>
+    existsSync(filePath),
+  );
+}
+
+function getCardImageLocalePaths(cardId: string, lang: UiLocale): string[] {
+  const setId = extractSetIdFromCardId(cardId);
+  return [
+    getCardImageAbsolutePath(cardId, lang, setId),
+    getLegacyFlatCardImageAbsolutePath(cardId, lang),
+  ];
+}
+
+function getCardImageFallbackServePaths(
+  cardId: string,
+  lang: UiLocale,
+): string[] {
+  const setId = extractSetIdFromCardId(cardId);
+  const paths: string[] = [];
+  if (lang !== "en") {
+    paths.push(getCardImageAbsolutePath(cardId, "en", setId));
+    paths.push(getLegacyFlatCardImageAbsolutePath(cardId, "en"));
+  }
+  paths.push(getLegacyFlatCardImageAbsolutePath(cardId));
+  return paths;
+}
+
+/** Disk lookup: exact locale, EN fallback, then legacy flat files. */
+function getCardImageServePaths(cardId: string, lang?: UiLocale): string[] {
+  if (!lang) {
+    return [getLegacyFlatCardImageAbsolutePath(cardId)];
+  }
+
+  return [
+    ...getCardImageLocalePaths(cardId, lang),
+    ...getCardImageFallbackServePaths(cardId, lang),
+  ];
+}
+
+async function readCardImageForLocale(
+  cardId: string,
+  locale: UiLocale,
+): Promise<Buffer | null> {
+  for (const filePath of getCardImageLocalePaths(cardId, locale)) {
+    if (existsSync(filePath)) {
+      return readFile(filePath);
+    }
+  }
+  return null;
+}
+
+async function readCardImageForServe(
+  cardId: string,
+  requestedLocale: UiLocale,
+): Promise<Buffer | null> {
+  const exact = await readCardImageForLocale(cardId, requestedLocale);
+  if (exact) {
+    return exact;
+  }
+
+  for (const filePath of getCardImageFallbackServePaths(
+    cardId,
+    requestedLocale,
+  )) {
+    if (existsSync(filePath)) {
+      return readFile(filePath);
+    }
+  }
+  return null;
+}
+
+export type EnsureCardImageOptions = {
+  force?: boolean;
+  /** Live TCGdex card from sync — skips DB lookup for URL candidates. */
+  syncContext?: {
+    card: TcgdexCard;
+    seriesId: string;
+    setId: string;
+  };
+};
+
+export type EnsureCardImageResult = {
+  buffer: Buffer | null;
+  imageUrl: string | null;
+};
+
+const ensureCardImageInflight = new Map<string, Promise<EnsureCardImageResult>>();
+
+async function resolveSeriesIdForSet(
+  setId: string,
+  locale: UiLocale,
+): Promise<string | null> {
+  const row = await db.query.sets.findFirst({
+    where: eq(sets.id, setId),
+    columns: { seriesId: true },
+  });
+  if (row) {
+    return row.seriesId;
+  }
+
+  const remote = await getTcgdexClient(locale).set.get(setId);
+  return remote?.serie?.id ?? null;
+}
+
+async function fetchTcgdexCardForImage(
+  cardId: string,
+  preferredLang: UiLocale,
+): Promise<TcgdexCard | null> {
+  try {
+    if (preferredLang === "de") {
+      const { card } = await fetchCardWithFallback(cardId, "de", "en");
+      return card;
+    }
+
+    return await fetchCard(cardId, "en");
+  } catch {
+    return null;
+  }
+}
+
+async function resolveImageCandidatesFromTcgdex(
+  cardId: string,
+  preferredLang: UiLocale,
+): Promise<readonly string[] | null> {
+  const card = await fetchTcgdexCardForImage(cardId, preferredLang);
+  if (!card) {
+    return null;
+  }
+
+  const setId = card.set?.id ?? extractSetIdFromCardId(cardId);
+  const seriesId =
+    card.set?.serie?.id ?? (await resolveSeriesIdForSet(setId, preferredLang));
+  if (!seriesId) {
+    return card.image ? [resolveTcgdexAssetUrl(card.image)] : null;
+  }
+
+  return resolveCardImageCandidates(card, seriesId, setId, preferredLang);
+}
+
+async function resolveImageCandidates(
+  cardId: string,
+  preferredLang: UiLocale,
+  syncContext?: EnsureCardImageOptions["syncContext"],
+): Promise<readonly string[] | null> {
+  if (syncContext) {
+    return resolveCardImageCandidates(
+      syncContext.card,
+      syncContext.seriesId,
+      syncContext.setId,
+      preferredLang,
+    );
+  }
+
+  const row = await db.query.cards.findFirst({
+    where: eq(cards.id, cardId),
+    columns: { number: true, imageUrl: true, setId: true },
+  });
+  if (row) {
+    const seriesId = await resolveSeriesIdForSet(row.setId, preferredLang);
+    if (seriesId) {
+      const stub: TcgdexCard = {
+        id: cardId,
+        localId: row.number,
+        name: "",
+        image: row.imageUrl ?? undefined,
+        set: { id: row.setId, name: "" },
+      };
+
+      return resolveCardImageCandidates(
+        stub,
+        seriesId,
+        row.setId,
+        preferredLang,
+      );
+    }
+  }
+
+  return resolveImageCandidatesFromTcgdex(cardId, preferredLang);
+}
+
+async function ensureCardImageInternal(
+  cardId: string,
+  requestedLocale: UiLocale,
+  options?: EnsureCardImageOptions,
+): Promise<EnsureCardImageResult> {
+  if (!options?.force) {
+    const exact = await readCardImageForLocale(cardId, requestedLocale);
+    if (exact) {
+      return { buffer: exact, imageUrl: null };
+    }
+  }
+
+  const candidates = await resolveImageCandidates(
+    cardId,
+    requestedLocale,
+    options?.syncContext,
+  );
+  if (!candidates || candidates.length === 0) {
+    const fallback = await readCardImageForServe(cardId, requestedLocale);
+    return { buffer: fallback, imageUrl: null };
+  }
+
+  const setId =
+    options?.syncContext?.setId ?? extractSetIdFromCardId(cardId);
+  const { cached, imageUrl } = await cacheCardImageFromCandidates(
+    cardId,
+    candidates,
+    requestedLocale,
+    { force: options?.force, setId },
+  );
+
+  if (!cached) {
+    const fallback = await readCardImageForServe(cardId, requestedLocale);
+    return { buffer: fallback, imageUrl: null };
+  }
+
+  const buffer = await readCardImageForServe(cardId, requestedLocale);
+  return { buffer, imageUrl };
+}
+
+/** Read from disk (with EN fallback) or fetch from TCGdex, cache, and serve. */
+export async function ensureCardImage(
+  cardId: string,
+  requestedLocale: UiLocale,
+  options?: EnsureCardImageOptions,
+): Promise<EnsureCardImageResult> {
+  const inflightKey = `${cardId}:${requestedLocale}:${options?.force ? "1" : "0"}`;
+  const pending = ensureCardImageInflight.get(inflightKey);
+  if (pending) {
+    return pending;
+  }
+
+  const work = ensureCardImageInternal(cardId, requestedLocale, options).finally(
+    () => {
+      ensureCardImageInflight.delete(inflightKey);
+    },
+  );
+  ensureCardImageInflight.set(inflightKey, work);
+  return work;
 }
 
 export function setImageExists(setId: string, kind: SetImageKind): boolean {
@@ -103,6 +392,18 @@ export function resolveSetImageKind(setId: string): SetImageKind | null {
   return null;
 }
 
+async function ensureCardImageStorageDir(setId: string, lang: UiLocale) {
+  await mkdir(
+    path.join(
+      getImageStorageRoot(),
+      CARD_IMAGES_SUBDIR,
+      sanitizeId(setId),
+      lang,
+    ),
+    { recursive: true },
+  );
+}
+
 export async function ensureImageStorageDir() {
   await mkdir(path.join(getImageStorageRoot(), CARD_IMAGES_SUBDIR), {
     recursive: true,
@@ -118,12 +419,15 @@ export async function ensureImageStorageDir() {
 async function cacheImage(
   destination: string,
   sourceUrl: string,
+  options?: { force?: boolean },
 ): Promise<boolean> {
-  if (existsSync(destination)) {
+  if (!options?.force && existsSync(destination)) {
     const existing = await readFile(destination);
     if (isWebpBuffer(existing)) {
       return true;
     }
+    await unlink(destination);
+  } else if (options?.force && existsSync(destination)) {
     await unlink(destination);
   }
 
@@ -143,7 +447,7 @@ async function cacheImage(
       return false;
     }
 
-    await ensureImageStorageDir();
+    await mkdir(path.dirname(destination), { recursive: true });
     await writeFile(destination, buffer);
     return true;
   } catch {
@@ -162,8 +466,48 @@ function isWebpBuffer(buffer: Buffer): boolean {
 export async function cacheCardImage(
   cardId: string,
   sourceUrl: string,
+  lang: UiLocale,
+  options?: { force?: boolean; setId?: string },
 ): Promise<boolean> {
-  return cacheImage(getCardImageAbsolutePath(cardId), sourceUrl);
+  const setId = resolveCardImageSetId(cardId, options?.setId);
+  await ensureCardImageStorageDir(setId, lang);
+  return cacheImage(
+    getCardImageAbsolutePath(cardId, lang, setId),
+    sourceUrl,
+    options,
+  );
+}
+
+/** Try each URL until one caches; stores under the locale encoded in the URL. */
+export async function cacheCardImageFromCandidates(
+  cardId: string,
+  urls: readonly string[],
+  preferredLang: UiLocale,
+  options?: { force?: boolean; setId?: string },
+): Promise<{ cached: boolean; imageUrl: string | null }> {
+  const setId = resolveCardImageSetId(cardId, options?.setId);
+  for (const url of urls) {
+    const storedLang = resolveTcgdexImageLocale(url) ?? preferredLang;
+    const cached = await cacheCardImage(cardId, url, storedLang, {
+      ...options,
+      setId,
+    });
+    if (cached) {
+      for (const legacyPath of [
+        getLegacyFlatCardImageAbsolutePath(cardId),
+        getLegacyFlatCardImageAbsolutePath(cardId, "de"),
+        getLegacyFlatCardImageAbsolutePath(cardId, "en"),
+      ]) {
+        if (existsSync(legacyPath)) {
+          await unlink(legacyPath);
+        }
+      }
+
+      return { cached: true, imageUrl: url };
+    }
+  }
+
+  return { cached: false, imageUrl: urls[0] ?? null };
 }
 
 export async function cacheSetImage(
@@ -265,9 +609,19 @@ export async function removeSetPlaceholderImage(
 }
 
 export async function deleteCardImage(cardId: string): Promise<void> {
-  const filePath = getCardImageAbsolutePath(cardId);
-  if (existsSync(filePath)) {
-    await unlink(filePath);
+  const setId = extractSetIdFromCardId(cardId);
+  const paths = [
+    getCardImageAbsolutePath(cardId, "de", setId),
+    getCardImageAbsolutePath(cardId, "en", setId),
+    getLegacyFlatCardImageAbsolutePath(cardId, "de"),
+    getLegacyFlatCardImageAbsolutePath(cardId, "en"),
+    getLegacyFlatCardImageAbsolutePath(cardId),
+  ];
+
+  for (const filePath of paths) {
+    if (existsSync(filePath)) {
+      await unlink(filePath);
+    }
   }
 }
 
@@ -295,13 +649,16 @@ export async function snapshotCollectionCover(
   collectionId: string,
   cardId: string,
   sourceImageUrl?: string | null,
+  lang?: UiLocale,
 ): Promise<boolean> {
   const destination = getCollectionCoverAbsolutePath(collectionId);
-  const cardImagePath = getCardImageAbsolutePath(cardId);
+  const cardImagePath = getCardImageServePaths(cardId, lang).find((filePath) =>
+    existsSync(filePath),
+  );
 
   await ensureImageStorageDir();
 
-  if (existsSync(cardImagePath)) {
+  if (cardImagePath) {
     await copyFileAsync(cardImagePath, destination);
     return true;
   }
@@ -313,13 +670,19 @@ export async function snapshotCollectionCover(
   return false;
 }
 
-export async function readCardImage(cardId: string): Promise<Buffer | null> {
-  const filePath = getCardImageAbsolutePath(cardId);
-  if (!existsSync(filePath)) {
+export async function readCardImage(
+  cardId: string,
+  lang?: UiLocale,
+): Promise<Buffer | null> {
+  if (!lang) {
+    const legacyPath = getLegacyFlatCardImageAbsolutePath(cardId);
+    if (existsSync(legacyPath)) {
+      return readFile(legacyPath);
+    }
     return null;
   }
 
-  return readFile(filePath);
+  return readCardImageForServe(cardId, lang);
 }
 
 export async function readSetImage(

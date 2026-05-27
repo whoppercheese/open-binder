@@ -12,6 +12,7 @@ import {
   localizedCardNameSql,
   localizedSetNameSql,
 } from "@/lib/localized-names";
+import { getUiLanguage } from "@/lib/settings";
 
 type CollectionRow = typeof collections.$inferSelect;
 
@@ -131,6 +132,7 @@ async function applyCollectionCover(
     collectionId,
     cardId,
     card.imageUrl,
+    await getUiLanguage(),
   );
   if (!snapshotted) {
     return false;

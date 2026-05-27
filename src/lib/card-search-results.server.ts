@@ -9,6 +9,10 @@ import {
 } from "@/lib/localized-names";
 import { getLocalizedString } from "@/lib/catalog-languages";
 import { buildCardVariantEntry } from "@/lib/card-variants.server";
+import {
+  extractLocalIdFromCardId,
+  extractSetIdFromCardId,
+} from "@/lib/card-id";
 import { getChecklistCountsForCardIds } from "@/lib/checklist-membership.server";
 import type { UiLocale } from "@/lib/i18n/locale";
 import { getPricePreference } from "@/lib/settings";
@@ -155,14 +159,4 @@ export async function loadCardSearchResults(
   }
 
   return ordered;
-}
-
-export function extractSetIdFromCardId(cardId: string): string {
-  const separator = cardId.lastIndexOf("-");
-  return separator > 0 ? cardId.slice(0, separator) : cardId;
-}
-
-export function extractLocalIdFromCardId(cardId: string): string {
-  const separator = cardId.lastIndexOf("-");
-  return separator > 0 ? cardId.slice(separator + 1) : cardId;
 }

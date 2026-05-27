@@ -11,12 +11,13 @@ import {
   type LocalizedStrings,
 } from "@/lib/catalog-languages";
 import { upsertVariantWithPricing } from "@/lib/card-pricing.server";
-import { cacheCardImage } from "@/lib/image-storage";
+import { ensureCardImage } from "@/lib/image-storage";
+import type { UiLocale } from "@/lib/i18n/locale";
 import { normalizeRarity } from "@/lib/rarity";
+import { getUiLanguage } from "@/lib/settings";
 import { encodeSyncJobMessage } from "@/lib/sync-job-messages";
 import type { CatalogCardError } from "@/lib/sync-job-display";
 import {
-  buildImageUrl,
   CATALOG_FALLBACK_LANG,
   decodeTcgdexLocalId,
   delay,
@@ -27,10 +28,10 @@ import {
   mergeSetLocalizedFields,
   pickSetImageDetails,
   pricingForVariant,
+  resolveCardImageCandidates,
   resolveSetCardSummariesFromDetails,
   type TcgdexSetDetail,
 } from "@/lib/tcgdex";
-
 const BATCH_DELAY_MS = 120;
 
 function getCatalogSetCardLimit(): number | null {
@@ -87,11 +88,27 @@ async function syncCard(
   cardId: string,
   seriesId: string,
   setId: string,
+  catalogLang: UiLocale,
   hints?: LocalizedStrings,
 ) {
-  const { card, lang } = await fetchCardWithFallback(cardId);
-  const imageUrl = buildImageUrl(seriesId, setId, card.localId);
-  await cacheCardImage(card.id, imageUrl);
+  const fallbackLang: UiLocale = catalogLang === "de" ? "en" : "de";
+  const { card, lang } = await fetchCardWithFallback(
+    cardId,
+    catalogLang,
+    fallbackLang,
+  );
+  const imageLang = catalogLang;
+  const { imageUrl } = await ensureCardImage(card.id, imageLang, {
+    force: true,
+    syncContext: { card, seriesId, setId },
+  });
+  const imageCandidates = resolveCardImageCandidates(
+    card,
+    seriesId,
+    setId,
+    imageLang,
+  );
+  const resolvedImageUrl = imageUrl ?? imageCandidates[0] ?? null;
 
   const cardmarketName = await lookupCardmarketName(
     card.pricing?.cardmarket?.idProduct,
@@ -123,7 +140,7 @@ async function syncCard(
       names: mergedNames,
       rarity: canonicalRarity,
       illustrator,
-      imageUrl,
+      imageUrl: resolvedImageUrl,
       updatedAt: new Date(),
     })
     .onConflictDoUpdate({
@@ -134,7 +151,7 @@ async function syncCard(
         names: mergedNames,
         rarity: canonicalRarity,
         illustrator,
-        imageUrl,
+        imageUrl: resolvedImageUrl,
         updatedAt: new Date(),
       },
     });
@@ -155,6 +172,7 @@ export async function syncSetCards(
   cardErrors: CatalogCardError[],
   onProgress?: (message: string) => Promise<void>,
 ): Promise<TcgdexSetDetail> {
+  const catalogLang = await getUiLanguage();
   const details = await fetchSetAllLangs(setId);
   const { detail, names: setNames } = mergeSetLocalizedFields(details);
   const seriesId = detail.serie?.id ?? "unknown";
@@ -180,7 +198,7 @@ export async function syncSetCards(
     const hints = nameHints.get(localId);
 
     try {
-      await syncCard(cardSummary.id, seriesId, detail.id, hints);
+      await syncCard(cardSummary.id, seriesId, detail.id, catalogLang, hints);
     } catch (error) {
       const message =
         error instanceof Error ? error.message : "Unbekannter Kartenfehler";

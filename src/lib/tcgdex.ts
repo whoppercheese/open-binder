@@ -5,7 +5,7 @@ import {
   type TcgdexLanguage,
 } from "@/lib/catalog-languages";
 import { runWithConcurrency } from "@/lib/concurrency";
-import { UI_LOCALES } from "@/lib/i18n/locale";
+import { UI_LOCALES, type UiLocale } from "@/lib/i18n/locale";
 import { getTcgdexClient } from "@/lib/tcgdex-client";
 
 export type TcgdexSetSummary = {
@@ -54,6 +54,7 @@ export type TcgdexCard = {
   id: string;
   localId: string;
   name: string;
+  image?: string;
   illustrator?: string;
   rarity?: string;
   set: { id: string; name: string; serie?: { id: string; name: string } };
@@ -334,6 +335,15 @@ export async function fetchCardWithFallback(
 ): Promise<FetchedTcgdexCard> {
   const primary = await fetchCardFromClient(getTcgdexClient(lang), cardId);
   if (primary) {
+    if (!primary.image && lang !== fallbackLang) {
+      const alternate = await fetchCardFromClient(
+        getTcgdexClient(fallbackLang),
+        cardId,
+      );
+      if (alternate?.image) {
+        return { card: { ...primary, image: alternate.image }, lang };
+      }
+    }
     return { card: primary, lang };
   }
 
@@ -381,6 +391,40 @@ export function buildImageUrl(
   quality: "high" | "low" = "high",
 ): string {
   return `${ASSETS_BASE}/${lang}/${seriesId}/${setId}/${encodeURIComponent(localId)}/${quality}.webp`;
+}
+
+/** Ordered TCGdex image URL candidates for sync/display (API path first). */
+export function resolveCardImageCandidates(
+  card: TcgdexCard,
+  seriesId: string,
+  setId: string,
+  preferredLang: UiLocale,
+  extraUrls: readonly string[] = [],
+): string[] {
+  const seen = new Set<string>();
+  const candidates: string[] = [];
+
+  function add(url: string | null | undefined) {
+    if (!url || seen.has(url)) return;
+    seen.add(url);
+    candidates.push(url);
+  }
+
+  for (const url of extraUrls) {
+    add(url);
+  }
+
+  add(buildImageUrl(seriesId, setId, card.localId, preferredLang));
+
+  if (preferredLang !== "en") {
+    add(buildImageUrl(seriesId, setId, card.localId, "en"));
+  }
+
+  if (card.image) {
+    add(resolveTcgdexAssetUrl(card.image));
+  }
+
+  return candidates;
 }
 
 function isTcgdexCardAssetUrl(url: string): boolean {

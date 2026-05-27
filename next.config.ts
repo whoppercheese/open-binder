@@ -15,6 +15,11 @@ const nextConfig: NextConfig = {
         destination: "/collections/:path*",
         permanent: true,
       },
+      {
+        source: "/api/images/:locale(de|en)/:cardId",
+        destination: "/api/images/:cardId?lang=:locale",
+        permanent: false,
+      },
     ];
   },
   async headers() {

@@ -1,13 +1,9 @@
 import "server-only";
 
-import { Query } from "@tcgdex/sdk";
-import { inArray } from "drizzle-orm";
 import { db } from "@/db/client";
 import { cards, sets } from "@/db/schema";
-import {
-  extractSetIdFromCardId,
-  loadCardSearchResults,
-} from "@/lib/card-search-results.server";
+import { extractSetIdFromCardId } from "@/lib/card-id";
+import { loadCardSearchResults } from "@/lib/card-search-results.server";
 import {
   getCatalogSetIndex,
   getCatalogSetMetadata,
@@ -24,13 +20,15 @@ import {
   pickDiverseSearchResults,
   scoreCatalogSearchMatch,
 } from "@/lib/search";
-import { getTcgdexClient } from "@/lib/tcgdex-client";
 import {
-  buildImageUrl,
-  CATALOG_FALLBACK_LANG,
   decodeTcgdexLocalId,
+  resolveCardImageCandidates,
   resolveTcgdexAssetUrl,
+  type TcgdexCard,
 } from "@/lib/tcgdex";
+import { getTcgdexClient } from "@/lib/tcgdex-client";
+import { Query } from "@tcgdex/sdk";
+import { inArray } from "drizzle-orm";
 
 const CATALOG_SET_FETCH_LIMIT = 50;
 const NUMBER_FETCH_PAGE_SIZE = 100;
@@ -100,21 +98,25 @@ function dedupeBriefs(briefs: TcgdexCardBrief[]): TcgdexCardBrief[] {
 function resolveBriefImageUrl(
   brief: TcgdexCardBrief,
   seriesIdBySetId: ReadonlyMap<string, string>,
+  locale: UiLocale,
 ): string | null {
-  if (brief.image) {
-    return resolveTcgdexAssetUrl(brief.image);
-  }
-
   const setId = extractSetIdFromCardId(brief.id);
   const seriesId = seriesIdBySetId.get(setId);
   const localId = decodeTcgdexLocalId(brief.localId);
 
-  if (seriesId) {
-    // Many older cards have no locale-specific asset; English is the reliable default.
-    return buildImageUrl(seriesId, setId, localId, CATALOG_FALLBACK_LANG);
+  if (!seriesId) {
+    return brief.image ? resolveTcgdexAssetUrl(brief.image) : null;
   }
 
-  return null;
+  const stub: TcgdexCard = {
+    id: brief.id,
+    localId,
+    name: brief.name,
+    image: brief.image,
+    set: { id: setId, name: "" },
+  };
+
+  return resolveCardImageCandidates(stub, seriesId, setId, locale)[0] ?? null;
 }
 
 async function loadSeriesIdsBySetId(
@@ -133,7 +135,9 @@ async function loadSeriesIdsBySetId(
 
   const seriesBySetId = new Map(rows.map((row) => [row.id, row.seriesId]));
 
-  const missingSetIds = uniqueSetIds.filter((setId) => !seriesBySetId.has(setId));
+  const missingSetIds = uniqueSetIds.filter(
+    (setId) => !seriesBySetId.has(setId),
+  );
   if (missingSetIds.length === 0) {
     return seriesBySetId;
   }
@@ -286,7 +290,9 @@ async function fetchCandidateBriefs(
   const textTokens = tokens.filter((token) => !isNumberToken(token));
   const setIndex = await getCatalogSetIndex(locale);
   const matchedSetIds = [
-    ...new Set(textTokens.flatMap((token) => matchCatalogSetIds(token, setIndex))),
+    ...new Set(
+      textTokens.flatMap((token) => matchCatalogSetIds(token, setIndex)),
+    ),
   ];
   const bulkFetchSetIds = [
     ...new Set(
@@ -327,15 +333,29 @@ async function fetchCandidateBriefs(
 
     if (raw.length >= 2) {
       batches.push(await fetchCardsByNameToken(raw, locale));
-      const illustratorMatches = await fetchCardsByIllustratorToken(raw, locale);
-      markIllustratorTokenMatches(illustratorTokenMatches, illustratorMatches, raw);
+      const illustratorMatches = await fetchCardsByIllustratorToken(
+        raw,
+        locale,
+      );
+      markIllustratorTokenMatches(
+        illustratorTokenMatches,
+        illustratorMatches,
+        raw,
+      );
       batches.push(illustratorMatches);
     }
 
     for (const token of textTokens) {
       batches.push(await fetchCardsByNameToken(token, locale));
-      const illustratorMatches = await fetchCardsByIllustratorToken(token, locale);
-      markIllustratorTokenMatches(illustratorTokenMatches, illustratorMatches, token);
+      const illustratorMatches = await fetchCardsByIllustratorToken(
+        token,
+        locale,
+      );
+      markIllustratorTokenMatches(
+        illustratorTokenMatches,
+        illustratorMatches,
+        token,
+      );
       batches.push(illustratorMatches);
     }
   }
@@ -366,7 +386,9 @@ async function loadSetMetadataById(
   locale: UiLocale,
   setIds: readonly string[],
 ): Promise<Map<string, SetMetadata>> {
-  const catalogMetadata = getCatalogSetMetadata(await getCatalogSetIndex(locale));
+  const catalogMetadata = getCatalogSetMetadata(
+    await getCatalogSetIndex(locale),
+  );
   const uniqueSetIds = [...new Set(setIds)];
   const metadataBySetId = new Map<string, SetMetadata>();
 
@@ -377,7 +399,9 @@ async function loadSetMetadataById(
     }
   }
 
-  const missingSetIds = uniqueSetIds.filter((setId) => !metadataBySetId.has(setId));
+  const missingSetIds = uniqueSetIds.filter(
+    (setId) => !metadataBySetId.has(setId),
+  );
   if (missingSetIds.length === 0) {
     return metadataBySetId;
   }
@@ -425,7 +449,9 @@ async function getRankedCatalogSearchBriefs(
     return [];
   }
 
-  const setIds = candidateBriefs.map((brief) => extractSetIdFromCardId(brief.id));
+  const setIds = candidateBriefs.map((brief) =>
+    extractSetIdFromCardId(brief.id),
+  );
   const setMetadataById = await loadSetMetadataById(locale, setIds);
   const illustratorsByCardId = await loadIllustratorsByCardId(
     candidateBriefs.map((brief) => brief.id),
@@ -450,7 +476,11 @@ async function getRankedCatalogSearchBriefs(
   const rankedBriefs = pickDiverseSearchResults(
     candidateBriefs
       .filter((brief) =>
-        cardMatchesCatalogSearchQuery(parsed.raw, parsed.tokens, fieldsForBrief(brief)),
+        cardMatchesCatalogSearchQuery(
+          parsed.raw,
+          parsed.tokens,
+          fieldsForBrief(brief),
+        ),
       )
       .sort((left, right) => {
         const leftFields = fieldsForBrief(left);
@@ -501,14 +531,16 @@ export async function searchCatalogCards(
     return { results: [], hasMore: false, total };
   }
 
-  const setIds = matchingBriefs.map((brief) => extractSetIdFromCardId(brief.id));
+  const setIds = matchingBriefs.map((brief) =>
+    extractSetIdFromCardId(brief.id),
+  );
   const setMetadataById = await loadSetMetadataById(locale, setIds);
   const briefById = new Map(matchingBriefs.map((brief) => [brief.id, brief]));
   const seriesBySetId = await loadSeriesIdsBySetId(locale, setIds);
   const imageUrlOverrides = new Map(
     matchingBriefs.map((brief) => [
       brief.id,
-      resolveBriefImageUrl(brief, seriesBySetId),
+      resolveBriefImageUrl(brief, seriesBySetId, locale),
     ]),
   );
 
@@ -537,7 +569,7 @@ export async function searchCatalogCards(
         setName: setMeta?.name ?? result.setName,
         officialCode: setMeta?.officialCode ?? result.officialCode ?? null,
         imageUrl:
-          resolveBriefImageUrl(brief, seriesBySetId) ??
+          resolveBriefImageUrl(brief, seriesBySetId, locale) ??
           result.imageUrl ??
           null,
       };

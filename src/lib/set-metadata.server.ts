@@ -3,6 +3,7 @@ import { db } from "@/db/client";
 import { sets } from "@/db/schema";
 import { mergeLocalized } from "@/lib/catalog-languages";
 import { setImageExists } from "@/lib/image-storage";
+import { getUiLanguage } from "@/lib/settings";
 import { syncSetImages } from "@/lib/set-images";
 import {
   fetchSetAllLangs,
@@ -60,9 +61,14 @@ async function upsertSetFromTcgdex(
     summary,
   );
   const { deDetail, enDetail } = pickSetImageDetails(details, detail);
+  const catalogLang = await getUiLanguage();
+  const imageDetail =
+    catalogLang === "de"
+      ? (details.get("de") ?? deDetail)
+      : (details.get("en") ?? enDetail);
 
   if (needsImages) {
-    await syncSetImages(deDetail, enDetail);
+    await syncSetImages(imageDetail, enDetail);
   }
 
   if (existing && skipDbUpdateIfExists) {
