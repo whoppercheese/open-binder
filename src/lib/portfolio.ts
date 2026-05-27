@@ -62,7 +62,7 @@ export async function getPortfolioSummary(locale: UiLocale = "en") {
   const allCollections = await listCollections(locale);
   const topCollections = [...allCollections]
     .sort((a, b) => b.percent - a.percent || b.ownedCount - a.ownedCount)
-    .slice(0, 6);
+    .slice(0, 5);
 
   const recentRows = await db.execute<{
     card_id: string;

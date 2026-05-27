@@ -13,7 +13,7 @@ export default async function DashboardPage() {
   const summary = await getPortfolioSummary(locale);
   const topCollections = summary.collections
     .filter((collection) => collection.totalCount > 0)
-    .slice(0, 6);
+    .slice(0, 5);
 
   return (
     <MobilePage>
