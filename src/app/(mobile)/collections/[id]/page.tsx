@@ -3,7 +3,15 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import Link from "next/link";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
-import { ChevronRight, Ellipsis, Layers, Loader2, Search, Trash2 } from "lucide-react";
+import {
+  ChevronRight,
+  Ellipsis,
+  Layers,
+  Loader2,
+  Pencil,
+  Search,
+  Trash2,
+} from "lucide-react";
 import { ActionSheet } from "@/components/action-sheet";
 import { CardModal, type CardDetail } from "@/components/card-modal";
 import { CollectionEntriesView } from "@/components/collection-entries-view";
@@ -12,6 +20,7 @@ import { CollectionCoverPickerSheet } from "@/components/collection-cover-picker
 import { CardGrid } from "@/components/card-grid";
 import { CardTile } from "@/components/card-tile";
 import { ConfirmDialog } from "@/components/confirm-dialog";
+import { RenameCollectionSheet } from "@/components/rename-collection-sheet";
 import { ProgressBar } from "@/components/progress-bar";
 import { ViewTabs } from "@/components/view-tabs";
 import {
@@ -373,6 +382,7 @@ export default function CollectionDetailPage() {
   const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [renameOpen, setRenameOpen] = useState(false);
   const [coverPickerOpen, setCoverPickerOpen] = useState(false);
   const addingCardIdsRef = useRef(new Set<string>());
   const quickAddTimeoutRef = useRef<number | null>(null);
@@ -409,6 +419,24 @@ export default function CollectionDetailPage() {
                 ...prev.collection,
                 coverCardId: update.coverCardId,
                 coverImageUrl: update.coverImageUrl,
+                updatedAt: update.updatedAt,
+              },
+            }
+          : prev,
+      );
+    },
+    [],
+  );
+
+  const handleNameSaved = useCallback(
+    (update: { name: string; updatedAt: string }) => {
+      setData((prev) =>
+        prev
+          ? {
+              ...prev,
+              collection: {
+                ...prev.collection,
+                name: update.name,
                 updatedAt: update.updatedAt,
               },
             }
@@ -601,6 +629,12 @@ export default function CollectionDetailPage() {
   const collectionActionItems = useMemo(
     () => [
       {
+        id: "rename",
+        label: t("collections.rename"),
+        icon: <Pencil className="h-4 w-4 shrink-0" />,
+        onSelect: () => setRenameOpen(true),
+      },
+      {
         id: "delete",
         label: t("collections.delete"),
         icon: <Trash2 className="h-4 w-4 shrink-0" />,
@@ -704,6 +738,14 @@ export default function CollectionDetailPage() {
         title={t("collections.detailActions")}
         items={collectionActionItems}
         onClose={() => setMenuOpen(false)}
+      />
+
+      <RenameCollectionSheet
+        open={renameOpen}
+        collectionId={collectionId}
+        currentName={data.collection.name}
+        onClose={() => setRenameOpen(false)}
+        onSaved={handleNameSaved}
       />
 
       <ConfirmDialog

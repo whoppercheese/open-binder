@@ -109,6 +109,40 @@ export type CollectionCoverUpdate = {
   updatedAt: string;
 };
 
+export type CollectionNameUpdate = {
+  name: string;
+  updatedAt: string;
+};
+
+export async function updateCollectionName(
+  collectionId: string,
+  name: string,
+): Promise<CollectionNameUpdate> {
+  const response = await fetch(`/api/collections/${collectionId}`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ name }),
+  });
+
+  const payload = (await response.json()) as {
+    errorCode?: string;
+    collection?: CollectionNameUpdate & { id: string };
+  };
+
+  if (!response.ok) {
+    throw new Error(payload.errorCode ?? "SAVE_FAILED");
+  }
+
+  if (!payload.collection) {
+    throw new Error("SAVE_FAILED");
+  }
+
+  return {
+    name: payload.collection.name,
+    updatedAt: payload.collection.updatedAt,
+  };
+}
+
 export async function setCollectionCover(
   collectionId: string,
   coverCardId: string | null,
