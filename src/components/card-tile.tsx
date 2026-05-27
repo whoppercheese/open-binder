@@ -44,7 +44,7 @@ type CardTileProps = {
 };
 
 const LONG_PRESS_PRESETS = {
-  quickAdd: { indicatorDelay: 200, holdDuration: 1000, icon: "plus" as const },
+  quickAdd: { indicatorDelay: 200, holdDuration: 1000, icon: "markOwned" as const },
   select: { indicatorDelay: 150, holdDuration: 450, icon: "check" as const },
 };
 
