@@ -148,15 +148,24 @@ function CollectionDetailHeader({
           {set ? (
             <p className="text-sm text-zinc-500">
               {t("collections.createdFromSetPrefix")}
-              <Link
-                href={`/sets/${set.id}`}
-                className="text-emerald-400 hover:text-emerald-300"
-              >
-                {resolveSetDisplayCode({
-                  officialCode: set.officialCode,
-                  setId: set.id,
-                }) ?? set.name}
-              </Link>
+              {readOnly ? (
+                <span className="text-emerald-400/90">
+                  {resolveSetDisplayCode({
+                    officialCode: set.officialCode,
+                    setId: set.id,
+                  }) ?? set.name}
+                </span>
+              ) : (
+                <Link
+                  href={`/sets/${set.id}`}
+                  className="text-emerald-400 hover:text-emerald-300"
+                >
+                  {resolveSetDisplayCode({
+                    officialCode: set.officialCode,
+                    setId: set.id,
+                  }) ?? set.name}
+                </Link>
+              )}
             </p>
           ) : isCustom ? (
             <p className="text-sm text-zinc-500">{t("collections.customLabel")}</p>
@@ -198,6 +207,7 @@ type CollectionOverviewTabProps = {
   rarities: string[];
   filteredCards: CollectionDetailResponse["cards"];
   hasActiveFilters: boolean;
+  readOnly?: boolean;
   onOwnershipFilterChange: (filter: OwnershipFilter | null) => void;
   onRarityFilterChange: (filter: string | null) => void;
   onOpenCard: (card: CollectionDetailResponse["cards"][number]) => void;
@@ -212,6 +222,7 @@ function CollectionOverviewTab({
   rarities,
   filteredCards,
   hasActiveFilters,
+  readOnly = false,
   onOwnershipFilterChange,
   onRarityFilterChange,
   onOpenCard,
@@ -228,18 +239,20 @@ function CollectionOverviewTab({
           <div className="rounded-2xl border border-dashed border-white/10 p-8 text-center text-sm text-zinc-500">
             {t("collections.emptyCustom")}
           </div>
-          <div className="space-y-2">
-            <CollectionNavLink
-              href={searchHref}
-              icon={Search}
-              label={t("collections.goToSearch")}
-            />
-            <CollectionNavLink
-              href="/sets"
-              icon={Layers}
-              label={t("collections.goToSets")}
-            />
-          </div>
+          {!readOnly ? (
+            <div className="space-y-2">
+              <CollectionNavLink
+                href={searchHref}
+                icon={Search}
+                label={t("collections.goToSearch")}
+              />
+              <CollectionNavLink
+                href="/sets"
+                icon={Layers}
+                label={t("collections.goToSets")}
+              />
+            </div>
+          ) : null}
         </div>
       ) : (
         <>
@@ -332,8 +345,7 @@ function CollectionOverviewTab({
   );
 }
 
-export default function CollectionDetailPage() {
-  const params = useParams<{ id: string }>();
+export function CollectionDetailView({ collectionId }: { collectionId: string }) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { locale } = useLocale();
@@ -359,10 +371,12 @@ export default function CollectionDetailPage() {
   const addingCardIdsRef = useRef(new Set<string>());
   const quickAddTimeoutRef = useRef<number | null>(null);
   const { defaultCondition } = useDefaultCondition();
-  const collectionId = params.id;
 
-  const highlightCardId = searchParams.get("cardId")?.trim() ?? "";
-  const viewParam = searchParams.get("view");
+  const [offlineHighlightCardId, setOfflineHighlightCardId] = useState("");
+  const highlightCardId = isOfflineView
+    ? offlineHighlightCardId
+    : (searchParams.get("cardId")?.trim() ?? "");
+  const viewParam = isOfflineView ? null : searchParams.get("view");
   const initialViewMode: ViewMode =
     viewParam === "entries"
       ? "entries"
@@ -372,6 +386,11 @@ export default function CollectionDetailPage() {
           ? "entries"
           : "grid";
   const [viewMode, setViewMode] = useState<ViewMode>(initialViewMode);
+
+  useEffect(() => {
+    setViewMode("grid");
+    setOfflineHighlightCardId("");
+  }, [collectionId]);
 
   const bumpRefresh = useCallback(() => {
     setRefreshKey((value) => value + 1);
@@ -421,6 +440,9 @@ export default function CollectionDetailPage() {
   const setViewModeWithUrl = useCallback(
     (mode: ViewMode) => {
       setViewMode(mode);
+      if (isOfflineView) {
+        return;
+      }
       const params = new URLSearchParams(searchParams.toString());
       if (mode === "entries") {
         params.set("view", "entries");
@@ -436,10 +458,14 @@ export default function CollectionDetailPage() {
         { scroll: false },
       );
     },
-    [collectionId, router, searchParams],
+    [collectionId, isOfflineView, router, searchParams],
   );
 
   const clearCardFilter = useCallback(() => {
+    if (isOfflineView) {
+      setOfflineHighlightCardId("");
+      return;
+    }
     const params = new URLSearchParams(searchParams.toString());
     params.delete("cardId");
     const query = params.toString();
@@ -447,7 +473,7 @@ export default function CollectionDetailPage() {
       query ? `/collections/${collectionId}?${query}` : `/collections/${collectionId}`,
       { scroll: false },
     );
-  }, [collectionId, router, searchParams]);
+  }, [collectionId, isOfflineView, router, searchParams]);
 
   const rarities = useMemo(() => {
     if (!data?.cards) return [];
@@ -541,6 +567,9 @@ export default function CollectionDetailPage() {
   }, []);
 
   useEffect(() => {
+    if (isOfflineView) {
+      return;
+    }
     const viewParam = searchParams.get("view");
     if (viewParam === "entries") {
       setViewMode("entries");
@@ -551,7 +580,7 @@ export default function CollectionDetailPage() {
       return;
     }
     setViewMode(initialViewMode);
-  }, [initialViewMode, searchParams]);
+  }, [initialViewMode, isOfflineView, searchParams]);
 
   async function handleDeleteCollection() {
     setDeleting(true);
@@ -675,6 +704,7 @@ export default function CollectionDetailPage() {
             rarities={rarities}
             filteredCards={filteredCards}
             hasActiveFilters={hasActiveFilters}
+            readOnly={isOfflineView}
             onOwnershipFilterChange={setOwnershipFilter}
             onRarityFilterChange={setRarityFilter}
             onOpenCard={openCardModal}
@@ -752,4 +782,9 @@ export default function CollectionDetailPage() {
       ) : null}
     </div>
   );
+}
+
+export default function CollectionDetailPage() {
+  const params = useParams<{ id: string }>();
+  return <CollectionDetailView collectionId={params.id} />;
 }

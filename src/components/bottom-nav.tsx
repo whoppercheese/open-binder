@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Home, Layers, Search, Settings, WalletCards } from "lucide-react";
 import { useTranslations } from "@/lib/i18n/context";
+import { useOfflineNavigation } from "@/lib/offline/offline-navigation";
 import { useOffline } from "@/lib/offline/offline-provider";
 import { cn } from "@/lib/utils";
 
@@ -13,6 +14,7 @@ export function BottomNav() {
   const pathname = usePathname();
   const t = useTranslations();
   const { isOfflineView } = useOffline();
+  const { screen, openList } = useOfflineNavigation();
 
   const items = [
     { href: "/", label: t("nav.dashboard"), icon: Home },
@@ -52,6 +54,24 @@ export function BottomNav() {
               ? "text-emerald-400"
               : "text-zinc-400 hover:text-zinc-200",
           );
+
+          if (isOfflineView && isCollectionsNav) {
+            return (
+              <button
+                key={href}
+                type="button"
+                onClick={() => {
+                  if (screen.kind === "detail") {
+                    openList();
+                  }
+                }}
+                className={className}
+              >
+                <Icon className="h-5 w-5" />
+                {label}
+              </button>
+            );
+          }
 
           return (
             <Link key={href} href={href} prefetch={false} className={className}>

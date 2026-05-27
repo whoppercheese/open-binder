@@ -5,6 +5,8 @@ import { ChevronRight } from "lucide-react";
 import { CollectionCover } from "@/components/collection-cover";
 import { ProgressBar } from "@/components/progress-bar";
 import { useTranslations } from "@/lib/i18n/context";
+import { useOfflineNavigation } from "@/lib/offline/offline-navigation";
+import { useOffline } from "@/lib/offline/offline-provider";
 type CollectionListItemProps = {
   id: string;
   name: string;
@@ -30,6 +32,8 @@ export function CollectionListItem({
   percent,
 }: CollectionListItemProps) {
   const t = useTranslations();
+  const { isOfflineView } = useOffline();
+  const { openCollection } = useOfflineNavigation();
   const showProgress = total > 0;
   const href = `/collections/${id}`;
   const linkClassName =
@@ -37,12 +41,21 @@ export function CollectionListItem({
 
   return (
     <div className="relative rounded-2xl border border-white/10 bg-white/[0.03] transition hover:bg-white/[0.06]">
-      <Link
-        href={href}
-        prefetch={false}
-        className={linkClassName}
-        aria-label={t("collections.openCollection", { name })}
-      />
+      {isOfflineView ? (
+        <button
+          type="button"
+          onClick={() => openCollection(id)}
+          className={linkClassName}
+          aria-label={t("collections.openCollection", { name })}
+        />
+      ) : (
+        <Link
+          href={href}
+          prefetch={false}
+          className={linkClassName}
+          aria-label={t("collections.openCollection", { name })}
+        />
+      )}
 
       <div className="pointer-events-none relative z-[1] p-4">
         <div className={`flex items-center gap-3 ${showProgress ? "mb-3" : ""}`}>

@@ -1,9 +1,10 @@
 import { BottomNav } from "@/components/bottom-nav";
 import { OfflineBanner } from "@/components/offline-banner";
-import { OfflineRedirect } from "@/components/offline-redirect";
+import { OfflineShell } from "@/components/offline-shell";
 import { MobileScrollShell } from "@/components/mobile-scroll-shell";
 import { LocaleProvider } from "@/lib/i18n/context";
 import { getRequestLocale } from "@/lib/i18n/server";
+import { OfflineNavigationProvider } from "@/lib/offline/offline-navigation";
 import { OfflineProvider } from "@/lib/offline/offline-provider";
 
 export const dynamic = "force-dynamic";
@@ -18,12 +19,15 @@ export default async function MobileLayout({
   return (
     <LocaleProvider initialLocale={initialLocale}>
       <OfflineProvider>
-        <div className="fixed inset-0 mx-auto flex w-full max-w-lg flex-col overflow-hidden bg-[#0b0d12] text-white">
-          <OfflineBanner />
-          <OfflineRedirect />
-          <MobileScrollShell>{children}</MobileScrollShell>
-          <BottomNav />
-        </div>
+        <OfflineNavigationProvider>
+          <div className="fixed inset-0 mx-auto flex w-full max-w-lg flex-col overflow-hidden bg-[#0b0d12] text-white">
+            <OfflineBanner />
+            <OfflineShell>
+              <MobileScrollShell>{children}</MobileScrollShell>
+            </OfflineShell>
+            <BottomNav />
+          </div>
+        </OfflineNavigationProvider>
       </OfflineProvider>
     </LocaleProvider>
   );
