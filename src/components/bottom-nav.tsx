@@ -50,33 +50,30 @@ export function BottomNav() {
           }
 
           const className = cn(
-            "flex w-full flex-col items-center gap-1 rounded-xl border-0 bg-transparent px-2 py-2 text-[11px] font-medium transition-colors appearance-none [-webkit-tap-highlight-color:transparent]",
+            "flex flex-col items-center gap-1 rounded-xl px-2 py-2 text-[11px] font-medium transition-colors",
             active
               ? "text-emerald-400"
               : "text-zinc-400 hover:text-zinc-200",
           );
 
-          if (isOfflineView && isCollectionsNav) {
-            return (
-              <button
-                key={href}
-                type="button"
-                onClick={() => {
-                  if (screen.kind === "detail") {
-                    openList();
-                  }
-                }}
-                className={className}
-                aria-current={active ? "page" : undefined}
-              >
-                <Icon className="h-5 w-5" />
-                {label}
-              </button>
-            );
-          }
-
           return (
-            <Link key={href} href={href} prefetch={false} className={className}>
+            <Link
+              key={href}
+              href={href}
+              prefetch={false}
+              className={className}
+              aria-current={active ? "page" : undefined}
+              onClick={
+                isOfflineView && isCollectionsNav
+                  ? (event) => {
+                      event.preventDefault();
+                      if (screen.kind === "detail") {
+                        openList();
+                      }
+                    }
+                  : undefined
+              }
+            >
               <Icon className="h-5 w-5" />
               {label}
             </Link>
