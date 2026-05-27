@@ -128,7 +128,7 @@ function matchesSetFilters(
     return false;
   }
 
-  if (filters.has("collection") && !set.progress?.hasCollection) {
+  if (filters.has("collection") && !set.hasCollection) {
     return false;
   }
 
@@ -605,12 +605,11 @@ export function SetsPageContent({ initialSets }: SetsPageContentProps) {
                   id={set.id}
                   name={set.name}
                   officialCode={set.officialCode}
+                  releaseDate={set.releaseDate}
                   cardsSynced={cardsSynced}
                   syncStatus={syncState}
                   syncMessage={activeJob?.message}
-                  owned={set.progress?.owned}
-                  total={set.progress?.total}
-                  percent={set.progress?.percent}
+                  cardCount={set.cardCount}
                   onLoadCards={handleLoadCards}
                   loadingCards={loadingSetId === set.id}
                 />

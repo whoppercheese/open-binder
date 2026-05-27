@@ -2,51 +2,19 @@ import type { UiLocale } from "@/lib/i18n/locale";
 import { getLocalizedString } from "@/lib/catalog-languages";
 import { listCollections } from "@/lib/collections.server";
 
-type SetWithCounts = {
-  id: string;
-  cardCountOfficial: number;
-  cardCountTotal: number;
-};
-
-export type SetProgress = {
-  owned: number;
-  total: number;
-  percent: number;
-  hasCollection: boolean;
-};
-
-export async function buildSetProgressMap(
+export async function buildSetHasCollectionIds(
   locale: UiLocale,
-  allSets: readonly SetWithCounts[],
-): Promise<Map<string, SetProgress>> {
+): Promise<Set<string>> {
   const allCollections = await listCollections(locale);
-  const progressBySet = new Map<string, SetProgress>();
+  const setIds = new Set<string>();
 
   for (const col of allCollections) {
-    if (col.type !== "set" || !col.setId) {
-      continue;
-    }
-    if (!progressBySet.has(col.setId)) {
-      progressBySet.set(col.setId, {
-        owned: col.ownedCount,
-        total: col.totalCount,
-        percent: col.percent,
-        hasCollection: true,
-      });
+    if (col.type === "set" && col.setId) {
+      setIds.add(col.setId);
     }
   }
 
-  return new Map(
-    allSets.map((set) => [
-      set.id,
-      progressBySet.get(set.id) ?? {
-        owned: 0,
-        total: set.cardCountOfficial || set.cardCountTotal,
-        percent: 0,
-        hasCollection: false,
-      },
-    ]),
-  );
+  return setIds;
 }
 
 export function resolveSetDisplayNames(

@@ -8,12 +8,8 @@ export type SetListEntry = SetSummary & {
   seriesName: string;
   releaseDate: string | null;
   cardsSyncedAt: string | null;
-  progress: {
-    owned: number;
-    total: number;
-    percent: number;
-    hasCollection?: boolean;
-  } | null;
+  cardCount: number;
+  hasCollection: boolean;
 };
 
 export function areSetListsEqual(
@@ -32,10 +28,8 @@ export function areSetListsEqual(
       a.seriesName !== b.seriesName ||
       a.releaseDate !== b.releaseDate ||
       a.cardsSyncedAt !== b.cardsSyncedAt ||
-      a.progress?.owned !== b.progress?.owned ||
-      a.progress?.total !== b.progress?.total ||
-      a.progress?.percent !== b.progress?.percent ||
-      a.progress?.hasCollection !== b.progress?.hasCollection
+      a.cardCount !== b.cardCount ||
+      a.hasCollection !== b.hasCollection
     ) {
       return false;
     }

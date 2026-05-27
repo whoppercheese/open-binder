@@ -2,21 +2,20 @@
 
 import Link from "next/link";
 import { ChevronRight, Download, Loader2 } from "lucide-react";
-import { ProgressBar } from "@/components/progress-bar";
 import { SetImage } from "@/components/set-image";
 import { useTranslations } from "@/lib/i18n/context";
 import { formatSyncJobMessage } from "@/lib/sync-job-display";
+import { getSetReleaseYear } from "@/lib/utils";
 
 type SetListItemProps = {
   id: string;
   name: string;
   officialCode?: string | null;
+  releaseDate?: string | null;
   cardsSynced: boolean;
   syncStatus?: "idle" | "pending" | "running";
   syncMessage?: string | null;
-  owned?: number;
-  total?: number;
-  percent?: number;
+  cardCount?: number;
   onLoadCards?: (setId: string) => void;
   loadingCards?: boolean;
 };
@@ -25,18 +24,23 @@ export function SetListItem({
   id,
   name,
   officialCode,
+  releaseDate,
   cardsSynced,
   syncStatus = "idle",
   syncMessage,
-  owned = 0,
-  total = 0,
-  percent = 0,
+  cardCount = 0,
   onLoadCards,
   loadingCards = false,
 }: SetListItemProps) {
   const t = useTranslations();
   const isSyncing = syncStatus === "pending" || syncStatus === "running";
-  const showProgress = cardsSynced && !isSyncing;
+  const showChevron = cardsSynced && !isSyncing;
+  const cardCountLabel =
+    cardsSynced && cardCount > 0
+      ? t.plural("common.cardCount", cardCount, { count: cardCount })
+      : null;
+  const releaseYear = getSetReleaseYear(releaseDate);
+  const subtitleParts = [officialCode, releaseYear].filter(Boolean);
 
   return (
     <div className="relative rounded-2xl border border-white/10 bg-white/[0.03] transition hover:bg-white/[0.06]">
@@ -47,21 +51,19 @@ export function SetListItem({
       />
 
       <div className="pointer-events-none relative z-[1] p-4">
-        <div className={`flex items-center gap-3 ${showProgress ? "mb-3" : ""}`}>
+        <div className="flex items-center gap-3">
           <SetImage setId={id} alt={name} className="h-12 w-12 shrink-0" />
 
           <div className="min-w-0 flex-1">
             <h3 className="truncate font-medium text-white">{name}</h3>
-            {officialCode ? (
-              <p className="text-xs text-zinc-500">{officialCode}</p>
+            {subtitleParts.length > 0 ? (
+              <p className="text-xs text-zinc-500">{subtitleParts.join(" · ")}</p>
             ) : null}
           </div>
 
-          {showProgress ? (
+          {showChevron ? (
             <div className="flex shrink-0 items-center gap-2 text-sm text-zinc-400">
-              <span>
-                {owned}/{total}
-              </span>
+              {cardCountLabel ? <span>{cardCountLabel}</span> : null}
               <ChevronRight className="h-4 w-4" />
             </div>
           ) : isSyncing ? (
@@ -94,15 +96,6 @@ export function SetListItem({
             </button>
           )}
         </div>
-
-        {showProgress ? (
-          <>
-            <ProgressBar value={percent} />
-            <p className="mt-1 text-xs text-zinc-500">
-              {t("sets.percentComplete", { percent })}
-            </p>
-          </>
-        ) : null}
       </div>
     </div>
   );

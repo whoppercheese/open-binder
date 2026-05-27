@@ -60,6 +60,25 @@ export function formatCardPrice(
   return formatCardPriceLabel(price, "Price", locale);
 }
 
+/** TCGdex release dates are typically `YYYY/MM/DD` or ISO strings. */
+export function getSetReleaseYear(
+  releaseDate: string | null | undefined,
+): string | null {
+  if (!releaseDate) return null;
+
+  const yearPrefix = releaseDate.match(/^(\d{4})/);
+  if (yearPrefix) {
+    return yearPrefix[1];
+  }
+
+  const parsed = new Date(releaseDate);
+  if (!Number.isNaN(parsed.getTime())) {
+    return String(parsed.getFullYear());
+  }
+
+  return null;
+}
+
 export function formatDate(
   value: string | Date | null | undefined,
   locale: UiLocale = "en",

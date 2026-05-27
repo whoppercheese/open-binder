@@ -5,7 +5,7 @@ import { db } from "@/db/client";
 import { sets } from "@/db/schema";
 import { getLocalizedString } from "@/lib/catalog-languages";
 import { getRequestLocale } from "@/lib/i18n/server";
-import { buildSetProgressMap } from "@/lib/set-progress.server";
+import { buildSetHasCollectionIds } from "@/lib/set-progress.server";
 import { supportedCatalogSetsWhere } from "@/lib/sets-list-catalog";
 import { sortSetsForDisplay } from "@/lib/sets-list-sort";
 import type { SetListEntry } from "@/lib/sets-list";
@@ -25,36 +25,18 @@ export async function getSetListEntries(): Promise<SetListEntry[]> {
     where: supportedCatalogSetsWhere(),
     orderBy: [desc(sets.releaseDate)],
   });
-  const progressBySet = await buildSetProgressMap(locale, allSets);
+  const setIdsWithCollection = await buildSetHasCollectionIds(locale);
 
-  const entries = allSets.map((set) => {
-    const cardsSynced = set.cardsSyncedAt != null;
-    const progress = cardsSynced
-      ? (progressBySet.get(set.id) ?? {
-          owned: 0,
-          total: set.cardCountOfficial || set.cardCountTotal,
-          percent: 0,
-          hasCollection: false,
-        })
-      : null;
-
-    return {
-      id: set.id,
-      name: getLocalizedString(set.names, locale) ?? set.id,
-      officialCode: set.officialCode,
-      seriesName: getLocalizedString(set.seriesNames, locale) ?? "",
-      releaseDate: set.releaseDate,
-      cardsSyncedAt: set.cardsSyncedAt?.toISOString() ?? null,
-      progress: progress
-        ? {
-            owned: progress.owned,
-            total: progress.total,
-            percent: progress.percent,
-            hasCollection: progress.hasCollection,
-          }
-        : null,
-    };
-  });
+  const entries = allSets.map((set) => ({
+    id: set.id,
+    name: getLocalizedString(set.names, locale) ?? set.id,
+    officialCode: set.officialCode,
+    seriesName: getLocalizedString(set.seriesNames, locale) ?? "",
+    releaseDate: set.releaseDate,
+    cardsSyncedAt: set.cardsSyncedAt?.toISOString() ?? null,
+    cardCount: set.cardCountOfficial || set.cardCountTotal,
+    hasCollection: setIdsWithCollection.has(set.id),
+  }));
 
   return sortSetsForDisplay(entries);
 }
