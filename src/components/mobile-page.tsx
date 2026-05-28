@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { PageHeader } from "@/components/ui/page-header";
 import { cn } from "@/lib/utils";
 
 type MobilePageProps = {
@@ -19,6 +20,7 @@ type MobilePageHeaderProps = {
   className?: string;
 };
 
+/** @deprecated Prefer `<PageHeader />` from `@/components/ui` for trailing/actions support. */
 export function MobilePageHeader({
   title,
   subtitle,
@@ -26,13 +28,11 @@ export function MobilePageHeader({
   className,
 }: MobilePageHeaderProps) {
   return (
-    <header className={className}>
-      <h1 className="text-2xl font-bold">{title}</h1>
-      {subtitle ? (
-        <p className={cn("text-sm text-zinc-400", subtitleClassName)}>
-          {subtitle}
-        </p>
-      ) : null}
-    </header>
+    <PageHeader
+      title={title}
+      subtitle={subtitle}
+      subtitleClassName={subtitleClassName}
+      className={className}
+    />
   );
 }

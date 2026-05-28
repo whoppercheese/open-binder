@@ -1,9 +1,10 @@
 "use client";
 
-import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { ListPlus, X } from "lucide-react";
+import { ListPlus } from "lucide-react";
 import { AddToChecklistSheet } from "@/components/add-to-checklist-sheet";
+import { Button, ButtonLink } from "@/components/ui/button";
+import { SheetCloseButton } from "@/components/ui/icon-button";
 import { CardFrame } from "@/components/card-frame";
 import { CardImage } from "@/components/card-image";
 import { CardImageLightbox } from "@/components/card-image-lightbox";
@@ -143,14 +144,10 @@ export function SetCardPreviewModal({
                 </div>
                 <h2 className="text-lg font-semibold text-white">{card.name}</h2>
               </div>
-              <button
-                type="button"
+              <SheetCloseButton
                 onClick={handleClose}
-                className="shrink-0 rounded-full p-2 text-zinc-400 hover:bg-white/5 hover:text-white"
                 aria-label={t("common.close")}
-              >
-                <X className="h-5 w-5" />
-              </button>
+              />
             </div>
 
             {needsSetDownload ? (
@@ -212,21 +209,21 @@ export function SetCardPreviewModal({
 
             {needsSetDownload ? (
               card.setId ? (
-                <Link
+                <ButtonLink
                   href={`/sets/${card.setId}`}
+                  variant="outline"
+                  fullWidth
                   onClick={handleClose}
-                  className="flex w-full items-center justify-center gap-2 rounded-2xl border border-emerald-400/30 bg-emerald-500/10 px-4 py-3 text-sm font-medium text-emerald-200 transition hover:bg-emerald-500/20"
                 >
                   {t("cardModal.goToSet")}
-                </Link>
+                </ButtonLink>
               ) : null
             ) : (
-              <button
-                type="button"
+              <Button
+                variant="outline"
+                fullWidth
+                className="flex-col gap-1 border-emerald-500/30"
                 onClick={() => setChecklistOpen(true)}
-                className={cn(
-                  "flex w-full flex-col items-center gap-1 rounded-2xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-sm font-medium text-emerald-200 transition hover:bg-emerald-500/20",
-                )}
               >
                 <span className="flex items-center justify-center gap-2">
                   <ListPlus className="h-4 w-4 shrink-0" />
@@ -248,7 +245,7 @@ export function SetCardPreviewModal({
                       : t("sets.checklistOnNone")}
                   </span>
                 ) : null}
-              </button>
+              </Button>
             )}
           </div>
         </div>

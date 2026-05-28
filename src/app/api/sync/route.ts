@@ -11,8 +11,8 @@ import { getRequestTranslator } from "@/lib/i18n/server";
 import { resolveSetDisplayNames } from "@/lib/set-progress.server";
 
 export async function GET(request: Request) {
+  const { locale, t } = getRequestTranslator(request);
   try {
-    const { locale } = getRequestTranslator(request);
     const jobs = await db.query.syncJobs.findMany({
       orderBy: [desc(syncJobs.createdAt)],
       limit: 10,
@@ -47,20 +47,21 @@ export async function GET(request: Request) {
   } catch (error) {
     console.error(error);
     return NextResponse.json(
-      { error: "Sync-Status konnte nicht geladen werden." },
+      { error: t("errors.api.syncStatusLoadFailed") },
       { status: 500 },
     );
   }
 }
 
 export async function POST(request: Request) {
+  const { t } = getRequestTranslator(request);
   try {
     const body = await request.json();
     const type = body.type as "catalog" | "prices";
 
     if (type !== "catalog" && type !== "prices") {
       return NextResponse.json(
-        { error: "Ungültiger Sync-Typ." },
+        { error: t("errors.api.syncInvalidType") },
         { status: 400 },
       );
     }
@@ -71,8 +72,8 @@ export async function POST(request: Request) {
         {
           error:
             type === "catalog"
-              ? "Ein Sets-Sync läuft bereits oder wartet in der Queue."
-              : "Ein Preis-Sync läuft bereits oder wartet in der Queue.",
+              ? t("errors.api.syncCatalogAlreadyRunning")
+              : t("errors.api.syncPricesAlreadyRunning"),
           job: activeJob,
         },
         { status: 409 },
@@ -94,7 +95,7 @@ export async function POST(request: Request) {
   } catch (error) {
     console.error(error);
     return NextResponse.json(
-      { error: "Sync konnte nicht gestartet werden." },
+      { error: t("errors.api.syncStartFailed") },
       { status: 500 },
     );
   }

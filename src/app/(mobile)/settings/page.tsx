@@ -1,7 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { ChevronDown, Loader2, RefreshCw } from "lucide-react";
+import { ChevronDown, RefreshCw } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import {
   formatJobStatusLabel,
   formatJobTypeLabel,
@@ -226,14 +227,15 @@ export default function SettingsPage() {
             {syncing ? ` · ${t("collections.loading")}` : null}
           </p>
         </div>
-        <button
-          type="button"
+        <Button
+          variant="secondary"
+          fullWidth
+          loading={clearingCache}
+          disabled={cacheStats.collectionCount === 0}
           onClick={() => setConfirmClearOpen(true)}
-          disabled={clearingCache || cacheStats.collectionCount === 0}
-          className="rounded-xl bg-white/10 px-4 py-3 text-sm font-medium text-white disabled:opacity-50"
         >
           {clearingCache ? t("offline.cacheClearing") : t("offline.cacheClear")}
-        </button>
+        </Button>
       </section>
 
       <section className="space-y-3 rounded-2xl border border-white/10 bg-white/[0.03] p-4">
@@ -243,32 +245,30 @@ export default function SettingsPage() {
           <p className="text-sm text-red-400">{syncError}</p>
         ) : null}
         <div className="grid grid-cols-1 gap-2">
-          <button
-            type="button"
-            onClick={() => triggerSync("catalog")}
+          <Button
+            variant="secondary"
+            fullWidth
+            loading={loading === "catalog"}
             disabled={loading != null || catalogActive}
-            className="flex items-center justify-center gap-2 rounded-xl bg-white/10 px-4 py-3 text-sm font-medium text-white disabled:opacity-50"
+            icon={
+              loading !== "catalog" ? <RefreshCw className="h-4 w-4" /> : undefined
+            }
+            onClick={() => triggerSync("catalog")}
           >
-            {loading === "catalog" ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <RefreshCw className="h-4 w-4" />
-            )}
             {t("settings.syncSets")}
-          </button>
-          <button
-            type="button"
-            onClick={() => triggerSync("prices")}
+          </Button>
+          <Button
+            variant="secondary"
+            fullWidth
+            loading={loading === "prices"}
             disabled={loading != null || pricesActive}
-            className="flex items-center justify-center gap-2 rounded-xl bg-white/10 px-4 py-3 text-sm font-medium text-white disabled:opacity-50"
+            icon={
+              loading !== "prices" ? <RefreshCw className="h-4 w-4" /> : undefined
+            }
+            onClick={() => triggerSync("prices")}
           >
-            {loading === "prices" ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <RefreshCw className="h-4 w-4" />
-            )}
             {t("settings.syncPricesNow")}
-          </button>
+          </Button>
         </div>
       </section>
 

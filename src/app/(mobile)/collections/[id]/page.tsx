@@ -1,16 +1,9 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
-import {
-  ChevronRight,
-  Ellipsis,
-  Layers,
-  Pencil,
-  Search,
-  Trash2,
-} from "lucide-react";
+import { Layers, Pencil, Search, Trash2 } from "lucide-react";
 import { ActionSheet } from "@/components/action-sheet";
 import { CardModal, type CardDetail } from "@/components/card-modal";
 import { CollectionEntriesView } from "@/components/collection-entries-view";
@@ -38,61 +31,14 @@ import type { CollectionDetailResponse } from "@/lib/offline/types";
 import { notifyFullMirror } from "@/lib/offline/types";
 import { getRarityLabel, sortCanonicalRarities } from "@/lib/rarity";
 import { useDefaultCondition } from "@/lib/use-default-condition";
+import { FilterChip, FilterChipList } from "@/components/ui/filter-chip";
+import { FullWidthNavLink } from "@/components/ui/full-width-row";
+import { IconMenuButton } from "@/components/ui/icon-button";
+import { PageHeader } from "@/components/ui/page-header";
 import { cn, resolveSetDisplayCode } from "@/lib/utils";
 
 type OwnershipFilter = "owned" | "missing";
 type ViewMode = "grid" | "entries";
-
-const collectionLinkClassName =
-  "flex w-full items-center justify-between gap-3 rounded-2xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-sm font-medium text-emerald-200 transition hover:bg-emerald-500/20";
-
-function CollectionNavLink({
-  href,
-  icon: Icon,
-  label,
-}: {
-  href: string;
-  icon: typeof Search;
-  label: string;
-}) {
-  return (
-    <Link href={href} className={collectionLinkClassName}>
-      <span className="flex items-center gap-2">
-        <Icon className="h-4 w-4 shrink-0" />
-        {label}
-      </span>
-      <ChevronRight
-        className="h-5 w-5 shrink-0 text-emerald-200/80"
-        aria-hidden
-      />
-    </Link>
-  );
-}
-
-function FilterChip({
-  active,
-  onClick,
-  children,
-}: {
-  active: boolean;
-  onClick: () => void;
-  children: ReactNode;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={cn(
-        "shrink-0 cursor-pointer rounded-full border px-3 py-1.5 text-xs font-medium transition-colors",
-        active
-          ? "border-emerald-400/50 bg-emerald-500/15 text-emerald-200"
-          : "border-white/10 bg-white/5 text-zinc-400 hover:border-white/20 hover:text-zinc-200",
-      )}
-    >
-      {children}
-    </button>
-  );
-}
 
 type CollectionDetailHeaderProps = {
   collection: CollectionDetailResponse["collection"];
@@ -128,62 +74,61 @@ function CollectionDetailHeader({
     />
   );
 
+  const subtitle = set ? (
+    <>
+      {t("collections.createdFromSetPrefix")}
+      {readOnly ? (
+        <span className="text-emerald-400/90">
+          {resolveSetDisplayCode({
+            officialCode: set.officialCode,
+            setId: set.id,
+          }) ?? set.name}
+        </span>
+      ) : (
+        <Link
+          href={`/sets/${set.id}`}
+          className="text-emerald-400 hover:text-emerald-300"
+        >
+          {resolveSetDisplayCode({
+            officialCode: set.officialCode,
+            setId: set.id,
+          }) ?? set.name}
+        </Link>
+      )}
+    </>
+  ) : isCustom ? (
+    t("collections.customLabel")
+  ) : undefined;
+
   return (
-    <header className="shrink-0 space-y-3">
-      <div className="flex items-start gap-3">
-        {canChangeCover && !readOnly ? (
+    <PageHeader
+      className="shrink-0"
+      title={collection.name}
+      subtitle={subtitle}
+      subtitleClassName="text-zinc-500"
+      leading={
+        canChangeCover && !readOnly ? (
           <button
             type="button"
             onClick={onOpenCoverPicker}
             aria-label={t("collections.changeCover")}
-            className="shrink-0 rounded-xl transition hover:opacity-90 active:scale-[0.98]"
+            className="rounded-xl transition hover:opacity-90 active:scale-[0.98]"
           >
             {cover}
           </button>
         ) : (
           cover
-        )}
-        <div className="min-w-0 flex-1">
-          <h1 className="text-2xl font-bold text-white">{collection.name}</h1>
-          {set ? (
-            <p className="text-sm text-zinc-500">
-              {t("collections.createdFromSetPrefix")}
-              {readOnly ? (
-                <span className="text-emerald-400/90">
-                  {resolveSetDisplayCode({
-                    officialCode: set.officialCode,
-                    setId: set.id,
-                  }) ?? set.name}
-                </span>
-              ) : (
-                <Link
-                  href={`/sets/${set.id}`}
-                  className="text-emerald-400 hover:text-emerald-300"
-                >
-                  {resolveSetDisplayCode({
-                    officialCode: set.officialCode,
-                    setId: set.id,
-                  }) ?? set.name}
-                </Link>
-              )}
-            </p>
-          ) : isCustom ? (
-            <p className="text-sm text-zinc-500">{t("collections.customLabel")}</p>
-          ) : null}
-        </div>
-        {!readOnly ? (
-          <button
-            type="button"
+        )
+      }
+      trailing={
+        !readOnly ? (
+          <IconMenuButton
             aria-label={t("collections.detailActions")}
-            aria-haspopup="menu"
             onClick={onOpenMenu}
-            className="-mr-1 inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-zinc-500 transition hover:bg-white/5 hover:text-zinc-300 active:bg-white/10"
-          >
-            <Ellipsis className="h-5 w-5" strokeWidth={2} />
-          </button>
-        ) : null}
-      </div>
-
+          />
+        ) : null
+      }
+    >
       {progress.totalCards > 0 ? (
         <div>
           <div className="mb-1 flex justify-between text-sm text-zinc-400">
@@ -195,7 +140,7 @@ function CollectionDetailHeader({
           <ProgressBar value={progress.percent} />
         </div>
       ) : null}
-    </header>
+    </PageHeader>
   );
 }
 
@@ -241,12 +186,12 @@ function CollectionOverviewTab({
           </div>
           {!readOnly ? (
             <div className="space-y-2">
-              <CollectionNavLink
+              <FullWidthNavLink
                 href={searchHref}
                 icon={Search}
                 label={t("collections.goToSearch")}
               />
-              <CollectionNavLink
+              <FullWidthNavLink
                 href="/sets"
                 icon={Layers}
                 label={t("collections.goToSets")}
@@ -257,7 +202,7 @@ function CollectionOverviewTab({
       ) : (
         <>
           <section className="space-y-3">
-            <div className="flex flex-wrap gap-2">
+            <FilterChipList>
               <FilterChip
                 active={ownershipFilter === "owned"}
                 onClick={() =>
@@ -278,10 +223,10 @@ function CollectionOverviewTab({
               >
                 {t("sets.filterMissing")}
               </FilterChip>
-            </div>
+            </FilterChipList>
 
             {rarities.length > 0 ? (
-              <div className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1">
+              <FilterChipList scroll>
                 {rarities.map((rarity) => (
                   <FilterChip
                     key={rarity}
@@ -295,7 +240,7 @@ function CollectionOverviewTab({
                     {getRarityLabel(rarity, t) ?? rarity}
                   </FilterChip>
                 ))}
-              </div>
+              </FilterChipList>
             ) : null}
 
             {hasActiveFilters ? (

@@ -26,7 +26,7 @@ OpenBinder is an unofficial fan tool for Pokémon TCG collectors who want **mult
 | Chase cards across sets | Use a **custom collection** — mix Charizard, Mewtwo, etc. from different sets |
 | Know portfolio value | **Cardmarket EUR** (Trend or Low) per variant, summed across all copies |
 | Quick logging at a trade | **Long-press** on the checklist for Quick Add with your default condition |
-| Browse offline-ish | PWA shell + cached images after sync; catalog browsable once sets/cards are loaded |
+| Check binders offline | **Offline mode** mirrors binders locally while online; read-only checklist & inventory when disconnected |
 
 ### Collector workflow (end to end)
 
@@ -274,9 +274,42 @@ For faster local testing, use `CATALOG_SET_IDS` and `CATALOG_SET_CARD_LIMIT` (se
 
 ## PWA & offline
 
+OpenBinder is a **Progressive Web App** — install it on your phone (Add to Home Screen) or use it in the browser. The mobile layout uses safe-area insets and fixed bottom navigation.
+
+### Install & app shell
+
 - Installable as a **standalone app** (manifest, icons, `apple-touch-icon`)
-- **Service worker** caches the app shell and static assets; checks for updates when the tab regains focus
-- Mobile layout with safe-area support and fixed bottom navigation
+- **Service worker** precaches the app shell and static assets; checks for updates when the tab regains focus
+- Card and cover images under `/api/images/` and `/api/collection-covers/` use **network-first** caching — once loaded, they stay available offline
+
+### Offline mode (binders)
+
+While you use the app **online**, OpenBinder **mirrors your binders to IndexedDB** in the background: collection list, checklist, inventory entries, and portfolio totals per binder. Sync runs when you open the app, return to the tab, reconnect after being offline, or change a binder (add/remove cards, record copies).
+
+When you go **offline**, the app switches to a **read-only offline view**:
+
+| Online | Offline |
+| --- | --- |
+| All tabs (Dashboard, Sets, Collections, Search, Settings) | **Collections only** — other tabs are disabled |
+| Full editing (checklist, inventory, create binders) | **View only** — browse binders, open checklist & inventory tabs, inspect card details |
+| Live Cardmarket prices | Values from last sync |
+| Search & catalog browsing | Not available |
+
+A banner at the top shows **“Offline view · as of {date} · read-only”** (with the timestamp of the last full sync). Within Collections, you can switch between the binder list and individual binders without a network connection — navigation stays in-memory so iOS Safari does not show a native offline error page.
+
+**Card images** in offline view only appear if you loaded them before going offline (same network-first image cache as above).
+
+**First-time offline:** open the app online at least once so binders can sync. If you go offline with no cached data, Collections shows *“No cached binders. Open the app online first.”*
+
+### Manage the offline cache
+
+In **Settings → Offline cache** you can see how many binders are cached, when they were last synced, and **clear the cache** (removes all mirrored binder data and cached images).
+
+### What is *not* offline
+
+- Dashboard, Sets, Search, and Settings
+- Creating or editing binders, checklists, or inventory entries
+- Catalog sync, search, and live price updates
 
 ---
 

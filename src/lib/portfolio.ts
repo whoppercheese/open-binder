@@ -8,7 +8,10 @@ import {
   syncJobs,
   userCards,
 } from "@/db/schema";
-import { listCollections } from "@/lib/collections.server";
+import {
+  getSetCollectionCount,
+  listCollections,
+} from "@/lib/collections.server";
 import { getChecklistCountsForCardIds } from "@/lib/checklist-membership.server";
 import {
   localizedCardNameSql,
@@ -245,7 +248,10 @@ export async function getSetWithCards(setId: string, locale: UiLocale = "en") {
   }
   const ownedCards = cardsList.filter((card) => card.owned).length;
   const totalCards = cardsList.length;
-  const collectionEntryCount = await getSetCollectionEntryCount(setId);
+  const [collectionEntryCount, setCollectionCount] = await Promise.all([
+    getSetCollectionEntryCount(setId),
+    getSetCollectionCount(setId),
+  ]);
 
   return {
     set: {
@@ -265,6 +271,7 @@ export async function getSetWithCards(setId: string, locale: UiLocale = "en") {
         totalCards > 0 ? Math.round((ownedCards / totalCards) * 100) : 0,
     },
     collectionEntryCount,
+    setCollectionCount,
   };
 }
 

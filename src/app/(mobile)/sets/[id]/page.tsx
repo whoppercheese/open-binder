@@ -1,14 +1,14 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
-import { Loader2, Download, Ellipsis, RefreshCw, Trash2 } from "lucide-react";
+import { Loader2, Download, RefreshCw, Trash2, ChevronRight } from "lucide-react";
 import { ActionSheet } from "@/components/action-sheet";
 import { BulkAddToChecklistSheet } from "@/components/bulk-add-to-checklist-sheet";
 import { CardGrid } from "@/components/card-grid";
 import { CardSelectionToolbar } from "@/components/card-selection-toolbar";
 import { CardTile } from "@/components/card-tile";
-import { CollectionListItem } from "@/components/collection-list-item";
 import { ConfirmDialog } from "@/components/confirm-dialog";
 import { CreateCollectionSheet } from "@/components/create-collection-sheet";
 import {
@@ -19,43 +19,15 @@ import { apiUrl, useLocale, useTranslations } from "@/lib/i18n/context";
 import { formatSyncJobMessage } from "@/lib/sync-job-display";
 import { getRarityLabel, sortCanonicalRarities } from "@/lib/rarity";
 import { useCardGridSelection } from "@/lib/use-card-grid-selection";
+import { Button } from "@/components/ui/button";
+import { FilterChip, FilterChipList } from "@/components/ui/filter-chip";
+import { FullWidthRow } from "@/components/ui/full-width-row";
+import { IconMenuButton } from "@/components/ui/icon-button";
+import { PageHeader } from "@/components/ui/page-header";
+import { MobilePage } from "@/components/mobile-page";
 import { cn } from "@/lib/utils";
 
-type SetCollectionSummary = {
-  id: string;
-  name: string;
-  imageUrl: string | null;
-  ownedCount: number;
-  totalCount: number;
-  percent: number;
-};
-
 type OwnershipFilter = "owned" | "missing";
-
-function FilterChip({
-  active,
-  onClick,
-  children,
-}: {
-  active: boolean;
-  onClick: () => void;
-  children: ReactNode;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={cn(
-        "shrink-0 cursor-pointer rounded-full border px-3 py-1.5 text-xs font-medium transition-colors",
-        active
-          ? "border-emerald-400/50 bg-emerald-500/15 text-emerald-200"
-          : "border-white/10 bg-white/5 text-zinc-400 hover:border-white/20 hover:text-zinc-200",
-      )}
-    >
-      {children}
-    </button>
-  );
-}
 
 type SetDetailResponse = {
   set: {
@@ -90,6 +62,7 @@ type SetDetailResponse = {
     percent: number;
   };
   collectionEntryCount: number;
+  setCollectionCount: number;
 };
 
 export default function SetDetailPage() {
@@ -100,9 +73,6 @@ export default function SetDetailPage() {
   const [data, setData] = useState<SetDetailResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshKey, setRefreshKey] = useState(0);
-  const [setCollections, setSetCollections] = useState<SetCollectionSummary[]>(
-    [],
-  );
   const [createOpen, setCreateOpen] = useState(false);
   const [ownershipFilter, setOwnershipFilter] = useState<OwnershipFilter | null>(
     null,
@@ -149,21 +119,6 @@ export default function SetDetailPage() {
   }, [data, ownershipFilter, rarityFilter]);
 
   const hasActiveFilters = ownershipFilter != null || rarityFilter != null;
-
-  const loadSetCollections = useCallback(async () => {
-    const response = await fetch(apiUrl("/api/collections", locale));
-    const payload = await response.json();
-    if (!response.ok) {
-      setSetCollections([]);
-      return;
-    }
-    const items = (payload.items ?? []) as Array<
-      SetCollectionSummary & { setId: string | null; type: string }
-    >;
-    setSetCollections(
-      items.filter((item) => item.type === "set" && item.setId === params.id),
-    );
-  }, [locale, params.id]);
 
   const loadSet = useCallback(async () => {
     const response = await fetch(apiUrl(`/api/sets/${params.id}`, locale));
@@ -238,14 +193,14 @@ export default function SetDetailPage() {
     let cancelled = false;
 
     (async () => {
-      await Promise.all([loadSet(), loadSetCollections()]);
+      await loadSet();
       if (cancelled) return;
     })();
 
     return () => {
       cancelled = true;
     };
-  }, [loadSet, loadSetCollections, refreshKey]);
+  }, [loadSet, refreshKey]);
 
   useEffect(() => {
     let cancelled = false;
@@ -314,7 +269,6 @@ export default function SetDetailPage() {
       setConfirmDeleteOpen(false);
       setMenuOpen(false);
       await loadSet();
-      await loadSetCollections();
       router.refresh();
     } finally {
       setDeletingCards(false);
@@ -396,72 +350,63 @@ export default function SetDetailPage() {
           {loadError ? (
             <p className="mt-3 text-sm text-red-400">{loadError}</p>
           ) : null}
-          <button
-            type="button"
+          <Button
+            variant="soft"
+            className="mt-4"
+            loading={loadingCards}
+            icon={
+              !loadingCards ? <Download className="h-4 w-4" /> : undefined
+            }
             onClick={() => void handleLoadCards()}
-            disabled={loadingCards}
-            className="mt-4 inline-flex items-center gap-2 rounded-xl bg-emerald-500/15 px-4 py-2.5 text-sm font-medium text-emerald-300 transition hover:bg-emerald-500/25 disabled:opacity-50"
           >
-            {loadingCards ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <Download className="h-4 w-4" />
-            )}
             {t("sets.loadCards")}
-          </button>
+          </Button>
         </>
       )}
     </div>
   );
 
+  const setTitle = data?.set ? (
+    <>
+      {data.set.name}
+      <span className="ml-2 text-base font-normal text-zinc-500">
+        {data.set.officialCode ?? data.set.id}
+      </span>
+    </>
+  ) : (
+    params.id
+  );
+
   if (!data?.set) {
     return (
-      <div className="space-y-5 px-4 pt-6">
-        <header>
-          <h1 className="text-2xl font-bold">{params.id}</h1>
-        </header>
+      <MobilePage>
+        <PageHeader title={setTitle} />
         {loadCardsPanel}
-      </div>
+      </MobilePage>
     );
   }
 
   if (!cardsSynced) {
     return (
-      <div className="space-y-5 px-4 pt-6">
-        <header>
-          <h1 className="text-2xl font-bold">
-            {data.set.name}
-            <span className="ml-2 text-base font-normal text-zinc-500">
-              {data.set.officialCode ?? data.set.id}
-            </span>
-          </h1>
-        </header>
-
+      <MobilePage>
+        <PageHeader title={setTitle} />
         {loadCardsPanel}
-      </div>
+      </MobilePage>
     );
   }
 
   return (
-    <div className="space-y-5 px-4 pt-6">
-      <header className="space-y-3">
-        <div className="flex items-start justify-between gap-2">
-          <h1 className="min-w-0 flex-1 text-2xl font-bold">
-            {data.set.name}
-            <span className="ml-2 text-base font-normal text-zinc-500">
-              {data.set.officialCode ?? data.set.id}
-            </span>
-          </h1>
-          <button
-            type="button"
+    <MobilePage>
+      <PageHeader
+        title={setTitle}
+        subtitle={t("collections.setCatalogHint")}
+        trailing={
+          <IconMenuButton
             aria-label={t("sets.setActions")}
-            aria-haspopup="menu"
             onClick={() => setMenuOpen(true)}
-            className="-mr-1 mt-0.5 inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-zinc-500 transition hover:bg-white/5 hover:text-zinc-300 active:bg-white/10"
-          >
-            <Ellipsis className="h-5 w-5" strokeWidth={2} />
-          </button>
-        </div>
+          />
+        }
+      >
         {deleteError ? (
           <p className="text-sm text-red-400">{deleteError}</p>
         ) : null}
@@ -477,37 +422,35 @@ export default function SetDetailPage() {
             </span>
           </div>
         ) : null}
-        <section className="space-y-2">
-          {setCollections.length === 0 ? (
-            <p className="text-sm text-zinc-400">
-              {t("collections.setCatalogHint")}
-            </p>
-          ) : null}
-          {setCollections.map((collection) => (
-            <CollectionListItem
-              key={collection.id}
-              id={collection.id}
-              name={collection.name}
-              imageUrl={collection.imageUrl}
-              setId={params.id}
-              setOfficialCode={data.set.officialCode}
-              owned={collection.ownedCount}
-              total={collection.totalCount}
-              percent={collection.percent}
-            />
-          ))}
-          <button
-            type="button"
-            onClick={() => setCreateOpen(true)}
-            className="w-full rounded-2xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-sm font-medium text-emerald-200"
+      </PageHeader>
+
+      <section className="space-y-2">
+        {data.setCollectionCount > 0 ? (
+          <FullWidthRow
+            href={`/collections?setId=${encodeURIComponent(params.id)}`}
+            variant="neutral"
+            showChevron={false}
           >
-            {t("collections.createFromSet")}
-          </button>
-        </section>
-      </header>
+            <span className="min-w-0 flex-1">
+              {t("collections.openSetBinders")}
+            </span>
+            <span className="flex shrink-0 items-center gap-2 text-sm text-zinc-400">
+              <span className="tabular-nums">{data.setCollectionCount}</span>
+              <ChevronRight className="h-5 w-5 shrink-0" aria-hidden />
+            </span>
+          </FullWidthRow>
+        ) : null}
+        <FullWidthRow
+          variant="emeraldAction"
+          showChevron={false}
+          onClick={() => setCreateOpen(true)}
+        >
+          {t("collections.createFromSet")}
+        </FullWidthRow>
+      </section>
 
       <section className="space-y-3">
-        <div className="flex flex-wrap gap-2">
+        <FilterChipList>
           <FilterChip
             active={ownershipFilter === "owned"}
             onClick={() =>
@@ -528,10 +471,10 @@ export default function SetDetailPage() {
           >
             {t("sets.filterMissing")}
           </FilterChip>
-        </div>
+        </FilterChipList>
 
         {rarities.length > 0 ? (
-          <div className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1">
+          <FilterChipList scroll>
             {rarities.map((rarity) => (
               <FilterChip
                 key={rarity}
@@ -545,7 +488,7 @@ export default function SetDetailPage() {
                 {getRarityLabel(rarity, t) ?? rarity}
               </FilterChip>
             ))}
-          </div>
+          </FilterChipList>
         ) : null}
 
         {hasActiveFilters ? (
@@ -645,7 +588,6 @@ export default function SetDetailPage() {
         defaultName={data.set.name}
         onClose={() => {
           setCreateOpen(false);
-          void loadSetCollections();
         }}
       />
 
@@ -695,6 +637,6 @@ export default function SetDetailPage() {
           setBulkChecklistOpen(false);
         }}
       />
-    </div>
+    </MobilePage>
   );
 }

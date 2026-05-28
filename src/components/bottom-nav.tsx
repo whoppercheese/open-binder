@@ -1,12 +1,11 @@
 "use client";
 
-import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, Layers, Search, Settings, WalletCards } from "lucide-react";
+import { Home, Layers, Library, Search, Settings } from "lucide-react";
+import { NavTab } from "@/components/ui/nav-tab";
 import { useTranslations } from "@/lib/i18n/context";
 import { useOfflineNavigation } from "@/lib/offline/offline-navigation";
 import { useOffline } from "@/lib/offline/offline-provider";
-import { cn } from "@/lib/utils";
 
 const COLLECTIONS_HREF = "/collections";
 
@@ -19,7 +18,7 @@ export function BottomNav() {
   const items = [
     { href: "/", label: t("nav.dashboard"), icon: Home },
     { href: "/sets", label: t("nav.sets"), icon: Layers },
-    { href: COLLECTIONS_HREF, label: t("nav.collection"), icon: WalletCards },
+    { href: COLLECTIONS_HREF, label: t("nav.collection"), icon: Library },
     { href: "/search", label: t("nav.search"), icon: Search },
     { href: "/settings", label: t("nav.settings"), icon: Settings },
   ];
@@ -36,33 +35,15 @@ export function BottomNav() {
               : pathname === href || pathname.startsWith(`${href}/`);
           const disabled = isOfflineView && !isCollectionsNav;
 
-          if (disabled) {
-            return (
-              <span
-                key={href}
-                title={t("offline.navDisabled")}
-                className="flex flex-col items-center gap-1 rounded-xl px-2 py-2 text-[11px] font-medium text-zinc-600"
-              >
-                <Icon className="h-5 w-5" />
-                {label}
-              </span>
-            );
-          }
-
-          const className = cn(
-            "flex flex-col items-center gap-1 rounded-xl px-2 py-2 text-[11px] font-medium transition-colors",
-            active
-              ? "text-emerald-400"
-              : "text-zinc-400 hover:text-zinc-200",
-          );
-
           return (
-            <Link
+            <NavTab
               key={href}
               href={href}
-              prefetch={false}
-              className={className}
-              aria-current={active ? "page" : undefined}
+              label={label}
+              icon={Icon}
+              active={active}
+              disabled={disabled}
+              disabledTitle={t("offline.navDisabled")}
               onClick={
                 isOfflineView && isCollectionsNav
                   ? (event) => {
@@ -73,10 +54,7 @@ export function BottomNav() {
                     }
                   : undefined
               }
-            >
-              <Icon className="h-5 w-5" />
-              {label}
-            </Link>
+            />
           );
         })}
       </div>

@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { ChevronRight, Download, Loader2 } from "lucide-react";
 import { SetImage } from "@/components/set-image";
+import { Button } from "@/components/ui/button";
 import { useTranslations } from "@/lib/i18n/context";
 import { formatSyncJobMessage } from "@/lib/sync-job-display";
 import { getSetReleaseYear } from "@/lib/utils";
@@ -81,19 +82,17 @@ export function SetListItem({
               </span>
             </div>
           ) : (
-            <button
-              type="button"
-              onClick={() => onLoadCards?.(id)}
-              disabled={loadingCards || !onLoadCards}
+            <Button
+              variant="soft"
+              className="pointer-events-auto p-3"
+              loading={loadingCards}
+              disabled={!onLoadCards}
               aria-label={t("sets.loadCards")}
-              className="pointer-events-auto inline-flex shrink-0 items-center justify-center rounded-xl bg-emerald-500/15 p-3 text-emerald-300 transition hover:bg-emerald-500/25 disabled:opacity-50"
-            >
-              {loadingCards ? (
-                <Loader2 className="h-5 w-5 animate-spin" />
-              ) : (
-                <Download className="h-5 w-5" />
-              )}
-            </button>
+              icon={
+                !loadingCards ? <Download className="h-5 w-5" /> : undefined
+              }
+              onClick={() => onLoadCards?.(id)}
+            />
           )}
         </div>
       </div>

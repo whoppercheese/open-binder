@@ -1,10 +1,11 @@
 "use client";
 
 import { useState } from "react";
-import { Loader2, X } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { CardGrid } from "@/components/card-grid";
 import { CardTile } from "@/components/card-tile";
 import { Portal } from "@/components/portal";
+import { SheetCloseButton } from "@/components/ui/icon-button";
 import { SetImage } from "@/components/set-image";
 import {
   setCollectionCover,
@@ -120,14 +121,10 @@ export function CollectionCoverPickerSheet({
             <h2 className="text-lg font-semibold text-white">
               {t("collections.coverPickerTitle")}
             </h2>
-            <button
-              type="button"
+            <SheetCloseButton
               aria-label={t("common.close")}
               onClick={onClose}
-              className="inline-flex h-9 w-9 items-center justify-center rounded-full text-zinc-400 transition hover:bg-white/5 hover:text-zinc-200"
-            >
-              <X className="h-5 w-5" />
-            </button>
+            />
           </div>
 
           <div className="min-h-0 flex-1 overflow-y-auto px-4 py-4">

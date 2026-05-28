@@ -1,8 +1,8 @@
 "use client";
 
 import { useEffect } from "react";
-import { X } from "lucide-react";
 import { CardFrame } from "@/components/card-frame";
+import { SheetCloseButton } from "@/components/ui/icon-button";
 import { CardImage } from "@/components/card-image";
 import { LightboxZoomViewport } from "@/components/lightbox-zoom-viewport";
 import { Portal } from "@/components/portal";
@@ -52,14 +52,11 @@ export function CardImageLightbox({
         className="fixed inset-0 z-[70] flex cursor-pointer items-center justify-center bg-black/90 p-4"
         onClick={onClose}
       >
-        <button
-          type="button"
+        <SheetCloseButton
           onClick={onClose}
-          className="absolute right-4 top-4 z-10 rounded-full p-2 text-zinc-300 transition hover:bg-white/10 hover:text-white"
           aria-label={t("common.closeLightbox")}
-        >
-          <X className="h-6 w-6" />
-        </button>
+          className="absolute right-4 top-4 z-10 text-zinc-300 hover:text-white"
+        />
         <LightboxZoomViewport
           key={cardId}
           className="card-lightbox relative shrink-0 cursor-auto"

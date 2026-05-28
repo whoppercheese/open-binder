@@ -1,5 +1,5 @@
-import Link from "next/link";
-import { ArrowRight, TrendingUp } from "lucide-react";
+import { TrendingUp } from "lucide-react";
+import { TextLink } from "@/components/ui/text-link";
 import { CardGrid } from "@/components/card-grid";
 import { CardTile } from "@/components/card-tile";
 import { MobilePage, MobilePageHeader } from "@/components/mobile-page";
@@ -50,10 +50,7 @@ export default async function DashboardPage() {
       <section className="space-y-3">
         <div className="flex items-center justify-between">
           <h2 className="text-lg font-semibold">{t("dashboard.topCollections")}</h2>
-          <Link href="/collections" className="inline-flex items-center gap-1 text-sm text-emerald-400">
-            {t("dashboard.allCollections")}
-            <ArrowRight className="h-4 w-4" />
-          </Link>
+          <TextLink href="/collections">{t("dashboard.allCollections")}</TextLink>
         </div>
         {topCollections.length === 0 ? (
           <div className="rounded-2xl border border-dashed border-white/10 p-6 text-center text-sm text-zinc-500">

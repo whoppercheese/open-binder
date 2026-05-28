@@ -344,6 +344,15 @@ export async function getCollectionsForSet(setId: string) {
   });
 }
 
+export async function getSetCollectionCount(setId: string) {
+  const [row] = await db
+    .select({ count: sql<number>`count(*)::int` })
+    .from(collections)
+    .where(and(eq(collections.setId, setId), eq(collections.type, "set")));
+
+  return Number(row?.count ?? 0);
+}
+
 export async function getCollectionWithCards(
   collectionId: string,
   locale: UiLocale,

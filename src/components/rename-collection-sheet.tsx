@@ -1,14 +1,14 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { Loader2, X } from "lucide-react";
 import { Portal } from "@/components/portal";
+import { Button } from "@/components/ui/button";
+import { SheetCloseButton } from "@/components/ui/icon-button";
 import {
   translateCollectionError,
   updateCollectionName,
 } from "@/lib/collection-client";
 import { useTranslations } from "@/lib/i18n/context";
-import { cn } from "@/lib/utils";
 
 type RenameCollectionSheetProps = {
   open: boolean;
@@ -94,13 +94,7 @@ export function RenameCollectionSheet({
             <h2 className="text-lg font-semibold text-white">
               {t("collections.renameTitle")}
             </h2>
-            <button
-              type="button"
-              onClick={handleClose}
-              className="rounded-full p-2 text-zinc-400 hover:bg-white/5 hover:text-white"
-            >
-              <X className="h-5 w-5" />
-            </button>
+            <SheetCloseButton onClick={handleClose} />
           </div>
 
           <div className="space-y-3">
@@ -117,25 +111,17 @@ export function RenameCollectionSheet({
             </label>
             {error ? <p className="text-sm text-red-400">{error}</p> : null}
             <div className="flex gap-2">
-              <button
-                type="button"
-                onClick={handleClose}
-                className="flex-1 rounded-2xl border border-white/10 px-4 py-3 text-sm font-medium text-zinc-300"
-              >
+              <Button variant="cancel" className="flex-1" onClick={handleClose}>
                 {t("common.cancel")}
-              </button>
-              <button
-                type="button"
-                disabled={loading}
+              </Button>
+              <Button
+                variant="primary"
+                className="flex-1"
+                loading={loading}
                 onClick={() => void handleSave()}
-                className={cn(
-                  "flex flex-1 items-center justify-center gap-2 rounded-2xl bg-emerald-500 px-4 py-3 text-sm font-semibold text-black",
-                  loading && "opacity-60",
-                )}
               >
-                {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
                 {t("collections.renameConfirm")}
-              </button>
+              </Button>
             </div>
           </div>
         </div>
