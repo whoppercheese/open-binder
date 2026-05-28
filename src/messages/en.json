@@ -32,7 +32,7 @@
     "priceTrend": "Trend",
     "priceLow": "Low",
     "defaultCondition": "Default condition",
-    "defaultConditionHelp": "Used when recording a copy via long-press in the set view and as the default when recording new copies in the card dialog.",
+    "defaultConditionHelp": "Used when adding a copy to inventory via long-press in the set view and as the default when adding new copies to inventory in the card dialog.",
     "dataSync": "Data sync",
     "dataSyncHelp": "Sets weekly, prices daily. Card data per set in the set list. The worker must be running.",
     "syncSets": "Sync sets",
@@ -58,10 +58,10 @@
     "topCollections": "Top binders",
     "allCollections": "All",
     "allSets": "All sets",
-    "emptyCollection": "Nothing recorded yet. Start with a set or search.",
-    "recentlyAdded": "Recently recorded",
+    "emptyCollection": "Nothing in inventory yet. Start with a set or search.",
+    "recentlyAdded": "Recently added to inventory",
     "collectionLink": "Binder",
-    "noEntries": "Nothing recorded yet.",
+    "noEntries": "Nothing in inventory yet.",
     "syncStatus": "Sync status",
     "setsLabel": "Sets:",
     "pricesLabel": "Prices:",
@@ -103,7 +103,7 @@
     "errorRename": "Could not rename binder.",
     "delete": "Delete binder",
     "deleteTitle": "Delete binder?",
-    "deleteMessage": "Delete “{name}”, its checklist, and all recorded copies?",
+    "deleteMessage": "Delete “{name}”, its checklist, and all copies in inventory?",
     "setCatalogHint": "To track your progress, create a binder from this set",
     "openSetBinders": "Binders from this set",
     "setBindersCount": {
@@ -124,7 +124,7 @@
     "detailTabInventory": "Inventory",
     "detailTabsLabel": "Binder view",
     "detailActions": "Binder",
-    "emptyEntries": "Nothing recorded yet. Record copies via search or by tapping a card in the grid.",
+    "emptyEntries": "Nothing in inventory yet. Add copies to inventory via search or by tapping a card in the grid.",
     "removeFromChecklist": "Remove from checklist",
     "removeFromChecklistTitle": "Remove card from checklist?",
     "removeFromChecklistMessage": "Remove “{cardName}” from “{collectionName}”? The card will be removed from the checklist and all inventory entries in this binder will be deleted.",
@@ -143,15 +143,15 @@
     "clearCardFilter": "Clear card filter",
     "searchPlaceholder": "Name, number, or set",
     "loading": "Loading binder…",
-    "loadingMore": "Loading more recordings…",
-    "emptyForCard": "Nothing recorded for this card.",
-    "emptyForSearch": "No recordings for this search.",
-    "emptyDefault": "Nothing recorded yet. Search for a card or open a set.",
+    "loadingMore": "Loading more inventory entries…",
+    "emptyForCard": "Nothing in inventory for this card.",
+    "emptyForSearch": "No inventory entries for this search.",
+    "emptyDefault": "Nothing in inventory yet. Search for a card or open a set.",
     "expandImage": "Enlarge card image",
     "decreaseQuantity": "Decrease quantity",
     "increaseQuantity": "Increase quantity",
-    "deleteEntry": "Delete recording",
-    "deleteTitle": "Delete recording?",
+    "deleteEntry": "Delete inventory entry",
+    "deleteTitle": "Delete inventory entry?",
     "deleteMessage": "Remove {name} from inventory?",
     "valueLabel": "Value"
   },
@@ -244,10 +244,10 @@
     "deleteCardDataTitle": "Delete card data?",
     "deleteConfirmIntro": "All downloaded card data for this set will be deleted. Cards, variants, prices, and cached images.",
     "deleteConfirmWithEntries": {
-      "one": "This will also remove {count} recorded copy for this set from your inventory.",
-      "other": "This will also remove {count} recorded copies for this set from your inventory."
+      "one": "This will also remove {count} copy in inventory that belongs to this set.",
+      "other": "This will also remove {count} copies in inventory that belong to this set."
     },
-    "deleteConfirmNoEntries": "There are no recorded copies for this set.",
+    "deleteConfirmNoEntries": "No copies from this set are in inventory.",
     "deleteConfirmResyncNote": "The set can be synced again afterwards."
   },
   "cardModal": {
@@ -264,8 +264,8 @@
     "increaseQuantity": "Increase quantity",
     "cardmarketLink": "Cardmarket: {price}",
     "cardmarketPrice": "Cardmarket price",
-    "viewInCollection": "Recorded copies",
-    "downloadSetHint": "Download the set first to record this card.",
+    "viewInCollection": "Copies in inventory",
+    "downloadSetHint": "Download the set first to add this card to inventory.",
     "goToSet": "Go to set",
     "save": "Save",
     "addToCollection": "Add to inventory"
@@ -300,7 +300,7 @@
     "price": "Price",
     "priceUnavailable": "—",
     "loadingMore": "Loading more…",
-    "added": "recorded",
+    "added": "in inventory",
     "searchDefaultPlaceholder": "e.g. Pikachu, Mitsuhiro Arita, or BS 4",
     "clearSearch": "Clear search",
     "variantNormal": "Normal",
@@ -320,8 +320,8 @@
       "other": "{count} cards"
     },
     "entryCount": {
-      "one": "{count} recording",
-      "other": "{count} recordings"
+      "one": "{count} inventory entry",
+      "other": "{count} inventory entries"
     },
     "uniqueCardCount": {
       "one": "{count} unique card",
@@ -335,7 +335,7 @@
   "errors": {
     "cardLoadFailed": "Could not load card.",
     "saveFailed": "Save failed.",
-    "addFailed": "Recording failed.",
+    "addFailed": "Could not add to inventory.",
     "syncStartFailed": "Could not start sync.",
     "cardSyncStartFailed": "Could not start card sync.",
     "cardDataDeleteFailed": "Could not delete card data.",
@@ -343,7 +343,7 @@
     "settingsSaveFailed": "Could not save settings.",
     "searchFailed": "Search failed.",
     "collectionLoadFailed": "Could not load binder.",
-    "collectionAddFailed": "Could not record card.",
+    "collectionAddFailed": "Could not add card to inventory.",
     "variantIdRequired": "variantId is required.",
     "variantNotFound": "Variant not found.",
     "cardNotFound": "Card not found.",
@@ -418,7 +418,7 @@
       "pricesStarting": "Starting price sync…",
       "cardmarketCatalogProgress": "Cardmarket catalog: {current}/{total}",
       "pricesUpdatedProgress": "Prices updated: {updated}/{total}",
-      "pricesCompletedEmpty": "Price sync completed (nothing recorded).",
+      "pricesCompletedEmpty": "Price sync completed (nothing in inventory).",
       "pricesCompleted": {
         "one": "Price sync completed ({count} card).",
         "other": "Price sync completed ({count} cards)."

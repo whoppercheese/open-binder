@@ -7,6 +7,8 @@ import {
 } from "@/db/schema";
 import { addCardToCollectionChecklist } from "@/lib/collections.server";
 import { getCollectionCoverFields } from "@/lib/collection-cover.server";
+import { DEFAULT_LOCALE, type UiLocale } from "@/lib/i18n/locale";
+import { getLocalizedName } from "@/lib/localized-names";
 
 /** Collections containing the card on their checklist. */
 export async function getChecklistCountsForCardIds(
@@ -45,10 +47,13 @@ export type ChecklistCollectionOption = {
   locked: boolean;
 };
 
-export async function getCardChecklistMembership(cardId: string) {
+export async function getCardChecklistMembership(
+  cardId: string,
+  locale: UiLocale = DEFAULT_LOCALE,
+) {
   const card = await db.query.cards.findFirst({
     where: eq(cards.id, cardId),
-    columns: { id: true, setId: true, name: true, number: true },
+    columns: { id: true, setId: true, names: true, number: true },
   });
 
   if (!card) {
@@ -88,7 +93,7 @@ export async function getCardChecklistMembership(cardId: string) {
   return {
     cardId: card.id,
     setId: card.setId,
-    cardName: card.name,
+    cardName: getLocalizedName(card.names, locale),
     cardNumber: card.number,
     collections: options,
   };

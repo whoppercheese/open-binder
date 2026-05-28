@@ -3,14 +3,16 @@ import {
   addCardToChecklists,
   getCardChecklistMembership,
 } from "@/lib/checklist-membership.server";
+import { getLocaleFromRequest } from "@/lib/i18n/server";
 
 export async function GET(
-  _request: Request,
+  request: Request,
   context: { params: Promise<{ id: string }> },
 ) {
   try {
     const { id } = await context.params;
-    const result = await getCardChecklistMembership(id);
+    const locale = getLocaleFromRequest(request);
+    const result = await getCardChecklistMembership(id, locale);
 
     if ("error" in result) {
       const status = result.error === "CARD_NOT_FOUND" ? 404 : 400;

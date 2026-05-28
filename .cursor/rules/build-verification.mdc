@@ -1,0 +1,31 @@
+---
+description: After implementing changes, run npm run build and fix all errors before finishing. Repeat until the build succeeds.
+alwaysApply: true
+---
+
+# Build verification (mandatory)
+
+After **every completed implementation** (feature, fix, or refactor — not after each single edit mid-task), verify the project builds cleanly.
+
+## When to run
+
+- Run `npm run build` once the requested work is **fully implemented**, before declaring the task done.
+- Skip only when the user explicitly asks not to build, or the change cannot affect the build (e.g. pure docs with no code).
+
+## Workflow
+
+1. Run `npm run build` from the project root.
+2. If it **fails**: read the full error output, fix the root cause in the codebase, then run `npm run build` again.
+3. **Repeat** steps 1–2 until the build exits with code 0 and no errors.
+4. Only then report the task as complete.
+
+## Fixing failures
+
+- Fix **all** reported errors (TypeScript, ESLint, Next.js compile, missing imports, etc.), not just the first one.
+- Prefer minimal, targeted fixes aligned with existing project patterns.
+- Do not silence errors with `@ts-ignore`, `eslint-disable`, or similar unless the codebase already uses that pattern for the same case.
+
+## Reporting
+
+- If the build fails and you fix it, briefly note what was wrong and what you changed.
+- If the build still fails after reasonable attempts, say so explicitly and leave the remaining errors visible — do not claim success.

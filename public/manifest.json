@@ -1,7 +1,7 @@
 {
   "name": "OpenBinder — Pokémon TCG",
   "short_name": "OpenBinder",
-  "description": "Self-hosted Pokémon TCG collection manager",
+  "description": "Self-hosted Pokémon TCG binder with checklist and inventory",
   "start_url": "/",
   "display": "standalone",
   "orientation": "portrait",
