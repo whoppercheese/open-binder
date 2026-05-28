@@ -15,9 +15,9 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "OpenBinder — Pokémon TCG Collection",
+  title: "OpenBinder — Pokémon TCG",
   description:
-    "Mobile-first, self-hostable Pokémon TCG collection manager with Cardmarket prices.",
+    "Mobile-first, self-hostable Pokémon TCG binder with checklist and inventory, plus Cardmarket prices.",
   manifest: "/manifest.json",
   icons: {
     icon: [
