@@ -3,7 +3,6 @@
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import {
-  ChevronRight,
   ExternalLink,
   Minus,
   Plus,
@@ -12,6 +11,7 @@ import {
 } from "lucide-react";
 import { ConfirmDialog } from "@/components/confirm-dialog";
 import { Button, ButtonLink } from "@/components/ui/button";
+import { FullWidthCountRow } from "@/components/ui/full-width-row";
 import { SheetCloseButton } from "@/components/ui/icon-button";
 import { CardFlagBadge } from "@/components/card-flag-badge";
 import { ConditionBadgeButton } from "@/components/condition-badge";
@@ -532,38 +532,27 @@ function CardModalForm({
 
             {ownedCount > 0 && !isEdit && collectionId ? (
               onViewInCollection ? (
-                <button
-                  type="button"
+                <FullWidthCountRow
+                  icon={WalletCards}
+                  label={t("cardModal.viewInCollection")}
+                  count={ownedCount}
+                  className="mb-3 bg-transparent text-white hover:bg-white/5"
+                  chevronClassName="h-4 w-4"
                   onClick={() => {
                     onViewInCollection(card.id);
                     handleClose();
                   }}
-                  className="mb-3 flex w-full items-center gap-2 rounded-2xl border border-white/10 bg-transparent px-4 py-3 text-sm font-medium text-white transition hover:bg-white/5"
-                >
-                  <WalletCards className="h-4 w-4 shrink-0" />
-                  <span className="min-w-0 flex-1 text-center">
-                    {t("cardModal.viewInCollection", { count: ownedCount })}
-                  </span>
-                  <ChevronRight
-                    className="h-4 w-4 shrink-0 text-zinc-400"
-                    aria-hidden
-                  />
-                </button>
+                />
               ) : (
-                <Link
+                <FullWidthCountRow
                   href={`/collections/${collectionId}?view=entries&cardId=${encodeURIComponent(card.id)}`}
+                  icon={WalletCards}
+                  label={t("cardModal.viewInCollection")}
+                  count={ownedCount}
+                  className="mb-3 bg-transparent text-white hover:bg-white/5"
+                  chevronClassName="h-4 w-4"
                   onClick={handleClose}
-                  className="mb-3 flex w-full items-center gap-2 rounded-2xl border border-white/10 px-4 py-3 text-sm font-medium text-white transition hover:bg-white/5"
-                >
-                  <WalletCards className="h-4 w-4 shrink-0" />
-                  <span className="min-w-0 flex-1 text-center">
-                    {t("cardModal.viewInCollection", { count: ownedCount })}
-                  </span>
-                  <ChevronRight
-                    className="h-4 w-4 shrink-0 text-zinc-400"
-                    aria-hidden
-                  />
-                </Link>
+                />
               )
             ) : null}
 

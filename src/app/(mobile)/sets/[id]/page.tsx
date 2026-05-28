@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
-import { Loader2, Download, RefreshCw, Trash2, ChevronRight } from "lucide-react";
+import { Loader2, Download, RefreshCw, Trash2 } from "lucide-react";
 import { ActionSheet } from "@/components/action-sheet";
 import { BulkAddToChecklistSheet } from "@/components/bulk-add-to-checklist-sheet";
 import { CardGrid } from "@/components/card-grid";
@@ -22,6 +22,7 @@ import { useCardGridSelection } from "@/lib/use-card-grid-selection";
 import { Button } from "@/components/ui/button";
 import { FilterChip, FilterChipList } from "@/components/ui/filter-chip";
 import { FullWidthRow } from "@/components/ui/full-width-row";
+import { TextLink } from "@/components/ui/text-link";
 import { IconMenuButton } from "@/components/ui/icon-button";
 import { PageHeader } from "@/components/ui/page-header";
 import { MobilePage } from "@/components/mobile-page";
@@ -399,7 +400,21 @@ export default function SetDetailPage() {
     <MobilePage>
       <PageHeader
         title={setTitle}
-        subtitle={t("collections.setCatalogHint")}
+        subtitle={
+          <>
+            <p>{t("collections.setCatalogHint")}</p>
+            {data.setCollectionCount > 0 ? (
+              <TextLink
+                href={`/collections?setId=${encodeURIComponent(params.id)}`}
+                className="text-xs text-emerald-300/85 hover:text-emerald-200"
+              >
+                {t.plural("collections.setBindersCount", data.setCollectionCount, {
+                  count: data.setCollectionCount,
+                })}
+              </TextLink>
+            ) : null}
+          </>
+        }
         trailing={
           <IconMenuButton
             aria-label={t("sets.setActions")}
@@ -425,21 +440,6 @@ export default function SetDetailPage() {
       </PageHeader>
 
       <section className="space-y-2">
-        {data.setCollectionCount > 0 ? (
-          <FullWidthRow
-            href={`/collections?setId=${encodeURIComponent(params.id)}`}
-            variant="neutral"
-            showChevron={false}
-          >
-            <span className="min-w-0 flex-1">
-              {t("collections.openSetBinders")}
-            </span>
-            <span className="flex shrink-0 items-center gap-2 text-sm text-zinc-400">
-              <span className="tabular-nums">{data.setCollectionCount}</span>
-              <ChevronRight className="h-5 w-5 shrink-0" aria-hidden />
-            </span>
-          </FullWidthRow>
-        ) : null}
         <FullWidthRow
           variant="emeraldAction"
           showChevron={false}

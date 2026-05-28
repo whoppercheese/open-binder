@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { ListPlus } from "lucide-react";
 import { AddToChecklistSheet } from "@/components/add-to-checklist-sheet";
 import { Button, ButtonLink } from "@/components/ui/button";
+import { TextLink } from "@/components/ui/text-link";
 import { SheetCloseButton } from "@/components/ui/icon-button";
 import { CardFrame } from "@/components/card-frame";
 import { CardImage } from "@/components/card-image";
@@ -14,7 +15,6 @@ import { writeChecklistCountOverride } from "@/lib/checklist-count-overrides.cli
 import { apiUrl, useLocale, useTranslations } from "@/lib/i18n/context";
 import { getRarityLabel } from "@/lib/rarity";
 import {
-  cn,
   formatCardPriceLabel,
   resolveSetDisplayCode,
 } from "@/lib/utils";
@@ -143,6 +143,17 @@ export function SetCardPreviewModal({
                   ) : null}
                 </div>
                 <h2 className="text-lg font-semibold text-white">{card.name}</h2>
+                {checklistCount !== null && checklistCount > 0 ? (
+                  <TextLink
+                    href={`/collections?cardId=${encodeURIComponent(card.id)}`}
+                    onClick={handleClose}
+                    className="mt-1 text-xs text-emerald-300/85 hover:text-emerald-200"
+                  >
+                    {t.plural("sets.checklistOnCount", checklistCount, {
+                      count: checklistCount,
+                    })}
+                  </TextLink>
+                ) : null}
               </div>
               <SheetCloseButton
                 onClick={handleClose}
@@ -222,29 +233,11 @@ export function SetCardPreviewModal({
               <Button
                 variant="outline"
                 fullWidth
-                className="flex-col gap-1 border-emerald-500/30"
+                className="border-emerald-500/30"
+                icon={<ListPlus className="h-4 w-4 shrink-0" />}
                 onClick={() => setChecklistOpen(true)}
               >
-                <span className="flex items-center justify-center gap-2">
-                  <ListPlus className="h-4 w-4 shrink-0" />
-                  {t("sets.addToChecklist")}
-                </span>
-                {checklistCount !== null ? (
-                  <span
-                    className={cn(
-                      "text-xs font-normal",
-                      checklistCount > 0
-                        ? "text-emerald-300/85"
-                        : "text-zinc-500",
-                    )}
-                  >
-                    {checklistCount > 0
-                      ? t.plural("sets.checklistOnCount", checklistCount, {
-                          count: checklistCount,
-                        })
-                      : t("sets.checklistOnNone")}
-                  </span>
-                ) : null}
+                {t("sets.addToChecklist")}
               </Button>
             )}
           </div>
