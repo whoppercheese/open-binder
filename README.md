@@ -111,6 +111,7 @@ Catalog view for a single set — browse cards and manage set collections:
 - Hint: *“To track your progress, create a collection from this set.”*
 - **Card grid** (3–4 columns) with number, name, Cardmarket price, and checklist badge (*On N checklist(s)* / *Auf N Checkliste(n)*)
 - **Tap** → card preview modal → **Add to checklist** (see below)
+- **Long-press (select mode)** → select multiple cards and add to checklists in bulk (see below)
 - **Filters** by **rarity** (Common, Rare, Ultra Rare, … — German labels in the UI)
 - If card data is missing: **Load cards** button with progress indicator
 
@@ -125,6 +126,7 @@ Find cards across the full catalog and add them to checklists:
   - **Set + number** — e.g. “Dschungel 60” or “BS 4”
 - Results show set name, Cardmarket price, and checklist badge
 - **Tap** → card preview modal → **Add to checklist**
+- **Long-press (select mode)** → select multiple cards and add to checklists in bulk (see below)
 - With `?collectionId=…` (from a custom collection’s *Go to search* link): subtitle becomes *“Add cards to checklist”*
 
 ### Collections list (`/collections`)
@@ -178,38 +180,6 @@ Inside a single collection — where progress and ownership live:
 
 ---
 
-## Card preview modal
-
-Opened from Search and set detail (tap a card):
-
-- Set code, card number, rarity, German card name, Cardmarket prices per variant
-- **Card image** — tap for full-screen lightbox
-- **Add to checklist** (*Zur Checkliste hinzufügen*) — opens the checklist picker:
-  - **Already on checklist** — set collections for that card’s set (locked) plus custom collections that already contain the card; tap to open
-  - **Add to** — select one or more custom collections, confirm **Add**
-- Shows how many checklists already contain the card
-
-Without a collection context, you cannot record inventory here — only add cards to checklists.
-
-## Card modal (inside a collection)
-
-Opened from a collection’s Checklist or Inventory tab:
-
-- Set link (official code), card number, and localized card name
-- **Card image** — tap for full-screen lightbox
-- **Add to inventory** / edit existing entry with:
-  - **Variant** — Normal, Holo, Reverse Holo, 1st Edition (per card); Cardmarket price per variant
-  - **Quantity** (1–999)
-  - **Condition** — Mint, NM, LP, MP, HP
-  - **Language** — German, English
-  - **Notes** (free text)
-  - **Flag** — mark cards for your own purposes (reason can go in notes)
-- **Cardmarket link** — direct product link (foil/non-foil mapped correctly)
-- **View recorded copies** — link to the filtered Inventory tab if entries exist
-- **Remove from collection** — custom collections only; removes checklist entry and all inventory for that card
-
----
-
 ## Card image — full view & zoom
 
 Available from the card modals and Inventory tab (tap the card image):
@@ -235,6 +205,21 @@ On a collection’s **Checklist** tab (`/collections/[id]`) you can record copie
 5. Toast confirmation at the bottom of the screen (*recorded* / *erfasst*)
 
 A normal **tap** still opens the card modal for fine-grained input.
+
+---
+
+## Select mode (long-press)
+
+On **Search** (`/search`) and **Set detail** (`/sets/[id]`) you can add multiple cards to checklists **without opening each card preview**:
+
+1. **Press and hold** (~0.45 s) on a card to enter **select mode** — progress ring with check icon
+2. Short **vibration feedback** (where supported); the held card is selected
+3. **Tap** other cards to toggle selection; selected cards show a highlight
+4. **Toolbar** at the bottom shows the count (*N selected* / *N ausgewählt*), **Cancel** (X), and **Actions** (⋮)
+5. **Actions → Add to checklist** (*Zur Sammelliste hinzufügen*) — pick one or more binders, confirm **Add** (same picker as single-card add, including locked set binders that already contain a card)
+6. Checklist badges update; selection clears on success
+
+A normal **tap** (when select mode is off) still opens the card preview modal. While select mode is active, use tap to toggle cards — another long-press does not restart selection.
 
 ---
 

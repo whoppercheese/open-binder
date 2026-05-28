@@ -43,14 +43,14 @@ export function PageHeader({
             {title}
           </h1>
           {subtitle ? (
-            <p
+            <div
               className={cn(
-                "text-sm leading-snug text-zinc-400",
+                "space-y-1 text-sm leading-snug text-zinc-400",
                 subtitleClassName,
               )}
             >
               {subtitle}
-            </p>
+            </div>
           ) : null}
         </div>
         {trailing ? (

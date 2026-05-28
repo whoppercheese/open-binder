@@ -48,7 +48,7 @@ export type ChecklistCollectionOption = {
 export async function getCardChecklistMembership(cardId: string) {
   const card = await db.query.cards.findFirst({
     where: eq(cards.id, cardId),
-    columns: { id: true, setId: true },
+    columns: { id: true, setId: true, name: true, number: true },
   });
 
   if (!card) {
@@ -88,6 +88,8 @@ export async function getCardChecklistMembership(cardId: string) {
   return {
     cardId: card.id,
     setId: card.setId,
+    cardName: card.name,
+    cardNumber: card.number,
     collections: options,
   };
 }

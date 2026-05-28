@@ -156,3 +156,89 @@ export function FullWidthNavLink({
     </FullWidthRow>
   );
 }
+
+type FullWidthCountRowOwnProps = VariantProps<typeof fullWidthRowVariants> & {
+  icon: ElementType<{ className?: string }>;
+  label: ReactNode;
+  count: number;
+  className?: string;
+  chevronClassName?: string;
+  iconClassName?: string;
+};
+
+type FullWidthCountRowAsButton = FullWidthCountRowOwnProps &
+  Omit<ComponentPropsWithoutRef<"button">, keyof FullWidthCountRowOwnProps> & {
+    href?: undefined;
+  };
+
+type FullWidthCountRowAsLink = FullWidthCountRowOwnProps &
+  Omit<ComponentPropsWithoutRef<typeof Link>, keyof FullWidthCountRowOwnProps> & {
+    href: string;
+  };
+
+export type FullWidthCountRowProps =
+  | FullWidthCountRowAsButton
+  | FullWidthCountRowAsLink;
+
+function FullWidthCountRowContent({
+  icon: Icon,
+  label,
+  count,
+  chevronClassName,
+  iconClassName,
+}: Pick<
+  FullWidthCountRowOwnProps,
+  "icon" | "label" | "count" | "chevronClassName" | "iconClassName"
+>) {
+  return (
+    <div className="grid w-full grid-cols-[auto_1fr_auto] items-center gap-2">
+      <Icon className={cn("h-4 w-4 shrink-0", iconClassName)} aria-hidden />
+      <span className="truncate text-center">{label}</span>
+      <span className="flex shrink-0 items-center gap-2 text-sm text-zinc-400">
+        <span className="tabular-nums">{count}</span>
+        <ChevronRight
+          className={cn("h-5 w-5 shrink-0", chevronClassName)}
+          aria-hidden
+        />
+      </span>
+    </div>
+  );
+}
+
+export function FullWidthCountRow({
+  icon,
+  label,
+  count,
+  variant = "neutral",
+  className,
+  chevronClassName,
+  iconClassName,
+  ...props
+}: FullWidthCountRowProps) {
+  const content = (
+    <FullWidthCountRowContent
+      icon={icon}
+      label={label}
+      count={count}
+      chevronClassName={chevronClassName}
+      iconClassName={iconClassName}
+    />
+  );
+  const rowClassName = cn(fullWidthRowVariants({ variant }), className);
+
+  if ("href" in props && props.href) {
+    const { href, ...linkProps } = props;
+    return (
+      <Link href={href} className={rowClassName} {...linkProps}>
+        {content}
+      </Link>
+    );
+  }
+
+  const { href: _href, ...buttonProps } = props as FullWidthCountRowAsButton;
+  return (
+    <button type="button" className={rowClassName} {...buttonProps}>
+      {content}
+    </button>
+  );
+}
