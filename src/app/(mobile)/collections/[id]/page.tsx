@@ -1,16 +1,9 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
-import {
-  ChevronRight,
-  Ellipsis,
-  Layers,
-  Pencil,
-  Search,
-  Trash2,
-} from "lucide-react";
+import { Layers, Pencil, Search, Trash2 } from "lucide-react";
 import { ActionSheet } from "@/components/action-sheet";
 import { CardModal, type CardDetail } from "@/components/card-modal";
 import { CollectionEntriesView } from "@/components/collection-entries-view";
@@ -38,59 +31,13 @@ import type { CollectionDetailResponse } from "@/lib/offline/types";
 import { notifyFullMirror } from "@/lib/offline/types";
 import { getRarityLabel, sortCanonicalRarities } from "@/lib/rarity";
 import { useDefaultCondition } from "@/lib/use-default-condition";
-import { fullWidthRowEmeraldNav } from "@/lib/full-width-row-classes";
+import { FilterChip, FilterChipList } from "@/components/ui/filter-chip";
+import { FullWidthNavLink } from "@/components/ui/full-width-row";
+import { IconMenuButton } from "@/components/ui/icon-button";
 import { cn, resolveSetDisplayCode } from "@/lib/utils";
 
 type OwnershipFilter = "owned" | "missing";
 type ViewMode = "grid" | "entries";
-
-function CollectionNavLink({
-  href,
-  icon: Icon,
-  label,
-}: {
-  href: string;
-  icon: typeof Search;
-  label: string;
-}) {
-  return (
-    <Link href={href} className={fullWidthRowEmeraldNav("text-left")}>
-      <span className="flex items-center gap-2">
-        <Icon className="h-4 w-4 shrink-0" />
-        {label}
-      </span>
-      <ChevronRight
-        className="h-5 w-5 shrink-0 text-emerald-200/80"
-        aria-hidden
-      />
-    </Link>
-  );
-}
-
-function FilterChip({
-  active,
-  onClick,
-  children,
-}: {
-  active: boolean;
-  onClick: () => void;
-  children: ReactNode;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={cn(
-        "shrink-0 cursor-pointer rounded-full border px-3 py-1.5 text-xs font-medium transition-colors",
-        active
-          ? "border-emerald-400/50 bg-emerald-500/15 text-emerald-200"
-          : "border-white/10 bg-white/5 text-zinc-400 hover:border-white/20 hover:text-zinc-200",
-      )}
-    >
-      {children}
-    </button>
-  );
-}
 
 type CollectionDetailHeaderProps = {
   collection: CollectionDetailResponse["collection"];
@@ -170,15 +117,10 @@ function CollectionDetailHeader({
           ) : null}
         </div>
         {!readOnly ? (
-          <button
-            type="button"
+          <IconMenuButton
             aria-label={t("collections.detailActions")}
-            aria-haspopup="menu"
             onClick={onOpenMenu}
-            className="-mr-1 inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-zinc-500 transition hover:bg-white/5 hover:text-zinc-300 active:bg-white/10"
-          >
-            <Ellipsis className="h-5 w-5" strokeWidth={2} />
-          </button>
+          />
         ) : null}
       </div>
 
@@ -239,12 +181,12 @@ function CollectionOverviewTab({
           </div>
           {!readOnly ? (
             <div className="space-y-2">
-              <CollectionNavLink
+              <FullWidthNavLink
                 href={searchHref}
                 icon={Search}
                 label={t("collections.goToSearch")}
               />
-              <CollectionNavLink
+              <FullWidthNavLink
                 href="/sets"
                 icon={Layers}
                 label={t("collections.goToSets")}
@@ -255,7 +197,7 @@ function CollectionOverviewTab({
       ) : (
         <>
           <section className="space-y-3">
-            <div className="flex flex-wrap gap-2">
+            <FilterChipList>
               <FilterChip
                 active={ownershipFilter === "owned"}
                 onClick={() =>
@@ -276,10 +218,10 @@ function CollectionOverviewTab({
               >
                 {t("sets.filterMissing")}
               </FilterChip>
-            </div>
+            </FilterChipList>
 
             {rarities.length > 0 ? (
-              <div className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1">
+              <FilterChipList scroll>
                 {rarities.map((rarity) => (
                   <FilterChip
                     key={rarity}
@@ -293,7 +235,7 @@ function CollectionOverviewTab({
                     {getRarityLabel(rarity, t) ?? rarity}
                   </FilterChip>
                 ))}
-              </div>
+              </FilterChipList>
             ) : null}
 
             {hasActiveFilters ? (

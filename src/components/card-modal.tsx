@@ -5,14 +5,14 @@ import { useMemo, useState } from "react";
 import {
   ChevronRight,
   ExternalLink,
-  Loader2,
   Minus,
   Plus,
   Trash2,
   WalletCards,
-  X,
 } from "lucide-react";
 import { ConfirmDialog } from "@/components/confirm-dialog";
+import { Button, ButtonLink } from "@/components/ui/button";
+import { SheetCloseButton } from "@/components/ui/icon-button";
 import { CardFlagBadge } from "@/components/card-flag-badge";
 import { ConditionBadgeButton } from "@/components/condition-badge";
 import { CardFrame } from "@/components/card-frame";
@@ -345,13 +345,7 @@ function CardModalForm({
                   {card.name}
                 </h2>
               </div>
-              <button
-                type="button"
-                onClick={handleClose}
-                className="rounded-full p-2 text-zinc-400 hover:bg-white/5 hover:text-white"
-              >
-                <X className="h-5 w-5" />
-              </button>
+              <SheetCloseButton onClick={handleClose} />
             </div>
 
             <div
@@ -524,13 +518,14 @@ function CardModalForm({
                   {t("cardModal.downloadSetHint")}
                 </p>
                 {card.setId && !readOnly ? (
-                  <Link
+                  <ButtonLink
                     href={`/sets/${card.setId}`}
+                    variant="outline"
+                    fullWidth
                     onClick={handleClose}
-                    className="flex w-full items-center justify-center gap-2 rounded-2xl border border-emerald-400/30 bg-emerald-500/10 px-4 py-3 text-sm font-medium text-emerald-200 transition hover:bg-emerald-500/20"
                   >
                     {t("cardModal.goToSet")}
-                  </Link>
+                  </ButtonLink>
                 ) : null}
               </div>
             ) : null}
@@ -635,37 +630,32 @@ function CardModalForm({
                 ) : null}
 
                 {!needsCollection ? (
-                  <button
-                    type="button"
-                    disabled={loading || !activeVariantId}
+                  <Button
+                    variant="primary"
+                    fullWidth
+                    loading={loading}
+                    disabled={!activeVariantId}
+                    icon={
+                      !loading && !isEdit ? (
+                        <Plus className="h-4 w-4 shrink-0" strokeWidth={2.5} />
+                      ) : undefined
+                    }
                     onClick={handleSave}
-                    className={cn(
-                      "flex w-full items-center justify-center gap-2 rounded-2xl bg-emerald-500 px-4 py-3 font-semibold text-black transition",
-                      (loading || !activeVariantId) && "opacity-60",
-                    )}
                   >
-                    {loading ? (
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                    ) : isEdit ? null : (
-                      <Plus className="h-4 w-4 shrink-0" strokeWidth={2.5} />
-                    )}
                     {isEdit ? t("cardModal.save") : t("cardModal.addToCollection")}
-                  </button>
+                  </Button>
                 ) : null}
 
                 {canRemoveFromChecklist ? (
-                  <button
-                    type="button"
+                  <Button
+                    variant="destructiveSoft"
+                    fullWidth
                     disabled={loading || removingFromChecklist}
+                    icon={<Trash2 className="h-4 w-4 shrink-0" />}
                     onClick={() => setConfirmRemoveOpen(true)}
-                    className={cn(
-                      "flex w-full items-center justify-center gap-2 rounded-2xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm font-medium text-red-300 transition hover:bg-red-500/20",
-                      (loading || removingFromChecklist) && "opacity-60",
-                    )}
                   >
-                    <Trash2 className="h-4 w-4 shrink-0" />
                     {t("collections.removeFromChecklist")}
-                  </button>
+                  </Button>
                 ) : null}
               </div>
             ) : null}

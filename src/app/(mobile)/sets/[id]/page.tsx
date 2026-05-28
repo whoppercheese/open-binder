@@ -1,9 +1,9 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
-import { Loader2, ChevronRight, Download, Ellipsis, RefreshCw, Trash2 } from "lucide-react";
+import { Loader2, Download, RefreshCw, Trash2 } from "lucide-react";
 import { ActionSheet } from "@/components/action-sheet";
 import { BulkAddToChecklistSheet } from "@/components/bulk-add-to-checklist-sheet";
 import { CardGrid } from "@/components/card-grid";
@@ -19,38 +19,13 @@ import { apiUrl, useLocale, useTranslations } from "@/lib/i18n/context";
 import { formatSyncJobMessage } from "@/lib/sync-job-display";
 import { getRarityLabel, sortCanonicalRarities } from "@/lib/rarity";
 import { useCardGridSelection } from "@/lib/use-card-grid-selection";
-import {
-  fullWidthRowEmeraldAction,
-  fullWidthRowNeutral,
-} from "@/lib/full-width-row-classes";
+import { Button } from "@/components/ui/button";
+import { FilterChip, FilterChipList } from "@/components/ui/filter-chip";
+import { FullWidthRow } from "@/components/ui/full-width-row";
+import { IconMenuButton } from "@/components/ui/icon-button";
 import { cn } from "@/lib/utils";
 
 type OwnershipFilter = "owned" | "missing";
-
-function FilterChip({
-  active,
-  onClick,
-  children,
-}: {
-  active: boolean;
-  onClick: () => void;
-  children: ReactNode;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={cn(
-        "shrink-0 cursor-pointer rounded-full border px-3 py-1.5 text-xs font-medium transition-colors",
-        active
-          ? "border-emerald-400/50 bg-emerald-500/15 text-emerald-200"
-          : "border-white/10 bg-white/5 text-zinc-400 hover:border-white/20 hover:text-zinc-200",
-      )}
-    >
-      {children}
-    </button>
-  );
-}
 
 type SetDetailResponse = {
   set: {
@@ -372,19 +347,17 @@ export default function SetDetailPage() {
           {loadError ? (
             <p className="mt-3 text-sm text-red-400">{loadError}</p>
           ) : null}
-          <button
-            type="button"
+          <Button
+            variant="soft"
+            className="mt-4"
+            loading={loadingCards}
+            icon={
+              !loadingCards ? <Download className="h-4 w-4" /> : undefined
+            }
             onClick={() => void handleLoadCards()}
-            disabled={loadingCards}
-            className="mt-4 inline-flex items-center gap-2 rounded-xl bg-emerald-500/15 px-4 py-2.5 text-sm font-medium text-emerald-300 transition hover:bg-emerald-500/25 disabled:opacity-50"
           >
-            {loadingCards ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <Download className="h-4 w-4" />
-            )}
             {t("sets.loadCards")}
-          </button>
+          </Button>
         </>
       )}
     </div>
@@ -431,15 +404,11 @@ export default function SetDetailPage() {
             </h1>
             <p className="text-sm text-zinc-400">{t("collections.setCatalogHint")}</p>
           </div>
-          <button
-            type="button"
+          <IconMenuButton
+            className="mt-0.5"
             aria-label={t("sets.setActions")}
-            aria-haspopup="menu"
             onClick={() => setMenuOpen(true)}
-            className="-mr-1 mt-0.5 inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-zinc-500 transition hover:bg-white/5 hover:text-zinc-300 active:bg-white/10"
-          >
-            <Ellipsis className="h-5 w-5" strokeWidth={2} />
-          </button>
+          />
         </div>
         {deleteError ? (
           <p className="text-sm text-red-400">{deleteError}</p>
@@ -457,28 +426,24 @@ export default function SetDetailPage() {
           </div>
         ) : null}
         <section className="space-y-2">
-          <Link
+          <FullWidthRow
             href={`/collections?setId=${encodeURIComponent(params.id)}`}
-            className={fullWidthRowNeutral("justify-between text-left")}
+            variant="neutral"
           >
             <span className="min-w-0 flex-1">{t("collections.openSetBinders")}</span>
-            <ChevronRight
-              className="h-5 w-5 shrink-0 text-zinc-400"
-              aria-hidden
-            />
-          </Link>
-          <button
-            type="button"
+          </FullWidthRow>
+          <FullWidthRow
+            variant="emeraldAction"
+            showChevron={false}
             onClick={() => setCreateOpen(true)}
-            className={fullWidthRowEmeraldAction()}
           >
             {t("collections.createFromSet")}
-          </button>
+          </FullWidthRow>
         </section>
       </header>
 
       <section className="space-y-3">
-        <div className="flex flex-wrap gap-2">
+        <FilterChipList>
           <FilterChip
             active={ownershipFilter === "owned"}
             onClick={() =>
@@ -499,10 +464,10 @@ export default function SetDetailPage() {
           >
             {t("sets.filterMissing")}
           </FilterChip>
-        </div>
+        </FilterChipList>
 
         {rarities.length > 0 ? (
-          <div className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1">
+          <FilterChipList scroll>
             {rarities.map((rarity) => (
               <FilterChip
                 key={rarity}
@@ -516,7 +481,7 @@ export default function SetDetailPage() {
                 {getRarityLabel(rarity, t) ?? rarity}
               </FilterChip>
             ))}
-          </div>
+          </FilterChipList>
         ) : null}
 
         {hasActiveFilters ? (

@@ -1,9 +1,8 @@
 "use client";
 
-import { Loader2 } from "lucide-react";
 import { Portal } from "@/components/portal";
+import { Button } from "@/components/ui/button";
 import { useTranslations } from "@/lib/i18n/context";
-import { cn } from "@/lib/utils";
 
 type ConfirmDialogProps = {
   open: boolean;
@@ -54,25 +53,22 @@ export function ConfirmDialog({
           ))}
         </div>
         <div className="mt-4 flex gap-2">
-          <button
-            type="button"
+          <Button
+            variant="cancel"
+            className="flex-1 text-white"
             disabled={loading}
             onClick={onCancel}
-            className="flex-1 rounded-2xl border border-white/10 px-4 py-3 text-sm font-medium text-white transition hover:bg-white/5 disabled:opacity-60"
           >
             {cancelLabel ?? t("common.cancel")}
-          </button>
-          <button
-            type="button"
-            disabled={loading}
+          </Button>
+          <Button
+            variant="destructive"
+            className="flex-1"
+            loading={loading}
             onClick={onConfirm}
-            className={cn(
-              "flex flex-1 items-center justify-center gap-2 rounded-2xl border border-red-400/30 px-4 py-3 text-sm font-semibold text-red-400 transition hover:border-red-400/50 hover:bg-red-400/10 hover:text-red-300 disabled:opacity-60",
-            )}
           >
-            {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
             {confirmLabel ?? t("common.delete")}
-          </button>
+          </Button>
         </div>
         </div>
       </div>

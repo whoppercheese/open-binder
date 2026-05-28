@@ -6,9 +6,10 @@ import {
   useMemo,
   useRef,
   useState,
-  type ReactNode,
 } from "react";
-import { Loader2, Download, Ellipsis } from "lucide-react";
+import { Loader2, Download } from "lucide-react";
+import { FilterChip, FilterChipList } from "@/components/ui/filter-chip";
+import { IconMenuButton } from "@/components/ui/icon-button";
 import { ActionSheet } from "@/components/action-sheet";
 import { MobilePage } from "@/components/mobile-page";
 import { SearchBar } from "@/components/search-bar";
@@ -77,31 +78,6 @@ function parseSavedState(raw: string | null): SetsPageState {
   } catch {
     return DEFAULT_PAGE_STATE;
   }
-}
-
-function FilterChip({
-  active,
-  onClick,
-  children,
-}: {
-  active: boolean;
-  onClick: () => void;
-  children: ReactNode;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={cn(
-        "shrink-0 cursor-pointer rounded-full border px-3 py-1.5 text-xs font-medium transition-colors",
-        active
-          ? "border-emerald-400/50 bg-emerald-500/15 text-emerald-200"
-          : "border-white/10 bg-white/5 text-zinc-400 hover:border-white/20 hover:text-zinc-200",
-      )}
-    >
-      {children}
-    </button>
-  );
 }
 
 function matchesSetQuery(set: SetListEntry, query: string) {
@@ -484,15 +460,11 @@ export function SetsPageContent({ initialSets }: SetsPageContentProps) {
             <p className="text-sm text-zinc-400">{subtitle}</p>
           </div>
           {sets.length > 0 ? (
-            <button
-              type="button"
+            <IconMenuButton
+              className="mt-0.5"
               aria-label={t("sets.listActions")}
-              aria-haspopup="menu"
               onClick={() => setMenuOpen(true)}
-              className="-mr-1 mt-0.5 inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-zinc-500 transition hover:bg-white/5 hover:text-zinc-300 active:bg-white/10"
-            >
-              <Ellipsis className="h-5 w-5" strokeWidth={2} />
-            </button>
+            />
           ) : null}
         </div>
       </header>
@@ -542,7 +514,7 @@ export function SetsPageContent({ initialSets }: SetsPageContentProps) {
             showClear={hasActiveSearch}
             placeholder={t("sets.searchPlaceholder")}
           />
-          <div className="flex flex-wrap gap-2">
+          <FilterChipList>
             <FilterChip
               active={filters.includes("downloaded")}
               onClick={() =>
@@ -559,7 +531,7 @@ export function SetsPageContent({ initialSets }: SetsPageContentProps) {
             >
               {t("sets.filterCollection")}
             </FilterChip>
-          </div>
+          </FilterChipList>
         </div>
       ) : null}
 

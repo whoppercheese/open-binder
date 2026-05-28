@@ -2,10 +2,12 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Plus, X } from "lucide-react";
+import { Plus } from "lucide-react";
 import { CollectionListItem } from "@/components/collection-list-item";
 import { CreateCollectionSheet } from "@/components/create-collection-sheet";
 import { MobilePage, MobilePageHeader } from "@/components/mobile-page";
+import { ActiveFilterBanner } from "@/components/ui/active-filter-banner";
+import { Button } from "@/components/ui/button";
 import { useLocale, useTranslations } from "@/lib/i18n/context";
 import { useOffline } from "@/lib/offline/offline-provider";
 import { loadCollections } from "@/lib/offline/read";
@@ -75,35 +77,23 @@ export default function CollectionListPage() {
           }
         />
         {!isOfflineView ? (
-          <button
-            type="button"
+          <Button
+            variant="pill"
+            size="compact"
+            icon={<Plus className="h-4 w-4" />}
             onClick={() => setCreateOpen(true)}
-            className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-emerald-500/15 px-3 py-1.5 text-sm font-medium text-emerald-300 transition hover:bg-emerald-500/25"
           >
-            <Plus className="h-4 w-4" />
             {t("collections.add")}
-          </button>
+          </Button>
         ) : null}
       </header>
       {setFilterId ? (
-        <div className="flex items-center gap-2 rounded-2xl border border-emerald-500/20 bg-emerald-500/10 px-3 py-2 text-sm text-emerald-100">
-          <div className="min-w-0 flex-1">
-            <p className="text-xs uppercase tracking-wide text-emerald-300/80">
-              {t("collections.filteredBySet")}
-            </p>
-            <p className="truncate font-medium">
-              {setFilterLabel ?? t("collections.filterBySetActive")}
-            </p>
-          </div>
-          <button
-            type="button"
-            onClick={clearSetFilter}
-            className="shrink-0 rounded-lg p-2 text-emerald-200 hover:bg-emerald-500/10"
-            aria-label={t("collections.clearSetFilter")}
-          >
-            <X className="h-4 w-4" />
-          </button>
-        </div>
+        <ActiveFilterBanner
+          label={t("collections.filteredBySet")}
+          value={setFilterLabel ?? t("collections.filterBySetActive")}
+          onClear={clearSetFilter}
+          clearLabel={t("collections.clearSetFilter")}
+        />
       ) : null}
 
       {loading ? (
@@ -118,13 +108,14 @@ export default function CollectionListPage() {
                 : t("collections.empty")}
           </p>
           {!isOfflineView && !setFilterId ? (
-            <button
-              type="button"
+            <Button
+              variant="primary"
+              size="sm"
+              className="mt-4"
               onClick={() => setCreateOpen(true)}
-              className="mt-4 rounded-2xl bg-emerald-500 px-4 py-2 text-sm font-semibold text-black"
             >
               {t("collections.createFirst")}
-            </button>
+            </Button>
           ) : null}
         </div>
       ) : (

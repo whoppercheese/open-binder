@@ -2,16 +2,12 @@
 
 import { useCallback, useState } from "react";
 import { useRouter } from "next/navigation";
-import { ChevronRight, Loader2, X } from "lucide-react";
 import { Portal } from "@/components/portal";
+import { Button } from "@/components/ui/button";
+import { FullWidthRow } from "@/components/ui/full-width-row";
+import { SheetCloseButton } from "@/components/ui/icon-button";
 import { apiUrl, useLocale, useTranslations } from "@/lib/i18n/context";
 import { notifyFullMirror } from "@/lib/offline/types";
-import {
-  fullWidthRowEmeraldNav,
-  fullWidthRowNeutral,
-} from "@/lib/full-width-row-classes";
-import { cn } from "@/lib/utils";
-
 type CreateCollectionSheetProps = {
   open: boolean;
   onClose: () => void;
@@ -131,38 +127,28 @@ export function CreateCollectionSheet({
                   ? t("collections.createFromSet")
                   : t("collections.createCustom")}
             </h2>
-            <button
-              type="button"
-              onClick={handleClose}
-              className="rounded-full p-2 text-zinc-400 hover:bg-white/5 hover:text-white"
-            >
-              <X className="h-5 w-5" />
-            </button>
+            <SheetCloseButton onClick={handleClose} />
           </div>
 
           {mode === "choose" ? (
             <div className="space-y-2">
-              <button
-                type="button"
+              <FullWidthRow
+                variant="neutral"
+                className="text-left text-white"
                 onClick={() => setMode("custom")}
-                className={fullWidthRowNeutral("text-left text-white")}
               >
                 {t("collections.createCustom")}
-              </button>
-              <button
-                type="button"
+              </FullWidthRow>
+              <FullWidthRow
+                variant="emeraldNav"
+                className="text-left"
                 onClick={() => {
                   handleClose();
                   router.push("/sets");
                 }}
-                className={fullWidthRowEmeraldNav("text-left")}
               >
                 <span>{t("collections.createFromSet")}</span>
-                <ChevronRight
-                  className="h-5 w-5 shrink-0 text-emerald-200/80"
-                  aria-hidden
-                />
-              </button>
+              </FullWidthRow>
             </div>
           ) : (
             <div className="space-y-3">
@@ -185,28 +171,24 @@ export function CreateCollectionSheet({
               {error ? <p className="text-sm text-red-400">{error}</p> : null}
               <div className="flex gap-2">
                 {!setId ? (
-                  <button
-                    type="button"
+                  <Button
+                    variant="cancel"
+                    className="flex-1"
                     onClick={() => setMode("choose")}
-                    className="flex-1 rounded-2xl border border-white/10 px-4 py-3 text-sm font-medium text-zinc-300"
                   >
                     {t("common.cancel")}
-                  </button>
+                  </Button>
                 ) : null}
-                <button
-                  type="button"
-                  disabled={loading}
+                <Button
+                  variant="primary"
+                  loading={loading}
+                  className="flex-1"
                   onClick={
                     mode === "set" ? handleCreateSet : handleCreateCustom
                   }
-                  className={cn(
-                    "flex flex-1 items-center justify-center gap-2 rounded-2xl bg-emerald-500 px-4 py-3 text-sm font-semibold text-black",
-                    loading && "opacity-60",
-                  )}
                 >
-                  {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
                   {t("collections.createConfirm")}
-                </button>
+                </Button>
               </div>
             </div>
           )}

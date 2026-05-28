@@ -1,7 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { Loader2, Plus } from "lucide-react";
+import { Plus } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { apiUrl, useLocale, useTranslations } from "@/lib/i18n/context";
 import { cn } from "@/lib/utils";
 
@@ -87,18 +88,15 @@ export function ChecklistCreateCollectionInline({
 
   if (!expanded) {
     return (
-      <button
-        type="button"
+      <Button
+        variant="dashed"
+        fullWidth
         disabled={disabled || loading}
+        icon={<Plus className="h-4 w-4 shrink-0" aria-hidden />}
         onClick={() => setExpanded(true)}
-        className={cn(
-          "flex w-full items-center justify-center gap-2 rounded-2xl border border-dashed border-white/15 bg-white/[0.02] px-4 py-3 text-sm font-medium text-zinc-300 transition hover:border-emerald-500/30 hover:bg-emerald-500/10 hover:text-emerald-200",
-          (disabled || loading) && "pointer-events-none opacity-60",
-        )}
       >
-        <Plus className="h-4 w-4 shrink-0" aria-hidden />
         {t("sets.checklistPickerCreateNew")}
-      </button>
+      </Button>
     );
   }
 
@@ -127,25 +125,23 @@ export function ChecklistCreateCollectionInline({
       </label>
       {error ? <p className="text-sm text-red-400">{error}</p> : null}
       <div className="flex gap-2">
-        <button
-          type="button"
+        <Button
+          variant="cancel"
+          className="flex-1 rounded-xl px-3 py-2.5"
           disabled={disabled || loading}
           onClick={resetForm}
-          className="flex-1 rounded-xl border border-white/10 px-3 py-2.5 text-sm font-medium text-zinc-300 disabled:opacity-60"
         >
           {t("common.cancel")}
-        </button>
-        <button
-          type="button"
-          disabled={disabled || loading}
+        </Button>
+        <Button
+          variant="primary"
+          className="flex-1 rounded-xl px-3 py-2.5"
+          loading={loading}
+          disabled={disabled}
           onClick={() => void handleCreate()}
-          className={cn(
-            "flex flex-1 items-center justify-center gap-2 rounded-xl bg-emerald-500 px-3 py-2.5 text-sm font-semibold text-black disabled:opacity-60",
-          )}
         >
-          {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
           {t("collections.createConfirm")}
-        </button>
+        </Button>
       </div>
     </div>
   );

@@ -1,9 +1,10 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Ellipsis, ListPlus, X } from "lucide-react";
+import { ListPlus, X } from "lucide-react";
 import { ActionSheet } from "@/components/action-sheet";
 import { Portal } from "@/components/portal";
+import { IconButton, IconMenuButton } from "@/components/ui/icon-button";
 import { useTranslations } from "@/lib/i18n/context";
 
 type CardSelectionToolbarProps = {
@@ -44,14 +45,13 @@ export function CardSelectionToolbar({
           aria-live="polite"
         >
           <div className="pointer-events-auto mx-auto flex max-w-lg items-center gap-2 rounded-2xl border border-emerald-400/25 bg-[#0f1612]/95 px-3 py-2.5 shadow-xl shadow-black/40 backdrop-blur-sm">
-            <button
-              type="button"
+            <IconButton
+              variant="subtle"
               onClick={onCancel}
-              className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-zinc-300 transition hover:bg-white/5 hover:text-white"
               aria-label={t("selection.cancel")}
             >
               <X className="h-5 w-5" />
-            </button>
+            </IconButton>
 
             <p className="min-w-0 flex-1 truncate text-sm font-medium text-emerald-100">
               {t.plural("selection.selectedCount", selectedCount, {
@@ -59,14 +59,11 @@ export function CardSelectionToolbar({
               })}
             </p>
 
-            <button
-              type="button"
-              onClick={() => setActionsOpen(true)}
-              className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-emerald-200 transition hover:bg-emerald-500/15"
+            <IconMenuButton
+              variant="toolbar"
               aria-label={t("selection.actions")}
-            >
-              <Ellipsis className="h-5 w-5" />
-            </button>
+              onClick={() => setActionsOpen(true)}
+            />
           </div>
         </div>
       </Portal>

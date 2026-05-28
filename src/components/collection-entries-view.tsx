@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Minus, Plus, Trash2, X } from "lucide-react";
+import { Minus, Plus, Trash2 } from "lucide-react";
 import { CardFlagBadge } from "@/components/card-flag-badge";
 import { ConditionBadge } from "@/components/condition-badge";
 import { CardFrame } from "@/components/card-frame";
@@ -15,6 +15,7 @@ import {
 } from "@/components/card-modal";
 import { ConfirmDialog } from "@/components/confirm-dialog";
 import { SearchBar } from "@/components/search-bar";
+import { ActiveFilterBanner } from "@/components/ui/active-filter-banner";
 import { useLocale, useTranslations } from "@/lib/i18n/context";
 import { loadCardDetail, loadCollectionEntriesPage } from "@/lib/offline/read";
 import { notifyCollectionMutated } from "@/lib/offline/types";
@@ -397,24 +398,12 @@ export function CollectionEntriesView({
       </p>
 
       {cardId ? (
-        <div className="flex items-center gap-2 rounded-2xl border border-emerald-500/20 bg-emerald-500/10 px-3 py-2 text-sm text-emerald-100">
-          <div className="min-w-0 flex-1">
-            <p className="text-xs uppercase tracking-wide text-emerald-300/80">
-              {t("collection.filteredByCard")}
-            </p>
-            <p className="truncate font-medium">
-              {filterLabel ?? t("collection.loadingCard")}
-            </p>
-          </div>
-          <button
-            type="button"
-            onClick={clearCardFilter}
-            className="shrink-0 rounded-lg p-2 text-emerald-200 hover:bg-emerald-500/10"
-            aria-label={t("collection.clearCardFilter")}
-          >
-            <X className="h-4 w-4" />
-          </button>
-        </div>
+        <ActiveFilterBanner
+          label={t("collection.filteredByCard")}
+          value={filterLabel ?? t("collection.loadingCard")}
+          onClear={clearCardFilter}
+          clearLabel={t("collection.clearCardFilter")}
+        />
       ) : null}
 
       <SearchBar

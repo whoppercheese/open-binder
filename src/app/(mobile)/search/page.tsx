@@ -15,6 +15,7 @@ import {
 } from "@/components/mobile-scroll-shell";
 import { MobilePage, MobilePageHeader } from "@/components/mobile-page";
 import { SearchBar } from "@/components/search-bar";
+import { FilterChip } from "@/components/ui/filter-chip";
 import { apiUrl, useLocale, useTranslations } from "@/lib/i18n/context";
 import {
   applyChecklistCountOverrides,
@@ -389,18 +390,12 @@ export default function SearchPage() {
           onClear={resetSearch}
           showClear={hasActiveSearch}
         />
-        <button
-          type="button"
+        <FilterChip
+          active={searchAllSets}
           onClick={() => setSearchAllSets(!searchAllSets)}
-          className={cn(
-            "shrink-0 cursor-pointer rounded-full border px-3 py-1.5 text-xs font-medium transition-colors",
-            searchAllSets
-              ? "border-emerald-400/50 bg-emerald-500/15 text-emerald-200"
-              : "border-white/10 bg-white/5 text-zinc-400 hover:border-white/20 hover:text-zinc-200",
-          )}
         >
           {t("search.allSetsButton")}
-        </button>
+        </FilterChip>
       </div>
 
       {loading ? (

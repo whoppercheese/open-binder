@@ -2,7 +2,9 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Check, ChevronRight, Loader2, X } from "lucide-react";
+import { Check, ChevronRight } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { SheetCloseButton } from "@/components/ui/icon-button";
 import {
   ChecklistCreateCollectionInline,
   type CreatedChecklistCollection,
@@ -202,14 +204,10 @@ export function AddToChecklistSheet({
             <h2 className="text-lg font-semibold text-white">
               {t("sets.checklistPickerTitle")}
             </h2>
-            <button
-              type="button"
+            <SheetCloseButton
               onClick={onClose}
-              className="rounded-full p-2 text-zinc-400 hover:bg-white/5 hover:text-white"
               aria-label={t("common.close")}
-            >
-              <X className="h-5 w-5" />
-            </button>
+            />
           </div>
 
           <div className="min-h-0 flex-1 overflow-y-auto px-4 py-3">
@@ -329,18 +327,15 @@ export function AddToChecklistSheet({
           </div>
 
           <div className="border-t border-white/10 p-4">
-            <button
-              type="button"
-              disabled={saving || !hasSelection}
+            <Button
+              variant="primary"
+              fullWidth
+              loading={saving}
+              disabled={!hasSelection}
               onClick={() => void handleConfirm()}
-              className={cn(
-                "flex w-full items-center justify-center gap-2 rounded-2xl bg-emerald-500 px-4 py-3 text-sm font-semibold text-black transition",
-                (saving || !hasSelection) && "opacity-60",
-              )}
             >
-              {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
               {t("sets.checklistPickerConfirm")}
-            </button>
+            </Button>
           </div>
         </div>
       </div>
