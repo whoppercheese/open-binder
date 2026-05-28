@@ -17,7 +17,10 @@ After **every completed implementation** (feature, fix, or refactor — not afte
 1. Run `npm run build` from the project root.
 2. If it **fails**: read the full error output, fix the root cause in the codebase, then run `npm run build` again.
 3. **Repeat** steps 1–2 until the build exits with code 0 and no errors.
-4. Only then report the task as complete.
+4. After a **successful** build, reset the service worker cache name for local dev:
+   - Open `public/sw.js`
+   - Set `CACHE_NAME` back to `"openbinder-static-dev"` (build regenerates this file with a git-hash suffix)
+5. Only then report the task as complete.
 
 ## Fixing failures
 
@@ -28,4 +31,5 @@ After **every completed implementation** (feature, fix, or refactor — not afte
 ## Reporting
 
 - If the build fails and you fix it, briefly note what was wrong and what you changed.
+- If you reset `public/sw.js` after build, no need to mention it unless something went wrong.
 - If the build still fails after reasonable attempts, say so explicitly and leave the remaining errors visible — do not claim success.

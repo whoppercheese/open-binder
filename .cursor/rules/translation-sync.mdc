@@ -1,0 +1,48 @@
+---
+description: When changing translations, keep all locale message files in sync (de + en) and follow the terminology policy.
+alwaysApply: true
+---
+
+# Translation sync (mandatory)
+
+OpenBinder has **two** locale files:
+
+- `src/messages/de.json`
+- `src/messages/en.json`
+
+Whenever you **add, change, or remove** a translation key or user-facing string, update **all** locale files in the same change — not only the language you edited first.
+
+Also follow `docs/terminologie-policy.md` for DE/EN wording (Sammelordner/Binder, Sammelliste/Checklist, Bestand/Inventory, etc.).
+
+## When this applies
+
+- Editing `src/messages/*.json`
+- Adding or changing `t("…")`, `t.plural("…")`, or other i18n keys in code
+- Copy changes requested by the user for UI text
+
+Skip only when the user explicitly asks to change a single locale, or the edit is non-user-facing (e.g. internal logs).
+
+## Workflow
+
+1. Identify the **same key path** in every locale file (e.g. `cardModal.downloadCard`).
+2. Apply the change in **de.json and en.json** together:
+   - **New key** → add to both files
+   - **Updated text** → update the matching key in both files
+   - **Removed key** → remove from both files
+3. Keep structure aligned:
+   - Same nesting and key names
+   - Same placeholders (e.g. `{count}`, `{name}`)
+   - Plural objects: keep the same plural forms (`one` / `other`) in both locales
+4. Before finishing, quickly scan for orphaned keys in the other locale (missing counterpart or leftover unused key).
+
+## Quality checks
+
+- DE and EN must express the **same meaning**, not word-for-word literal translation where policy terms differ.
+- Use policy terms consistently (see `docs/terminologie-policy.md`).
+- Do not leave English fallback text in DE files or German text in EN files.
+- If you add a key used in code, ensure it exists in **both** message files before declaring the task done.
+
+## Reporting
+
+- If you changed copy, briefly note which keys were updated in both locales.
+- If a requested phrase has no policy-approved equivalent, say so and propose aligned DE/EN pairs.
