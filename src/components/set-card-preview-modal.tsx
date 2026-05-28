@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { ListPlus } from "lucide-react";
 import { AddToChecklistSheet } from "@/components/add-to-checklist-sheet";
@@ -131,9 +132,19 @@ export function SetCardPreviewModal({
               <div className="min-w-0 flex-1">
                 <div className="mb-1 flex flex-wrap items-center gap-x-2 gap-y-1">
                   {setLabel ? (
-                    <span className="inline-flex items-center rounded-lg bg-emerald-500/10 px-2 py-0.5 text-sm font-medium text-emerald-400">
-                      {setLabel}
-                    </span>
+                    card.setId ? (
+                      <Link
+                        href={`/sets/${card.setId}`}
+                        onClick={handleClose}
+                        className="inline-flex items-center rounded-lg bg-emerald-500/10 px-2 py-0.5 text-sm font-medium text-emerald-400 transition hover:bg-emerald-500/20 hover:text-emerald-300"
+                      >
+                        {setLabel}
+                      </Link>
+                    ) : (
+                      <span className="inline-flex items-center rounded-lg bg-emerald-500/10 px-2 py-0.5 text-sm font-medium text-emerald-400">
+                        {setLabel}
+                      </span>
+                    )
                   ) : null}
                   <span className="inline-flex items-center rounded-lg border border-white/10 bg-white/5 px-2 py-0.5 text-sm font-medium tabular-nums text-zinc-200">
                     {card.number}
