@@ -275,17 +275,30 @@ function FullWidthCountRowContent({
   icon: Icon,
   label,
   count,
+  variant = "neutral",
   chevronClassName,
   iconClassName,
 }: Pick<
   FullWidthCountRowOwnProps,
   "icon" | "label" | "count" | "chevronClassName" | "iconClassName"
->) {
+> & {
+  variant?: FullWidthRowVariant;
+}) {
   return (
-    <div className="grid w-full grid-cols-[auto_1fr_auto] items-center gap-2">
-      <Icon className={cn("h-4 w-4 shrink-0", iconClassName)} aria-hidden />
-      <span className="truncate text-center">{label}</span>
-      <span className="flex shrink-0 items-center gap-2 text-sm text-zinc-400">
+    <div className="grid w-full grid-cols-[1fr_auto_1fr] items-center gap-2">
+      <span aria-hidden />
+      <span className="flex min-w-0 items-center justify-center gap-2">
+        <Icon
+          className={cn(
+            "h-4 w-4 shrink-0",
+            variant === "neutral" ? "text-zinc-400" : "text-emerald-200/80",
+            iconClassName,
+          )}
+          aria-hidden
+        />
+        <span className="truncate">{label}</span>
+      </span>
+      <span className="flex shrink-0 items-center justify-self-end gap-2 text-sm text-zinc-400">
         <span className="tabular-nums">{count}</span>
         <ChevronRight
           className={cn("h-5 w-5 shrink-0", chevronClassName)}
@@ -306,11 +319,13 @@ export function FullWidthCountRow({
   iconClassName,
   ...props
 }: FullWidthCountRowProps) {
+  const rowVariant: FullWidthRowVariant = variant ?? "neutral";
   const content = (
     <FullWidthCountRowContent
       icon={icon}
       label={label}
       count={count}
+      variant={rowVariant}
       chevronClassName={chevronClassName}
       iconClassName={iconClassName}
     />
