@@ -7,8 +7,8 @@
     "settings": "Einstellungen"
   },
   "offline": {
-    "banner": "Offline-Ansicht · nur Lesen",
-    "bannerWithDate": "Offline-Ansicht · Stand {date} · nur Lesen",
+    "banner": "Offline-Modus · nur Ansicht",
+    "bannerWithDate": "Offline-Modus · Stand {date} · nur Ansicht",
     "navDisabled": "Offline nicht verfügbar",
     "readOnly": "Nur Ansicht",
     "noData": "Keine gecachten Sammlungen. App zuerst online öffnen.",
@@ -244,7 +244,7 @@
     "notes": "Notiz",
     "flag": "Markieren",
     "flagHelp": "Für verschiedene Zwecke markierbar. Der Grund kann in der Notiz hinterlegt werden.",
-    "flagHelpLabel": "Info zu Markieren",
+    "flagHelpLabel": "Info zum Markieren",
     "expandImage": "Kartenbild vergrößern",
     "decreaseQuantity": "Anzahl verringern",
     "increaseQuantity": "Anzahl erhöhen",
@@ -259,18 +259,18 @@
   "selection": {
     "cancel": "Auswahl abbrechen",
     "actions": "Aktionen",
-    "addToChecklist": "Zur Checklist hinzufügen",
+    "addToChecklist": "Zur Checkliste hinzufügen",
     "selectedCount": {
       "one": "{count} ausgewählt",
       "other": "{count} ausgewählt"
     }
   },
   "bulkChecklist": {
-    "title": "Zur Checklist hinzufügen",
+    "title": "Zur Checkliste hinzufügen",
     "loadFailed": "Sammlungen konnten nicht geladen werden.",
-    "addFailed": "Karten konnten nicht zur Checklist hinzugefügt werden.",
+    "addFailed": "Karten konnten nicht zur Checkliste hinzugefügt werden.",
     "preparingCards": "Karten werden vorbereitet…",
-    "partialOnChecklist": "{count}/{total} bereits auf der Checklist",
+    "partialOnChecklist": "{count}/{total} bereits auf der Checkliste",
     "partialFailure": {
       "one": "{count} Karte konnte nicht vorbereitet werden.",
       "other": "{count} Karten konnten nicht vorbereitet werden."
@@ -285,6 +285,7 @@
     "closeLightbox": "Vergrößertes Bild schließen",
     "price": "Preis",
     "priceUnavailable": "—",
+    "loadingMore": "Weitere Einträge werden geladen…",
     "added": "erfasst",
     "searchDefaultPlaceholder": "z. B. Pikachu, Mitsuhiro Arita oder BS 4",
     "clearSearch": "Suche zurücksetzen",
@@ -319,8 +320,8 @@
   },
   "errors": {
     "cardLoadFailed": "Karte konnte nicht geladen werden.",
-    "saveFailed": "Speichern fehlgeschlagen",
-    "addFailed": "Erfassen fehlgeschlagen",
+    "saveFailed": "Speichern fehlgeschlagen.",
+    "addFailed": "Erfassen fehlgeschlagen.",
     "syncStartFailed": "Sync konnte nicht gestartet werden.",
     "cardSyncStartFailed": "Karten-Sync konnte nicht gestartet werden.",
     "cardDataDeleteFailed": "Kartendaten konnten nicht gelöscht werden.",
@@ -335,7 +336,28 @@
     "setNotFound": "Set nicht gefunden.",
     "setLoadFailed": "Set konnte nicht geladen werden.",
     "setsLoadFailed": "Sets konnten nicht geladen werden.",
-    "portfolioLoadFailed": "Portfolio konnte nicht geladen werden."
+    "portfolioLoadFailed": "Portfolio konnte nicht geladen werden.",
+    "api": {
+      "setsListLoadFailed": "Sets konnten nicht geladen werden.",
+      "collectionCoverNotCached": "Bild ist nicht im Cache.",
+      "collectionEntryNotFound": "Eintrag nicht gefunden.",
+      "collectionEntryUpdateFailed": "Eintrag konnte nicht aktualisiert werden.",
+      "collectionEntryDeleteFailed": "Eintrag konnte nicht gelöscht werden.",
+      "setNotFound": "Set nicht gefunden.",
+      "setCardDataDeleteFailed": "Kartendaten konnten nicht gelöscht werden.",
+      "syncStatusLoadFailed": "Sync-Status konnte nicht geladen werden.",
+      "syncInvalidType": "Ungültiger Sync-Typ.",
+      "syncCatalogAlreadyRunning": "Ein Sets-Sync läuft bereits oder wartet in der Queue.",
+      "syncPricesAlreadyRunning": "Ein Preis-Sync läuft bereits oder wartet in der Queue.",
+      "syncStartFailed": "Sync konnte nicht gestartet werden.",
+      "setImageInvalidKind": "Ungültiger Bildtyp.",
+      "setImageNotCached": "Bild ist nicht im Cache.",
+      "setCardsMissingSetIds": "Parameter setIds fehlt.",
+      "setCardsStatusLoadFailed": "Set-Karten-Sync-Status konnte nicht geladen werden.",
+      "setCardsMissingSetId": "Parameter setId fehlt.",
+      "setCardsAlreadyRunningForSet": "Ein Karten-Sync für dieses Set läuft bereits oder wartet in der Queue.",
+      "setCardsStartFailed": "Karten-Sync konnte nicht gestartet werden."
+    }
   },
   "sync": {
     "syncPreparing": "Karten-Sync wird vorbereitet…",

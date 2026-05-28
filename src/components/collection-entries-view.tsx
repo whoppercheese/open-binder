@@ -600,7 +600,7 @@ export function CollectionEntriesView({
           ref={sentinelRef}
           className="py-4 text-center text-sm text-zinc-500"
         >
-          {loadingMore ? t("collection.loadingMore") : null}
+          {loadingMore ? t("common.loadingMore") : null}
         </div>
       ) : null}
 

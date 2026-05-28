@@ -1,17 +1,22 @@
 import { NextResponse } from "next/server";
+import { getRequestTranslator } from "@/lib/i18n/server";
 import { readCollectionCoverImage } from "@/lib/image-storage";
 
 export async function GET(
-  _request: Request,
+  request: Request,
   context: { params: Promise<{ collectionId: string }> },
 ) {
+  const { t } = getRequestTranslator(request);
   const { collectionId } = await context.params;
   const buffer = await readCollectionCoverImage(
     decodeURIComponent(collectionId),
   );
 
   if (!buffer) {
-    return NextResponse.json({ error: "Bild nicht im Cache." }, { status: 404 });
+    return NextResponse.json(
+      { error: t("errors.api.collectionCoverNotCached") },
+      { status: 404 },
+    );
   }
 
   return new NextResponse(new Uint8Array(buffer), {

@@ -7,15 +7,17 @@ import { getSetCardsSyncStatuses } from "@/jobs/sync-job-utils";
 import { db } from "@/db/client";
 import { sets } from "@/db/schema";
 import { inArray } from "drizzle-orm";
+import { getRequestTranslator } from "@/lib/i18n/server";
 
 export async function GET(request: Request) {
+  const { t } = getRequestTranslator(request);
   try {
     const { searchParams } = new URL(request.url);
     const setIdsParam = searchParams.get("setIds");
 
     if (!setIdsParam) {
       return NextResponse.json(
-        { error: "Parameter setIds fehlt." },
+        { error: t("errors.api.setCardsMissingSetIds") },
         { status: 400 },
       );
     }
@@ -54,13 +56,14 @@ export async function GET(request: Request) {
   } catch (error) {
     console.error(error);
     return NextResponse.json(
-      { error: "Set-Karten-Sync-Status konnte nicht geladen werden." },
+      { error: t("errors.api.setCardsStatusLoadFailed") },
       { status: 500 },
     );
   }
 }
 
 export async function POST(request: Request) {
+  const { t } = getRequestTranslator(request);
   try {
     const body = await request.json();
 
@@ -76,16 +79,19 @@ export async function POST(request: Request) {
 
     if (!setId?.trim()) {
       return NextResponse.json(
-        { error: "Parameter setId fehlt." },
+        { error: t("errors.api.setCardsMissingSetId") },
         { status: 400 },
       );
     }
 
     const result = await createSetCardsSyncJob(setId.trim());
 
-    if ("error" in result) {
+    if ("errorKey" in result) {
       return NextResponse.json(
-        { error: result.error, job: "job" in result ? result.job : undefined },
+        {
+          error: t(result.errorKey),
+          job: "job" in result ? result.job : undefined,
+        },
         { status: result.status },
       );
     }
@@ -94,7 +100,7 @@ export async function POST(request: Request) {
   } catch (error) {
     console.error(error);
     return NextResponse.json(
-      { error: "Karten-Sync konnte nicht gestartet werden." },
+      { error: t("errors.api.setCardsStartFailed") },
       { status: 500 },
     );
   }

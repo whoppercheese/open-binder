@@ -2,13 +2,15 @@ import { count } from "drizzle-orm";
 import { NextResponse } from "next/server";
 import { db } from "@/db/client";
 import { sets } from "@/db/schema";
+import { getRequestTranslator } from "@/lib/i18n/server";
 import { supportedCatalogSetsWhere } from "@/lib/sets-list-catalog";
 import {
   findActiveSyncJob,
   getActiveSetCardsJobs,
 } from "@/jobs/sync-job-utils";
 
-export async function GET() {
+export async function GET(request: Request) {
+  const { t } = getRequestTranslator(request);
   try {
     const [setCardsJobs, catalogJob, setCountRow] = await Promise.all([
       getActiveSetCardsJobs(),
@@ -33,7 +35,7 @@ export async function GET() {
   } catch (error) {
     console.error(error);
     return NextResponse.json(
-      { error: "Sync-Status konnte nicht geladen werden." },
+      { error: t("errors.api.syncStatusLoadFailed") },
       { status: 500 },
     );
   }

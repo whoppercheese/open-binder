@@ -60,7 +60,7 @@ export async function createSetCardsSyncJob(setId: string) {
   if (!set) {
     const ensured = await ensureSetMetadata(setId);
     if (!ensured) {
-      return { error: "Set nicht gefunden.", status: 404 as const };
+      return { errorKey: "errors.api.setNotFound", status: 404 as const };
     }
     set = await db.query.sets.findFirst({
       where: eq(sets.id, setId),
@@ -68,13 +68,13 @@ export async function createSetCardsSyncJob(setId: string) {
   }
 
   if (!set) {
-    return { error: "Set nicht gefunden.", status: 404 as const };
+    return { errorKey: "errors.api.setNotFound", status: 404 as const };
   }
 
   const activeJob = await findActiveSetCardsJob(setId);
   if (activeJob) {
     return {
-      error: "Ein Karten-Sync für dieses Set läuft bereits oder wartet in der Queue.",
+      errorKey: "errors.api.setCardsAlreadyRunningForSet",
       job: activeJob,
       status: 409 as const,
     };

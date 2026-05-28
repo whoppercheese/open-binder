@@ -2,11 +2,13 @@ import { eq } from "drizzle-orm";
 import { NextResponse } from "next/server";
 import { db } from "@/db/client";
 import { collections, userCards } from "@/db/schema";
+import { getRequestTranslator } from "@/lib/i18n/server";
 
 export async function PATCH(
   request: Request,
   context: { params: Promise<{ id: string }> },
 ) {
+  const { t } = getRequestTranslator(request);
   try {
     const { id } = await context.params;
     const body = await request.json();
@@ -15,7 +17,10 @@ export async function PATCH(
       where: eq(userCards.id, id),
     });
     if (!existing) {
-      return NextResponse.json({ error: "Eintrag nicht gefunden." }, { status: 404 });
+      return NextResponse.json(
+        { error: t("errors.api.collectionEntryNotFound") },
+        { status: 404 },
+      );
     }
 
     const [updated] = await db
@@ -44,23 +49,30 @@ export async function PATCH(
   } catch (error) {
     console.error(error);
     return NextResponse.json(
-      { error: "Eintrag konnte nicht aktualisiert werden." },
+      { error: t("errors.api.collectionEntryUpdateFailed") },
       { status: 500 },
     );
   }
 }
 
 export async function DELETE(
-  _request: Request,
+  request: Request,
   context: { params: Promise<{ id: string }> },
 ) {
+  const { t } = getRequestTranslator(request);
   try {
     const { id } = await context.params;
     const existing = await db.query.userCards.findFirst({
       where: eq(userCards.id, id),
     });
     if (!existing) {
-      return NextResponse.json({ errorCode: "ENTRY_NOT_FOUND" }, { status: 404 });
+      return NextResponse.json(
+        {
+          errorCode: "ENTRY_NOT_FOUND",
+          error: t("errors.api.collectionEntryNotFound"),
+        },
+        { status: 404 },
+      );
     }
 
     await db.delete(userCards).where(eq(userCards.id, id));
@@ -74,7 +86,7 @@ export async function DELETE(
   } catch (error) {
     console.error(error);
     return NextResponse.json(
-      { error: "Eintrag konnte nicht gelöscht werden." },
+      { error: t("errors.api.collectionEntryDeleteFailed") },
       { status: 500 },
     );
   }
