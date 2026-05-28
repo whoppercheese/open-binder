@@ -31,6 +31,7 @@ type GestureState = {
   mode: "idle" | "pan" | "pinch";
   startScale: number;
   startTranslate: Point;
+  startFocal?: Point;
   startDistance?: number;
   lastTouch?: Point;
   moved?: boolean;
@@ -222,6 +223,11 @@ export function LightboxZoomViewport({
     }
 
     if (event.touches.length === 2) {
+      const rect = viewport.getBoundingClientRect();
+      const startFocal = focalFromPoint(
+        getMidpoint(event.touches[0]!, event.touches[1]!),
+        rect,
+      );
       gestureRef.current = {
         mode: "pinch",
         startScale: transformRef.current.scale,
@@ -229,6 +235,7 @@ export function LightboxZoomViewport({
           x: transformRef.current.x,
           y: transformRef.current.y,
         },
+        startFocal,
         startDistance: getDistance(event.touches[0]!, event.touches[1]!),
       };
       return;
@@ -262,7 +269,12 @@ export function LightboxZoomViewport({
       setAnimateTransform(false);
     }
 
-    if (gesture.mode === "pinch" && event.touches.length === 2 && gesture.startDistance) {
+    if (
+      gesture.mode === "pinch" &&
+      event.touches.length === 2 &&
+      gesture.startDistance &&
+      gesture.startFocal
+    ) {
       const distance = getDistance(event.touches[0]!, event.touches[1]!);
       const scale = Math.min(
         MAX_SCALE,
@@ -271,8 +283,8 @@ export function LightboxZoomViewport({
       const rect = viewport.getBoundingClientRect();
       const focal = focalFromPoint(getMidpoint(event.touches[0]!, event.touches[1]!), rect);
       const ratio = scale / gesture.startScale;
-      const x = focal.x - (focal.x - gesture.startTranslate.x) * ratio;
-      const y = focal.y - (focal.y - gesture.startTranslate.y) * ratio;
+      const x = focal.x - (gesture.startFocal.x - gesture.startTranslate.x) * ratio;
+      const y = focal.y - (gesture.startFocal.y - gesture.startTranslate.y) * ratio;
       syncTransform({ scale, ...clampTranslate(x, y, scale) });
       return;
     }
