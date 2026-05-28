@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
-import { Loader2, Download, RefreshCw, Trash2 } from "lucide-react";
+import { Loader2, Download, RefreshCw, Trash2, ChevronRight } from "lucide-react";
 import { ActionSheet } from "@/components/action-sheet";
 import { BulkAddToChecklistSheet } from "@/components/bulk-add-to-checklist-sheet";
 import { CardGrid } from "@/components/card-grid";
@@ -62,6 +62,7 @@ type SetDetailResponse = {
     percent: number;
   };
   collectionEntryCount: number;
+  setCollectionCount: number;
 };
 
 export default function SetDetailPage() {
@@ -424,12 +425,21 @@ export default function SetDetailPage() {
       </PageHeader>
 
       <section className="space-y-2">
-        <FullWidthRow
-          href={`/collections?setId=${encodeURIComponent(params.id)}`}
-          variant="neutral"
-        >
-          <span className="min-w-0 flex-1">{t("collections.openSetBinders")}</span>
-        </FullWidthRow>
+        {data.setCollectionCount > 0 ? (
+          <FullWidthRow
+            href={`/collections?setId=${encodeURIComponent(params.id)}`}
+            variant="neutral"
+            showChevron={false}
+          >
+            <span className="min-w-0 flex-1">
+              {t("collections.openSetBinders")}
+            </span>
+            <span className="flex shrink-0 items-center gap-2 text-sm text-zinc-400">
+              <span className="tabular-nums">{data.setCollectionCount}</span>
+              <ChevronRight className="h-5 w-5 shrink-0" aria-hidden />
+            </span>
+          </FullWidthRow>
+        ) : null}
         <FullWidthRow
           variant="emeraldAction"
           showChevron={false}
