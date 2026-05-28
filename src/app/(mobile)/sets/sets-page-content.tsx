@@ -10,6 +10,7 @@ import {
 import { Loader2, Download } from "lucide-react";
 import { FilterChip, FilterChipList } from "@/components/ui/filter-chip";
 import { IconMenuButton } from "@/components/ui/icon-button";
+import { PageHeader } from "@/components/ui/page-header";
 import { ActionSheet } from "@/components/action-sheet";
 import { MobilePage } from "@/components/mobile-page";
 import { SearchBar } from "@/components/search-bar";
@@ -453,21 +454,18 @@ export function SetsPageContent({ initialSets }: SetsPageContentProps) {
 
   return (
     <MobilePage>
-      <header>
-        <div className="flex items-start justify-between gap-2">
-          <div className="min-w-0 flex-1">
-            <h1 className="text-2xl font-bold">{t("sets.title")}</h1>
-            <p className="text-sm text-zinc-400">{subtitle}</p>
-          </div>
-          {sets.length > 0 ? (
+      <PageHeader
+        title={t("sets.title")}
+        subtitle={subtitle}
+        trailing={
+          sets.length > 0 ? (
             <IconMenuButton
-              className="mt-0.5"
               aria-label={t("sets.listActions")}
               onClick={() => setMenuOpen(true)}
             />
-          ) : null}
-        </div>
-      </header>
+          ) : null
+        }
+      />
 
       {syncIndicator ? (
         <div className="flex items-start gap-3 rounded-2xl border border-emerald-500/20 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-100">

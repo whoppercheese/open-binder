@@ -1,7 +1,7 @@
 "use client";
 
 import { usePathname } from "next/navigation";
-import { Home, Layers, Search, Settings, WalletCards } from "lucide-react";
+import { Home, Layers, Library, Search, Settings } from "lucide-react";
 import { NavTab } from "@/components/ui/nav-tab";
 import { useTranslations } from "@/lib/i18n/context";
 import { useOfflineNavigation } from "@/lib/offline/offline-navigation";
@@ -18,7 +18,7 @@ export function BottomNav() {
   const items = [
     { href: "/", label: t("nav.dashboard"), icon: Home },
     { href: "/sets", label: t("nav.sets"), icon: Layers },
-    { href: COLLECTIONS_HREF, label: t("nav.collection"), icon: WalletCards },
+    { href: COLLECTIONS_HREF, label: t("nav.collection"), icon: Library },
     { href: "/search", label: t("nav.search"), icon: Search },
     { href: "/settings", label: t("nav.settings"), icon: Settings },
   ];

@@ -23,6 +23,8 @@ import { Button } from "@/components/ui/button";
 import { FilterChip, FilterChipList } from "@/components/ui/filter-chip";
 import { FullWidthRow } from "@/components/ui/full-width-row";
 import { IconMenuButton } from "@/components/ui/icon-button";
+import { PageHeader } from "@/components/ui/page-header";
+import { MobilePage } from "@/components/mobile-page";
 import { cn } from "@/lib/utils";
 
 type OwnershipFilter = "owned" | "missing";
@@ -363,53 +365,47 @@ export default function SetDetailPage() {
     </div>
   );
 
+  const setTitle = data?.set ? (
+    <>
+      {data.set.name}
+      <span className="ml-2 text-base font-normal text-zinc-500">
+        {data.set.officialCode ?? data.set.id}
+      </span>
+    </>
+  ) : (
+    params.id
+  );
+
   if (!data?.set) {
     return (
-      <div className="space-y-5 px-4 pt-6">
-        <header>
-          <h1 className="text-2xl font-bold">{params.id}</h1>
-        </header>
+      <MobilePage>
+        <PageHeader title={setTitle} />
         {loadCardsPanel}
-      </div>
+      </MobilePage>
     );
   }
 
   if (!cardsSynced) {
     return (
-      <div className="space-y-5 px-4 pt-6">
-        <header>
-          <h1 className="text-2xl font-bold">
-            {data.set.name}
-            <span className="ml-2 text-base font-normal text-zinc-500">
-              {data.set.officialCode ?? data.set.id}
-            </span>
-          </h1>
-        </header>
-
+      <MobilePage>
+        <PageHeader title={setTitle} />
         {loadCardsPanel}
-      </div>
+      </MobilePage>
     );
   }
 
   return (
-    <div className="space-y-5 px-4 pt-6">
-      <header className="space-y-2">
-        <div className="flex items-start justify-between gap-2">
-          <div className="min-w-0 flex-1">
-            <h1 className="text-2xl font-bold">
-              {data.set.name}
-              <span className="ml-2 text-base font-normal text-zinc-500">
-                {data.set.officialCode ?? data.set.id}
-              </span>
-            </h1>
-            <p className="text-sm text-zinc-400">{t("collections.setCatalogHint")}</p>
-          </div>
+    <MobilePage>
+      <PageHeader
+        title={setTitle}
+        subtitle={t("collections.setCatalogHint")}
+        trailing={
           <IconMenuButton
-            className="mt-0.5"
             aria-label={t("sets.setActions")}
             onClick={() => setMenuOpen(true)}
           />
-        </div>
+        }
+      >
         {deleteError ? (
           <p className="text-sm text-red-400">{deleteError}</p>
         ) : null}
@@ -425,22 +421,23 @@ export default function SetDetailPage() {
             </span>
           </div>
         ) : null}
-        <section className="space-y-2">
-          <FullWidthRow
-            href={`/collections?setId=${encodeURIComponent(params.id)}`}
-            variant="neutral"
-          >
-            <span className="min-w-0 flex-1">{t("collections.openSetBinders")}</span>
-          </FullWidthRow>
-          <FullWidthRow
-            variant="emeraldAction"
-            showChevron={false}
-            onClick={() => setCreateOpen(true)}
-          >
-            {t("collections.createFromSet")}
-          </FullWidthRow>
-        </section>
-      </header>
+      </PageHeader>
+
+      <section className="space-y-2">
+        <FullWidthRow
+          href={`/collections?setId=${encodeURIComponent(params.id)}`}
+          variant="neutral"
+        >
+          <span className="min-w-0 flex-1">{t("collections.openSetBinders")}</span>
+        </FullWidthRow>
+        <FullWidthRow
+          variant="emeraldAction"
+          showChevron={false}
+          onClick={() => setCreateOpen(true)}
+        >
+          {t("collections.createFromSet")}
+        </FullWidthRow>
+      </section>
 
       <section className="space-y-3">
         <FilterChipList>
@@ -630,6 +627,6 @@ export default function SetDetailPage() {
           setBulkChecklistOpen(false);
         }}
       />
-    </div>
+    </MobilePage>
   );
 }

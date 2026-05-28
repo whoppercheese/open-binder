@@ -5,7 +5,8 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { Plus } from "lucide-react";
 import { CollectionListItem } from "@/components/collection-list-item";
 import { CreateCollectionSheet } from "@/components/create-collection-sheet";
-import { MobilePage, MobilePageHeader } from "@/components/mobile-page";
+import { MobilePage } from "@/components/mobile-page";
+import { PageHeader } from "@/components/ui/page-header";
 import { ActiveFilterBanner } from "@/components/ui/active-filter-banner";
 import { Button } from "@/components/ui/button";
 import { useLocale, useTranslations } from "@/lib/i18n/context";
@@ -67,26 +68,26 @@ export default function CollectionListPage() {
 
   return (
     <MobilePage>
-      <header className="flex items-start justify-between gap-3">
-        <MobilePageHeader
-          title={t("collections.title")}
-          subtitle={
-            setFilterId
-              ? t("collections.subtitleFilteredBySet")
-              : t("collections.subtitle")
-          }
-        />
-        {!isOfflineView ? (
-          <Button
-            variant="pill"
-            size="compact"
-            icon={<Plus className="h-4 w-4" />}
-            onClick={() => setCreateOpen(true)}
-          >
-            {t("collections.add")}
-          </Button>
-        ) : null}
-      </header>
+      <PageHeader
+        title={t("collections.title")}
+        subtitle={
+          setFilterId
+            ? t("collections.subtitleFilteredBySet")
+            : t("collections.subtitle")
+        }
+        trailing={
+          !isOfflineView ? (
+            <Button
+              variant="pill"
+              size="compact"
+              icon={<Plus className="h-4 w-4" />}
+              onClick={() => setCreateOpen(true)}
+            >
+              {t("collections.add")}
+            </Button>
+          ) : null
+        }
+      />
       {setFilterId ? (
         <ActiveFilterBanner
           label={t("collections.filteredBySet")}

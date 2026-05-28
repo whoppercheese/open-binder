@@ -34,6 +34,7 @@ import { useDefaultCondition } from "@/lib/use-default-condition";
 import { FilterChip, FilterChipList } from "@/components/ui/filter-chip";
 import { FullWidthNavLink } from "@/components/ui/full-width-row";
 import { IconMenuButton } from "@/components/ui/icon-button";
+import { PageHeader } from "@/components/ui/page-header";
 import { cn, resolveSetDisplayCode } from "@/lib/utils";
 
 type OwnershipFilter = "owned" | "missing";
@@ -73,57 +74,61 @@ function CollectionDetailHeader({
     />
   );
 
+  const subtitle = set ? (
+    <>
+      {t("collections.createdFromSetPrefix")}
+      {readOnly ? (
+        <span className="text-emerald-400/90">
+          {resolveSetDisplayCode({
+            officialCode: set.officialCode,
+            setId: set.id,
+          }) ?? set.name}
+        </span>
+      ) : (
+        <Link
+          href={`/sets/${set.id}`}
+          className="text-emerald-400 hover:text-emerald-300"
+        >
+          {resolveSetDisplayCode({
+            officialCode: set.officialCode,
+            setId: set.id,
+          }) ?? set.name}
+        </Link>
+      )}
+    </>
+  ) : isCustom ? (
+    t("collections.customLabel")
+  ) : undefined;
+
   return (
-    <header className="shrink-0 space-y-3">
-      <div className="flex items-start gap-3">
-        {canChangeCover && !readOnly ? (
+    <PageHeader
+      className="shrink-0"
+      title={collection.name}
+      subtitle={subtitle}
+      subtitleClassName="text-zinc-500"
+      leading={
+        canChangeCover && !readOnly ? (
           <button
             type="button"
             onClick={onOpenCoverPicker}
             aria-label={t("collections.changeCover")}
-            className="shrink-0 rounded-xl transition hover:opacity-90 active:scale-[0.98]"
+            className="rounded-xl transition hover:opacity-90 active:scale-[0.98]"
           >
             {cover}
           </button>
         ) : (
           cover
-        )}
-        <div className="min-w-0 flex-1">
-          <h1 className="text-2xl font-bold text-white">{collection.name}</h1>
-          {set ? (
-            <p className="text-sm text-zinc-500">
-              {t("collections.createdFromSetPrefix")}
-              {readOnly ? (
-                <span className="text-emerald-400/90">
-                  {resolveSetDisplayCode({
-                    officialCode: set.officialCode,
-                    setId: set.id,
-                  }) ?? set.name}
-                </span>
-              ) : (
-                <Link
-                  href={`/sets/${set.id}`}
-                  className="text-emerald-400 hover:text-emerald-300"
-                >
-                  {resolveSetDisplayCode({
-                    officialCode: set.officialCode,
-                    setId: set.id,
-                  }) ?? set.name}
-                </Link>
-              )}
-            </p>
-          ) : isCustom ? (
-            <p className="text-sm text-zinc-500">{t("collections.customLabel")}</p>
-          ) : null}
-        </div>
-        {!readOnly ? (
+        )
+      }
+      trailing={
+        !readOnly ? (
           <IconMenuButton
             aria-label={t("collections.detailActions")}
             onClick={onOpenMenu}
           />
-        ) : null}
-      </div>
-
+        ) : null
+      }
+    >
       {progress.totalCards > 0 ? (
         <div>
           <div className="mb-1 flex justify-between text-sm text-zinc-400">
@@ -135,7 +140,7 @@ function CollectionDetailHeader({
           <ProgressBar value={progress.percent} />
         </div>
       ) : null}
-    </header>
+    </PageHeader>
   );
 }
 

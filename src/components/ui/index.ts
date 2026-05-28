@@ -23,4 +23,5 @@ export {
   type IconButtonProps,
 } from "./icon-button";
 export { NavTab } from "./nav-tab";
+export { PageHeader } from "./page-header";
 export { TextLink } from "./text-link";
