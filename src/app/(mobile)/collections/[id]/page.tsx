@@ -38,13 +38,11 @@ import type { CollectionDetailResponse } from "@/lib/offline/types";
 import { notifyFullMirror } from "@/lib/offline/types";
 import { getRarityLabel, sortCanonicalRarities } from "@/lib/rarity";
 import { useDefaultCondition } from "@/lib/use-default-condition";
+import { fullWidthRowEmeraldNav } from "@/lib/full-width-row-classes";
 import { cn, resolveSetDisplayCode } from "@/lib/utils";
 
 type OwnershipFilter = "owned" | "missing";
 type ViewMode = "grid" | "entries";
-
-const collectionLinkClassName =
-  "flex w-full items-center justify-between gap-3 rounded-2xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-sm font-medium text-emerald-200 transition hover:bg-emerald-500/20";
 
 function CollectionNavLink({
   href,
@@ -56,7 +54,7 @@ function CollectionNavLink({
   label: string;
 }) {
   return (
-    <Link href={href} className={collectionLinkClassName}>
+    <Link href={href} className={fullWidthRowEmeraldNav("text-left")}>
       <span className="flex items-center gap-2">
         <Icon className="h-4 w-4 shrink-0" />
         {label}

@@ -6,6 +6,10 @@ import { ChevronRight, Loader2, X } from "lucide-react";
 import { Portal } from "@/components/portal";
 import { apiUrl, useLocale, useTranslations } from "@/lib/i18n/context";
 import { notifyFullMirror } from "@/lib/offline/types";
+import {
+  fullWidthRowEmeraldNav,
+  fullWidthRowNeutral,
+} from "@/lib/full-width-row-classes";
 import { cn } from "@/lib/utils";
 
 type CreateCollectionSheetProps = {
@@ -141,7 +145,7 @@ export function CreateCollectionSheet({
               <button
                 type="button"
                 onClick={() => setMode("custom")}
-                className="w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-left text-sm font-medium text-white transition hover:bg-white/10"
+                className={fullWidthRowNeutral("text-left text-white")}
               >
                 {t("collections.createCustom")}
               </button>
@@ -151,7 +155,7 @@ export function CreateCollectionSheet({
                   handleClose();
                   router.push("/sets");
                 }}
-                className="flex w-full items-center justify-between gap-3 rounded-2xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-left text-sm font-medium text-emerald-200 transition hover:bg-emerald-500/20"
+                className={fullWidthRowEmeraldNav("text-left")}
               >
                 <span>{t("collections.createFromSet")}</span>
                 <ChevronRight

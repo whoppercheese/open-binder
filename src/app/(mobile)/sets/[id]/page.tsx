@@ -1,14 +1,14 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
-import { Loader2, Download, Ellipsis, RefreshCw, Trash2 } from "lucide-react";
+import { Loader2, ChevronRight, Download, Ellipsis, RefreshCw, Trash2 } from "lucide-react";
 import { ActionSheet } from "@/components/action-sheet";
 import { BulkAddToChecklistSheet } from "@/components/bulk-add-to-checklist-sheet";
 import { CardGrid } from "@/components/card-grid";
 import { CardSelectionToolbar } from "@/components/card-selection-toolbar";
 import { CardTile } from "@/components/card-tile";
-import { CollectionListItem } from "@/components/collection-list-item";
 import { ConfirmDialog } from "@/components/confirm-dialog";
 import { CreateCollectionSheet } from "@/components/create-collection-sheet";
 import {
@@ -19,16 +19,11 @@ import { apiUrl, useLocale, useTranslations } from "@/lib/i18n/context";
 import { formatSyncJobMessage } from "@/lib/sync-job-display";
 import { getRarityLabel, sortCanonicalRarities } from "@/lib/rarity";
 import { useCardGridSelection } from "@/lib/use-card-grid-selection";
+import {
+  fullWidthRowEmeraldAction,
+  fullWidthRowNeutral,
+} from "@/lib/full-width-row-classes";
 import { cn } from "@/lib/utils";
-
-type SetCollectionSummary = {
-  id: string;
-  name: string;
-  imageUrl: string | null;
-  ownedCount: number;
-  totalCount: number;
-  percent: number;
-};
 
 type OwnershipFilter = "owned" | "missing";
 
@@ -100,9 +95,6 @@ export default function SetDetailPage() {
   const [data, setData] = useState<SetDetailResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshKey, setRefreshKey] = useState(0);
-  const [setCollections, setSetCollections] = useState<SetCollectionSummary[]>(
-    [],
-  );
   const [createOpen, setCreateOpen] = useState(false);
   const [ownershipFilter, setOwnershipFilter] = useState<OwnershipFilter | null>(
     null,
@@ -149,21 +141,6 @@ export default function SetDetailPage() {
   }, [data, ownershipFilter, rarityFilter]);
 
   const hasActiveFilters = ownershipFilter != null || rarityFilter != null;
-
-  const loadSetCollections = useCallback(async () => {
-    const response = await fetch(apiUrl("/api/collections", locale));
-    const payload = await response.json();
-    if (!response.ok) {
-      setSetCollections([]);
-      return;
-    }
-    const items = (payload.items ?? []) as Array<
-      SetCollectionSummary & { setId: string | null; type: string }
-    >;
-    setSetCollections(
-      items.filter((item) => item.type === "set" && item.setId === params.id),
-    );
-  }, [locale, params.id]);
 
   const loadSet = useCallback(async () => {
     const response = await fetch(apiUrl(`/api/sets/${params.id}`, locale));
@@ -238,14 +215,14 @@ export default function SetDetailPage() {
     let cancelled = false;
 
     (async () => {
-      await Promise.all([loadSet(), loadSetCollections()]);
+      await loadSet();
       if (cancelled) return;
     })();
 
     return () => {
       cancelled = true;
     };
-  }, [loadSet, loadSetCollections, refreshKey]);
+  }, [loadSet, refreshKey]);
 
   useEffect(() => {
     let cancelled = false;
@@ -314,7 +291,6 @@ export default function SetDetailPage() {
       setConfirmDeleteOpen(false);
       setMenuOpen(false);
       await loadSet();
-      await loadSetCollections();
       router.refresh();
     } finally {
       setDeletingCards(false);
@@ -444,14 +420,17 @@ export default function SetDetailPage() {
 
   return (
     <div className="space-y-5 px-4 pt-6">
-      <header className="space-y-3">
+      <header className="space-y-2">
         <div className="flex items-start justify-between gap-2">
-          <h1 className="min-w-0 flex-1 text-2xl font-bold">
-            {data.set.name}
-            <span className="ml-2 text-base font-normal text-zinc-500">
-              {data.set.officialCode ?? data.set.id}
-            </span>
-          </h1>
+          <div className="min-w-0 flex-1">
+            <h1 className="text-2xl font-bold">
+              {data.set.name}
+              <span className="ml-2 text-base font-normal text-zinc-500">
+                {data.set.officialCode ?? data.set.id}
+              </span>
+            </h1>
+            <p className="text-sm text-zinc-400">{t("collections.setCatalogHint")}</p>
+          </div>
           <button
             type="button"
             aria-label={t("sets.setActions")}
@@ -478,28 +457,20 @@ export default function SetDetailPage() {
           </div>
         ) : null}
         <section className="space-y-2">
-          {setCollections.length === 0 ? (
-            <p className="text-sm text-zinc-400">
-              {t("collections.setCatalogHint")}
-            </p>
-          ) : null}
-          {setCollections.map((collection) => (
-            <CollectionListItem
-              key={collection.id}
-              id={collection.id}
-              name={collection.name}
-              imageUrl={collection.imageUrl}
-              setId={params.id}
-              setOfficialCode={data.set.officialCode}
-              owned={collection.ownedCount}
-              total={collection.totalCount}
-              percent={collection.percent}
+          <Link
+            href={`/collections?setId=${encodeURIComponent(params.id)}`}
+            className={fullWidthRowNeutral("justify-between text-left")}
+          >
+            <span className="min-w-0 flex-1">{t("collections.openSetBinders")}</span>
+            <ChevronRight
+              className="h-5 w-5 shrink-0 text-zinc-400"
+              aria-hidden
             />
-          ))}
+          </Link>
           <button
             type="button"
             onClick={() => setCreateOpen(true)}
-            className="w-full rounded-2xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-sm font-medium text-emerald-200"
+            className={fullWidthRowEmeraldAction()}
           >
             {t("collections.createFromSet")}
           </button>
@@ -645,7 +616,6 @@ export default function SetDetailPage() {
         defaultName={data.set.name}
         onClose={() => {
           setCreateOpen(false);
-          void loadSetCollections();
         }}
       />
 
