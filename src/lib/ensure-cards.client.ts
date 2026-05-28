@@ -43,6 +43,22 @@ export async function loadCardDetailClient(
   return payload;
 }
 
+export async function loadOrEnsureCardClient(
+  cardId: string,
+  locale: UiLocale,
+): Promise<CardDetail> {
+  try {
+    const existing = await loadCardDetailClient(cardId, locale);
+    if (existing.variants.length > 0) {
+      return existing;
+    }
+  } catch {
+    // Card is not in the catalog yet — ensure below.
+  }
+
+  return ensureAndLoadCardClient(cardId, locale);
+}
+
 export async function ensureAndLoadCardClient(
   cardId: string,
   locale: UiLocale,

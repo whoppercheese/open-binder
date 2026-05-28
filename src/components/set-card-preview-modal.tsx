@@ -2,10 +2,9 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import { Download, Layers, ListPlus } from "lucide-react";
+import { ListPlus } from "lucide-react";
 import { AddToChecklistSheet } from "@/components/add-to-checklist-sheet";
 import { Button } from "@/components/ui/button";
-import { FullWidthIconRow } from "@/components/ui/full-width-row";
 import { TextLink } from "@/components/ui/text-link";
 import { SheetCloseButton } from "@/components/ui/icon-button";
 import { CardFrame } from "@/components/card-frame";
@@ -14,7 +13,7 @@ import { CardImageLightbox } from "@/components/card-image-lightbox";
 import { Portal } from "@/components/portal";
 import type { CardDetail } from "@/components/card-modal";
 import { writeChecklistCountOverride } from "@/lib/checklist-count-overrides.client";
-import { ensureAndLoadCardClient, loadCardDetailClient } from "@/lib/ensure-cards.client";
+import { loadOrEnsureCardClient } from "@/lib/ensure-cards.client";
 import { apiUrl, useLocale, useTranslations } from "@/lib/i18n/context";
 import { getRarityLabel } from "@/lib/rarity";
 import {
@@ -27,6 +26,12 @@ const VARIANT_KEYS: Record<string, string> = {
   holo: "common.variantHolo",
   reverse_holo: "common.variantReverseHolo",
   first_edition: "common.variantFirstEdition",
+};
+
+type CatalogState = {
+  cardId: string;
+  status: "loading" | "ready" | "failed";
+  card: CardDetail | null;
 };
 
 type SetCardPreviewModalProps = {
@@ -46,29 +51,25 @@ export function SetCardPreviewModal({
 }: SetCardPreviewModalProps) {
   const { locale } = useLocale();
   const t = useTranslations();
-  const [ensuredCard, setEnsuredCard] = useState<CardDetail | null>(null);
-  const [catalogLookup, setCatalogLookup] = useState<{
-    cardId: string;
-    card: CardDetail | null;
-  } | null>(null);
+  const [catalogState, setCatalogState] = useState<CatalogState | null>(null);
   const [imageExpanded, setImageExpanded] = useState(false);
   const [checklistOpen, setChecklistOpen] = useState(false);
   const [checklistCountState, setChecklistCountState] = useState<{
     cardId: string;
     count: number;
   } | null>(null);
-  const [downloading, setDownloading] = useState(false);
-  const [downloadError, setDownloadError] = useState<string | null>(null);
+
   const catalogCard =
-    catalogLookup != null && catalogLookup.cardId === card?.id
-      ? catalogLookup.card
+    catalogState != null &&
+    catalogState.cardId === card?.id &&
+    catalogState.status === "ready"
+      ? catalogState.card
       : null;
-  const cardData = catalogCard ?? ensuredCard ?? card;
-  const catalogCheckPending =
-    open &&
-    card != null &&
-    card.variants.length === 0 &&
-    catalogLookup?.cardId !== card.id;
+  const cardData = catalogCard ?? card;
+  const catalogFailed =
+    catalogState != null &&
+    catalogState.cardId === card?.id &&
+    catalogState.status === "failed";
   const checklistCount =
     cardData && checklistCountState?.cardId === cardData.id
       ? checklistCountState.count
@@ -80,7 +81,10 @@ export function SetCardPreviewModal({
     }
 
     const cardId = card.id;
-    if (catalogLookup?.cardId === cardId) {
+    if (
+      catalogState?.cardId === cardId &&
+      catalogState.status !== "loading"
+    ) {
       return;
     }
 
@@ -88,17 +92,15 @@ export function SetCardPreviewModal({
 
     void (async () => {
       try {
-        const loaded = await loadCardDetailClient(cardId, locale);
+        const loaded = await loadOrEnsureCardClient(cardId, locale);
         if (cancelled) {
           return;
         }
-        setCatalogLookup({
-          cardId,
-          card: loaded.variants.length > 0 ? loaded : null,
-        });
+
+        setCatalogState({ cardId, status: "ready", card: loaded });
       } catch {
         if (!cancelled) {
-          setCatalogLookup({ cardId, card: null });
+          setCatalogState({ cardId, status: "failed", card: null });
         }
       }
     })();
@@ -106,7 +108,7 @@ export function SetCardPreviewModal({
     return () => {
       cancelled = true;
     };
-  }, [open, card, locale, catalogLookup?.cardId]);
+  }, [open, card, locale, catalogState?.cardId, catalogState?.status]);
 
   useEffect(() => {
     if (!open || !cardData) {
@@ -166,31 +168,9 @@ export function SetCardPreviewModal({
   function handleClose() {
     setImageExpanded(false);
     setChecklistOpen(false);
-    setEnsuredCard(null);
-    setCatalogLookup(null);
+    setCatalogState(null);
     setChecklistCountState(null);
-    setDownloadError(null);
-    setDownloading(false);
     onClose();
-  }
-
-  async function handleDownloadCard() {
-    if (!cardData || downloading) {
-      return;
-    }
-
-    setDownloading(true);
-    setDownloadError(null);
-
-    try {
-      const loadedCard = await ensureAndLoadCardClient(cardData.id, locale);
-      setEnsuredCard(loadedCard);
-      setCatalogLookup({ cardId: loadedCard.id, card: loadedCard });
-    } catch {
-      setDownloadError(t("cardModal.downloadCardFailed"));
-    } finally {
-      setDownloading(false);
-    }
   }
 
   function handleChecklistSaved(count: number) {
@@ -203,8 +183,7 @@ export function SetCardPreviewModal({
 
   if (!open || !cardData) return null;
 
-  const needsSetDownload = cardData.variants.length === 0;
-  const showDownloadUi = needsSetDownload && !catalogCheckPending;
+  const needsCatalog = cardData.variants.length === 0;
 
   return (
     <>
@@ -261,7 +240,7 @@ export function SetCardPreviewModal({
               />
             </div>
 
-            {needsSetDownload ? (
+            {needsCatalog ? (
               <div className="mb-4 flex flex-col items-center gap-3">
                 <button
                   type="button"
@@ -280,21 +259,14 @@ export function SetCardPreviewModal({
                     />
                   </CardFrame>
                 </button>
-                {catalogCheckPending ? (
+                {catalogFailed ? (
+                  <p className="w-full text-center text-sm text-red-400">
+                    {t("cardModal.downloadCardFailed")}
+                  </p>
+                ) : (
                   <p className="w-full py-2.5 text-center text-sm text-zinc-400">
                     {t("cardModal.downloadCardPreparing")}
                   </p>
-                ) : (
-                  <>
-                    <p className="w-full rounded-xl border border-amber-500/20 bg-amber-500/5 px-3 py-2.5 text-center text-sm text-amber-200">
-                      {downloading
-                        ? t("cardModal.downloadCardPreparing")
-                        : t("cardModal.downloadCardHint")}
-                    </p>
-                    {downloadError ? (
-                      <p className="w-full text-center text-sm text-red-400">{downloadError}</p>
-                    ) : null}
-                  </>
                 )}
               </div>
             ) : (
@@ -331,27 +303,7 @@ export function SetCardPreviewModal({
               </div>
             )}
 
-            {showDownloadUi ? (
-              <div className="space-y-3">
-                {cardData.setId ? (
-                  <FullWidthIconRow
-                    href={`/sets/${cardData.setId}`}
-                    icon={Layers}
-                    label={t("cardModal.goToSet")}
-                    onClick={handleClose}
-                  />
-                ) : null}
-                <Button
-                  variant="primary"
-                  fullWidth
-                  loading={downloading}
-                  icon={<Download className="h-4 w-4 shrink-0" />}
-                  onClick={() => void handleDownloadCard()}
-                >
-                  {t("cardModal.downloadCard")}
-                </Button>
-              </div>
-            ) : !needsSetDownload ? (
+            {!needsCatalog ? (
               <Button
                 variant="outline"
                 fullWidth
