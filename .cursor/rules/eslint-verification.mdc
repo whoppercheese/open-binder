@@ -1,0 +1,46 @@
+---
+description: After implementing changes, run npm run lint and fix all ESLint issues before finishing. Repeat until lint passes.
+alwaysApply: true
+---
+
+# ESLint verification (mandatory)
+
+After **every completed implementation** (feature, fix, or refactor — not after each single edit mid-task), verify ESLint passes cleanly.
+
+Run ESLint **before** `npm run build` (see build-verification rule): lint is faster and catches many issues early.
+
+## When to run
+
+- Run `npm run lint` once the requested work is **fully implemented**, before declaring the task done.
+- Skip only when the user explicitly asks not to lint, or the change cannot affect lint results (e.g. pure docs with no code).
+
+During implementation, you may use the IDE linter (`ReadLints`) on edited files for quick feedback. That does **not** replace the final `npm run lint` check.
+
+## Workflow
+
+1. Run `npm run lint` from the project root.
+2. If it **fails**: read the full error output, fix the root cause in the codebase, then run `npm run lint` again.
+3. **Repeat** steps 1–2 until lint exits with code 0 (no errors).
+4. Then run `npm run build` per build-verification.
+
+To lint only files touched by the task (faster mid-task check):
+
+```bash
+npm run lint -- src/path/to/changed-file.tsx
+```
+
+Before finishing, always run the full `npm run lint` with no path filter.
+
+## Fixing failures
+
+- Fix **all** reported **errors** in files you changed. Do not leave new lint errors from your work.
+- Prefer minimal, targeted fixes aligned with existing project patterns.
+- Do not silence errors with `@ts-ignore`, `eslint-disable`, or similar unless the codebase already uses that pattern for the same case.
+- For auto-fixable issues, you may run `npm run lint -- --fix`, then re-run `npm run lint` without `--fix` to confirm everything passes.
+
+Warnings: fix warnings in files you edited when the fix is straightforward. Do not expand scope to clean up unrelated warnings unless the user asks.
+
+## Reporting
+
+- If lint fails and you fix it, briefly note what was wrong and what you changed.
+- If lint still fails after reasonable attempts, say so explicitly and leave the remaining errors visible — do not claim success.

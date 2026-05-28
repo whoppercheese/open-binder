@@ -139,6 +139,8 @@ export function CollectionEntriesView({
   const [editLoadingId, setEditLoadingId] = useState<string | null>(null);
   const offsetRef = useRef(0);
   const sentinelRef = useRef<HTMLDivElement>(null);
+  const initialLoadDoneRef = useRef(false);
+  const loadedCollectionIdRef = useRef(collectionId);
 
   function variantLabel(type: string) {
     const key = VARIANT_KEYS[type];
@@ -148,7 +150,13 @@ export function CollectionEntriesView({
   const loadPage = useCallback(
     async (reset: boolean, searchQuery: string, filterCardId: string) => {
       if (reset) {
-        setLoading(true);
+        if (loadedCollectionIdRef.current !== collectionId) {
+          loadedCollectionIdRef.current = collectionId;
+          initialLoadDoneRef.current = false;
+        }
+        if (!initialLoadDoneRef.current) {
+          setLoading(true);
+        }
         offsetRef.current = 0;
         if (filterCardId) {
           setFilterCard(null);
@@ -195,6 +203,9 @@ export function CollectionEntriesView({
           : offsetRef.current + newItems.length;
         setHasMore(payload.hasMore);
       } finally {
+        if (reset) {
+          initialLoadDoneRef.current = true;
+        }
         setLoading(false);
         setLoadingMore(false);
       }
@@ -611,7 +622,6 @@ export function CollectionEntriesView({
         readOnly={readOnly}
         onClose={closeEdit}
         onSaved={() => {
-          void loadPage(true, query, cardId);
           onEntriesMutated?.();
         }}
       />

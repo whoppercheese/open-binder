@@ -81,10 +81,21 @@ export async function POST(request: Request) {
     }
 
     if (collectionIds.length === 0) {
-      return NextResponse.json(
-        { errorCode: "COLLECTION_IDS_REQUIRED" },
-        { status: 400 },
-      );
+      const ensureResult = await ensureCardsInCatalog(cardIds, locale);
+      if (ensureResult.failed.length > 0 && ensureResult.synced.length === 0) {
+        return NextResponse.json(
+          {
+            errorCode: "CARDS_ENSURE_FAILED",
+            failed: ensureResult.failed,
+          },
+          { status: 502 },
+        );
+      }
+
+      return NextResponse.json({
+        synced: ensureResult.synced,
+        failed: ensureResult.failed,
+      });
     }
 
     const ensureResult = await ensureCardsInCatalog(cardIds, locale);

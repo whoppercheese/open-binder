@@ -31,6 +31,7 @@ type GestureState = {
   mode: "idle" | "pan" | "pinch";
   startScale: number;
   startTranslate: Point;
+  startFocal?: Point;
   startDistance?: number;
   lastTouch?: Point;
   moved?: boolean;
@@ -83,7 +84,9 @@ export function LightboxZoomViewport({
   const viewportRef = useRef<HTMLDivElement>(null);
   const lastTapRef = useRef<{ time: number; x: number; y: number } | null>(null);
   const isTouchGestureRef = useRef(false);
+  const isMousePanRef = useRef(false);
   const lastTouchAtRef = useRef(0);
+  const [isPanning, setIsPanning] = useState(false);
 
   const syncTransform = useCallback(
     (next: Transform, animated = false) => {
@@ -211,6 +214,70 @@ export function LightboxZoomViewport({
     };
   }, []);
 
+  useEffect(() => {
+    const onMouseMove = (event: MouseEvent) => {
+      if (!isMousePanRef.current) {
+        return;
+      }
+
+      const gesture = gestureRef.current;
+      if (gesture.mode !== "pan" || !gesture.lastTouch) {
+        return;
+      }
+
+      setAnimateTransform(false);
+
+      const dx = event.clientX - gesture.lastTouch.x;
+      const dy = event.clientY - gesture.lastTouch.y;
+      if (dx !== 0 || dy !== 0) {
+        gesture.moved = true;
+      }
+      gesture.lastTouch = {
+        x: event.clientX,
+        y: event.clientY,
+      };
+      const { scale, x, y } = transformRef.current;
+      syncTransform({ scale, ...clampTranslate(x + dx, y + dy, scale) });
+    };
+
+    const endMousePan = () => {
+      if (!isMousePanRef.current) {
+        return;
+      }
+
+      isMousePanRef.current = false;
+      setIsPanning(false);
+      gestureRef.current = {
+        mode: "idle",
+        startScale: 1,
+        startTranslate: { x: 0, y: 0 },
+      };
+    };
+
+    document.addEventListener("mousemove", onMouseMove);
+    document.addEventListener("mouseup", endMousePan);
+
+    return () => {
+      document.removeEventListener("mousemove", onMouseMove);
+      document.removeEventListener("mouseup", endMousePan);
+    };
+  }, [clampTranslate, syncTransform]);
+
+  const startPanAt = useCallback((clientX: number, clientY: number) => {
+    setAnimateTransform(false);
+    setIsPanning(true);
+    gestureRef.current = {
+      mode: "pan",
+      startScale: transformRef.current.scale,
+      startTranslate: {
+        x: transformRef.current.x,
+        y: transformRef.current.y,
+      },
+      lastTouch: { x: clientX, y: clientY },
+      moved: false,
+    };
+  }, []);
+
   const handleTouchStart = (event: React.TouchEvent) => {
     isTouchGestureRef.current = true;
     lastTouchAtRef.current = Date.now();
@@ -222,6 +289,12 @@ export function LightboxZoomViewport({
     }
 
     if (event.touches.length === 2) {
+      setIsPanning(false);
+      const rect = viewport.getBoundingClientRect();
+      const startFocal = focalFromPoint(
+        getMidpoint(event.touches[0]!, event.touches[1]!),
+        rect,
+      );
       gestureRef.current = {
         mode: "pinch",
         startScale: transformRef.current.scale,
@@ -229,25 +302,14 @@ export function LightboxZoomViewport({
           x: transformRef.current.x,
           y: transformRef.current.y,
         },
+        startFocal,
         startDistance: getDistance(event.touches[0]!, event.touches[1]!),
       };
       return;
     }
 
     if (event.touches.length === 1 && transformRef.current.scale > ZOOMED_THRESHOLD) {
-      gestureRef.current = {
-        mode: "pan",
-        startScale: transformRef.current.scale,
-        startTranslate: {
-          x: transformRef.current.x,
-          y: transformRef.current.y,
-        },
-        lastTouch: {
-          x: event.touches[0]!.clientX,
-          y: event.touches[0]!.clientY,
-        },
-        moved: false,
-      };
+      startPanAt(event.touches[0]!.clientX, event.touches[0]!.clientY);
     }
   };
 
@@ -262,7 +324,12 @@ export function LightboxZoomViewport({
       setAnimateTransform(false);
     }
 
-    if (gesture.mode === "pinch" && event.touches.length === 2 && gesture.startDistance) {
+    if (
+      gesture.mode === "pinch" &&
+      event.touches.length === 2 &&
+      gesture.startDistance &&
+      gesture.startFocal
+    ) {
       const distance = getDistance(event.touches[0]!, event.touches[1]!);
       const scale = Math.min(
         MAX_SCALE,
@@ -271,8 +338,8 @@ export function LightboxZoomViewport({
       const rect = viewport.getBoundingClientRect();
       const focal = focalFromPoint(getMidpoint(event.touches[0]!, event.touches[1]!), rect);
       const ratio = scale / gesture.startScale;
-      const x = focal.x - (focal.x - gesture.startTranslate.x) * ratio;
-      const y = focal.y - (focal.y - gesture.startTranslate.y) * ratio;
+      const x = focal.x - (gesture.startFocal.x - gesture.startTranslate.x) * ratio;
+      const y = focal.y - (gesture.startFocal.y - gesture.startTranslate.y) * ratio;
       syncTransform({ scale, ...clampTranslate(x, y, scale) });
       return;
     }
@@ -305,6 +372,7 @@ export function LightboxZoomViewport({
         startScale: 1,
         startTranslate: { x: 0, y: 0 },
       };
+      setIsPanning(false);
 
       if (isTouchGestureRef.current && isTap && endedTouch) {
         registerTap(endedTouch.clientX, endedTouch.clientY);
@@ -315,19 +383,23 @@ export function LightboxZoomViewport({
     }
 
     if (event.touches.length === 1 && transformRef.current.scale > ZOOMED_THRESHOLD) {
-      gestureRef.current = {
-        mode: "pan",
-        startScale: transformRef.current.scale,
-        startTranslate: {
-          x: transformRef.current.x,
-          y: transformRef.current.y,
-        },
-        lastTouch: {
-          x: event.touches[0]!.clientX,
-          y: event.touches[0]!.clientY,
-        },
-        moved: false,
-      };
+      startPanAt(event.touches[0]!.clientX, event.touches[0]!.clientY);
+    }
+  };
+
+  const handleMouseDown = (event: React.MouseEvent) => {
+    if (event.button !== 0) {
+      return;
+    }
+
+    if (Date.now() - lastTouchAtRef.current < 500) {
+      return;
+    }
+
+    if (transformRef.current.scale > ZOOMED_THRESHOLD) {
+      event.preventDefault();
+      isMousePanRef.current = true;
+      startPanAt(event.clientX, event.clientY);
     }
   };
 
@@ -349,9 +421,15 @@ export function LightboxZoomViewport({
   return (
     <div
       ref={viewportRef}
-      className={cn("touch-none overflow-hidden select-none", className)}
+      className={cn(
+        "touch-none overflow-hidden select-none",
+        className,
+        transform.scale > ZOOMED_THRESHOLD &&
+          (isPanning ? "cursor-grabbing" : "cursor-grab"),
+      )}
       onClick={handleClick}
       onDoubleClick={handleDoubleClick}
+      onMouseDown={handleMouseDown}
       onTouchStart={handleTouchStart}
       onTouchMove={handleTouchMove}
       onTouchEnd={handleTouchEnd}
