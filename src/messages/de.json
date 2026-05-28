@@ -266,6 +266,10 @@
     "cardmarketPrice": "Cardmarket-Preis",
     "viewInCollection": "Exemplare im Bestand",
     "downloadSetHint": "Set zuerst herunterladen, um die Karte im Bestand einzutragen.",
+    "downloadCardHint": "Lade die Karte herunter, um sie zu einer Sammelliste hinzuzufügen.",
+    "downloadCard": "Karte herunterladen",
+    "downloadCardPreparing": "Karte wird vorbereitet…",
+    "downloadCardFailed": "Karte konnte nicht heruntergeladen werden.",
     "goToSet": "Zum Set",
     "save": "Speichern",
     "addToCollection": "Im Bestand eintragen"

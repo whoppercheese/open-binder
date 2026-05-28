@@ -139,21 +139,112 @@ type FullWidthNavLinkProps = {
 
 export function FullWidthNavLink({
   href,
-  icon: Icon,
+  icon,
   label,
   className,
 }: FullWidthNavLinkProps) {
   return (
-    <FullWidthRow
+    <FullWidthIconRow
       href={href}
       variant="emeraldNav"
-      className={cn("text-left", className)}
-    >
-      <span className="flex min-w-0 flex-1 items-center gap-2">
-        {Icon ? <Icon className="h-4 w-4 shrink-0" /> : null}
-        {label}
+      icon={icon}
+      label={label}
+      className={className}
+    />
+  );
+}
+
+type FullWidthIconRowOwnProps = VariantProps<typeof fullWidthRowVariants> & {
+  icon?: ElementType<{ className?: string }>;
+  label: ReactNode;
+  className?: string;
+  chevronClassName?: string;
+  iconClassName?: string;
+};
+
+type FullWidthIconRowAsButton = FullWidthIconRowOwnProps &
+  Omit<ComponentPropsWithoutRef<"button">, keyof FullWidthIconRowOwnProps> & {
+    href?: undefined;
+  };
+
+type FullWidthIconRowAsLink = FullWidthIconRowOwnProps &
+  Omit<ComponentPropsWithoutRef<typeof Link>, keyof FullWidthIconRowOwnProps> & {
+    href: string;
+  };
+
+export type FullWidthIconRowProps = FullWidthIconRowAsButton | FullWidthIconRowAsLink;
+
+function FullWidthIconRowContent({
+  icon: Icon,
+  label,
+  variant = "neutral",
+  chevronClassName,
+  iconClassName,
+}: Pick<
+  FullWidthIconRowOwnProps,
+  "icon" | "label" | "chevronClassName" | "iconClassName"
+> & {
+  variant?: FullWidthRowVariant;
+}) {
+  return (
+    <div className="grid w-full grid-cols-[1fr_auto_1fr] items-center gap-2">
+      <span aria-hidden />
+      <span className="flex min-w-0 items-center justify-center gap-2">
+        {Icon ? (
+          <Icon
+            className={cn(
+              "h-4 w-4 shrink-0",
+              variant === "neutral" ? "text-zinc-400" : "text-emerald-200/80",
+              iconClassName,
+            )}
+            aria-hidden
+          />
+        ) : null}
+        <span className="truncate">{label}</span>
       </span>
-    </FullWidthRow>
+      <RowChevron
+        variant={variant}
+        className={cn("justify-self-end", chevronClassName)}
+      />
+    </div>
+  );
+}
+
+export function FullWidthIconRow({
+  icon,
+  label,
+  variant = "neutral",
+  className,
+  chevronClassName,
+  iconClassName,
+  ...props
+}: FullWidthIconRowProps) {
+  const rowVariant: FullWidthRowVariant = variant ?? "neutral";
+  const content = (
+    <FullWidthIconRowContent
+      icon={icon}
+      label={label}
+      variant={rowVariant}
+      chevronClassName={chevronClassName}
+      iconClassName={iconClassName}
+    />
+  );
+  const rowClassName = cn(fullWidthRowVariants({ variant: rowVariant }), className);
+
+  if ("href" in props && props.href) {
+    const { href, ...linkProps } = props;
+    return (
+      <Link href={href} className={rowClassName} {...linkProps}>
+        {content}
+      </Link>
+    );
+  }
+
+  const { href: _href, ...buttonProps } = props as FullWidthIconRowAsButton;
+  return (
+    <button type="button" className={rowClassName} {...buttonProps}>
+      {content}
+    </button>
   );
 }
 
