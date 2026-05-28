@@ -86,7 +86,7 @@ export async function POST(request: Request) {
 
     const result = await createSetCardsSyncJob(setId.trim());
 
-    if ("errorKey" in result) {
+    if ("errorKey" in result && typeof result.errorKey === "string") {
       return NextResponse.json(
         {
           error: t(result.errorKey),
