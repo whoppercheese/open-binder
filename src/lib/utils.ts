@@ -157,6 +157,15 @@ export function isCardCondition(value: string): value is CardCondition {
   return CARD_CONDITIONS.includes(value as CardCondition);
 }
 
+export function sortAvailableConditions(
+  conditions: Iterable<string>,
+): CardCondition[] {
+  const present = new Set(
+    [...conditions].filter(isCardCondition),
+  );
+  return CARD_CONDITIONS.filter((condition) => present.has(condition));
+}
+
 export const LANGUAGE_LABELS: Record<string, string> = {
   de: "Deutsch",
   en: "Englisch",

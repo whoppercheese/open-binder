@@ -14,17 +14,21 @@ import {
 } from "@/lib/offline/db";
 import type {
   CollectionDetailResponse,
-  CollectionEntriesPageResult,
   CollectionEntryItem,
   CollectionSummary,
 } from "@/lib/offline/types";
 import { fetchAllEntriesPages } from "@/lib/offline/utils";
-
-const ENTRIES_PAGE_SIZE = 20;
+import { sortAvailableConditions, type CardCondition } from "@/lib/utils";
 
 export type LoadResult<T> =
   | { ok: true; data: T; fromCache: boolean }
   | { ok: false; fromCache: boolean };
+
+export type CollectionEntriesLoadResult = {
+  items: CollectionEntryItem[];
+  total: number;
+  totalValue: number;
+};
 
 function isNetworkFailure(error: unknown): boolean {
   return error instanceof TypeError;
@@ -38,7 +42,10 @@ function normalizeSearch(value: string): string {
   return value.trim().toLowerCase();
 }
 
-function entryMatchesQuery(item: CollectionEntryItem, query: string): boolean {
+export function entryMatchesQuery(
+  item: CollectionEntryItem,
+  query: string,
+): boolean {
   const normalized = normalizeSearch(query);
   if (!normalized) {
     return true;
@@ -48,58 +55,92 @@ function entryMatchesQuery(item: CollectionEntryItem, query: string): boolean {
     item.name.toLowerCase().includes(normalized) ||
     item.number.toLowerCase().includes(normalized) ||
     item.setName.toLowerCase().includes(normalized) ||
-    (item.setOfficialCode?.toLowerCase().includes(normalized) ?? false)
+    (item.setOfficialCode?.toLowerCase().includes(normalized) ?? false) ||
+    (item.illustrator?.toLowerCase().includes(normalized) ?? false)
   );
 }
 
-function paginateEntries(
-  items: CollectionEntryItem[],
-  offset: number,
-  limit: number,
-): CollectionEntryItem[] {
-  return items.slice(offset, offset + limit);
-}
-
-function buildEntriesPageResult(
+export function filterCollectionEntries(
   allItems: CollectionEntryItem[],
   options: {
-    offset: number;
-    limit: number;
-    query: string;
-    cardId: string;
+    query?: string;
+    cardId?: string;
+    condition?: string | null;
   },
-): CollectionEntriesPageResult {
-  let filtered = allItems.filter((item) => entryMatchesQuery(item, options.query));
-  if (options.cardId) {
-    filtered = filtered.filter((item) => item.cardId === options.cardId);
+): CollectionEntryItem[] {
+  const query = options.query ?? "";
+  const cardId = options.cardId ?? "";
+  let filtered = allItems.filter((item) => entryMatchesQuery(item, query));
+  if (cardId) {
+    filtered = filtered.filter((item) => item.cardId === cardId);
+  }
+  if (options.condition) {
+    filtered = filtered.filter((item) => item.condition === options.condition);
+  }
+  return filtered;
+}
+
+export function collectAvailableConditions(
+  allItems: CollectionEntryItem[],
+  cardId: string,
+): CardCondition[] {
+  const scoped = cardId
+    ? allItems.filter((item) => item.cardId === cardId)
+    : allItems;
+  return sortAvailableConditions(scoped.map((item) => item.condition));
+}
+
+export async function loadAllCollectionEntries(
+  collectionId: string,
+  locale: UiLocale,
+): Promise<LoadResult<CollectionEntriesLoadResult>> {
+  if (shouldUseCacheOnly()) {
+    const store = await getCollectionEntriesStore(collectionId, locale);
+    if (!store) {
+      return { ok: false, fromCache: true };
+    }
+
+    return {
+      ok: true,
+      data: {
+        items: store.items,
+        total: store.total,
+        totalValue: store.totalValue,
+      },
+      fromCache: true,
+    };
   }
 
-  const pageItems = paginateEntries(filtered, options.offset, options.limit);
-  const totalValue = filtered.reduce(
-    (sum, item) => sum + (item.value ?? 0),
-    0,
-  );
-
-  let filterCard: CollectionEntriesPageResult["filterCard"] = null;
-  if (options.cardId && options.offset === 0) {
-    const match = allItems.find((item) => item.cardId === options.cardId);
-    if (match) {
-      filterCard = {
-        cardId: match.cardId,
-        name: match.name,
-        number: match.number,
-        setId: match.setId,
-        setName: match.setName,
-      };
+  try {
+    const { items, total, totalValue } = await fetchAllEntriesPages(
+      collectionId,
+      locale,
+    );
+    await putCollectionEntries(collectionId, locale, items, total, totalValue);
+    return {
+      ok: true,
+      data: { items, total, totalValue },
+      fromCache: false,
+    };
+  } catch (error) {
+    if (!isNetworkFailure(error)) {
+      throw error;
     }
   }
 
+  const store = await getCollectionEntriesStore(collectionId, locale);
+  if (!store) {
+    return { ok: false, fromCache: true };
+  }
+
   return {
-    items: pageItems,
-    total: filtered.length,
-    totalValue,
-    hasMore: options.offset + pageItems.length < filtered.length,
-    filterCard,
+    ok: true,
+    data: {
+      items: store.items,
+      total: store.total,
+      totalValue: store.totalValue,
+    },
+    fromCache: true,
   };
 }
 
@@ -172,114 +213,6 @@ export async function loadCollectionDetail(
     : { ok: false, fromCache: true };
 }
 
-async function mirrorCollectionEntriesPage(
-  collectionId: string,
-  locale: UiLocale,
-): Promise<void> {
-  try {
-    const { items, total, totalValue } = await fetchAllEntriesPages(
-      collectionId,
-      locale,
-    );
-    await putCollectionEntries(collectionId, locale, items, total, totalValue);
-  } catch {
-    // Best-effort background mirror; failures are non-fatal.
-  }
-}
-
-export async function loadCollectionEntriesPage(
-  collectionId: string,
-  locale: UiLocale,
-  options: {
-    offset?: number;
-    limit?: number;
-    query?: string;
-    cardId?: string;
-  } = {},
-): Promise<LoadResult<CollectionEntriesPageResult>> {
-  const offset = options.offset ?? 0;
-  const limit = options.limit ?? ENTRIES_PAGE_SIZE;
-  const query = options.query ?? "";
-  const cardId = options.cardId ?? "";
-
-  if (shouldUseCacheOnly()) {
-    const store = await getCollectionEntriesStore(collectionId, locale);
-    if (!store) {
-      return { ok: false, fromCache: true };
-    }
-
-    return {
-      ok: true,
-      data: buildEntriesPageResult(store.items, {
-        offset,
-        limit,
-        query,
-        cardId,
-      }),
-      fromCache: true,
-    };
-  }
-
-  try {
-    const params = new URLSearchParams({
-      collectionId,
-      limit: String(limit),
-      offset: String(offset),
-    });
-    if (query.trim()) {
-      params.set("q", query.trim());
-    }
-    if (cardId.trim()) {
-      params.set("cardId", cardId.trim());
-    }
-
-    const response = await fetch(
-      apiUrl(`/api/collection?${params.toString()}`, locale),
-    );
-    const payload = (await response.json()) as CollectionEntriesPageResult & {
-      errorCode?: string;
-    };
-
-    if (response.ok) {
-      if (offset === 0 && !query.trim() && !cardId.trim()) {
-        void mirrorCollectionEntriesPage(collectionId, locale);
-      }
-
-      return {
-        ok: true,
-        data: {
-          items: payload.items ?? [],
-          total: payload.total ?? payload.items?.length ?? 0,
-          totalValue: payload.totalValue ?? 0,
-          hasMore: Boolean(payload.hasMore),
-          filterCard: payload.filterCard ?? null,
-        },
-        fromCache: false,
-      };
-    }
-  } catch (error) {
-    if (!isNetworkFailure(error)) {
-      throw error;
-    }
-  }
-
-  const store = await getCollectionEntriesStore(collectionId, locale);
-  if (!store) {
-    return { ok: false, fromCache: true };
-  }
-
-  return {
-    ok: true,
-    data: buildEntriesPageResult(store.items, {
-      offset,
-      limit,
-      query,
-      cardId,
-    }),
-    fromCache: true,
-  };
-}
-
 export async function loadCardDetail(
   cardId: string,
   collectionId: string,
@@ -329,7 +262,7 @@ export function cardDetailFromCollectionCard(
     name: card.name,
     imageUrl: card.imageUrl,
     setId: card.setId,
-    setName: collection.set?.name ?? collection.collection.setName ?? undefined,
+    setName: card.setName || collection.set?.name || collection.collection.setName || undefined,
     officialCode: card.officialCode,
     variants: card.variants,
   };

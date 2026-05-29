@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { CheckCircle2, ListChecks } from "lucide-react";
+import { CheckCircle2, ListChecks, WalletCards } from "lucide-react";
 import { CardFlagBadge } from "@/components/card-flag-badge";
 import { CardFrame } from "@/components/card-frame";
 import { CardImage } from "@/components/card-image";
@@ -125,21 +125,44 @@ export function CardTile({
         {card.flagged ? (
           <CardFlagBadge className="pointer-events-none absolute left-1 top-1 z-10" />
         ) : null}
-        {card.checklistCount != null && card.checklistCount > 0 ? (
-          <div
-            className="pointer-events-none absolute right-1.5 top-1.5 z-10 flex items-center gap-1 rounded-md bg-black/80 px-1.5 py-1 text-[11px] font-semibold text-emerald-200"
-            title={t.plural("sets.checklistTileCount", card.checklistCount, {
-              count: card.checklistCount,
-            })}
-            aria-label={t.plural("sets.checklistTileCount", card.checklistCount, {
-              count: card.checklistCount,
-            })}
-          >
-            <ListChecks className="h-3.5 w-3.5 shrink-0" aria-hidden />
-            <span className="tabular-nums">{card.checklistCount}</span>
+        {(card.ownedQuantity != null && card.ownedQuantity > 0) ||
+        (card.checklistCount != null && card.checklistCount > 0) ? (
+          <div className="pointer-events-none absolute bottom-1.5 right-1.5 z-10 flex flex-col items-end gap-0.5">
+            {card.ownedQuantity != null && card.ownedQuantity > 0 ? (
+              <div
+                className="flex items-center gap-1 rounded-md bg-black/80 px-1.5 py-1 text-[11px] font-semibold text-zinc-200"
+                title={t.plural("common.copyCount", card.ownedQuantity, {
+                  count: card.ownedQuantity,
+                })}
+                aria-label={t.plural("common.copyCount", card.ownedQuantity, {
+                  count: card.ownedQuantity,
+                })}
+              >
+                <WalletCards className="h-3.5 w-3.5 shrink-0" aria-hidden />
+                <span className="tabular-nums">{card.ownedQuantity}</span>
+              </div>
+            ) : null}
+            {card.checklistCount != null && card.checklistCount > 0 ? (
+              <div
+                className="flex items-center gap-1 rounded-md bg-black/80 px-1.5 py-1 text-[11px] font-semibold text-zinc-200"
+                title={t.plural("sets.checklistTileCount", card.checklistCount, {
+                  count: card.checklistCount,
+                })}
+                aria-label={t.plural(
+                  "sets.checklistTileCount",
+                  card.checklistCount,
+                  {
+                    count: card.checklistCount,
+                  },
+                )}
+              >
+                <ListChecks className="h-3.5 w-3.5 shrink-0" aria-hidden />
+                <span className="tabular-nums">{card.checklistCount}</span>
+              </div>
+            ) : null}
           </div>
         ) : null}
-        {card.owned ? (
+        {card.owned && !(card.ownedQuantity != null && card.ownedQuantity > 0) ? (
           <div
             className="pointer-events-none absolute inset-0 flex items-center justify-center"
             aria-hidden
@@ -147,11 +170,6 @@ export function CardTile({
             <div className="rounded-full bg-emerald-500 p-0.5 shadow-md shadow-black ring-2 ring-white/25">
               <CheckCircle2 className="h-8 w-8 text-black" strokeWidth={2.5} />
             </div>
-          </div>
-        ) : null}
-        {card.ownedQuantity && card.ownedQuantity > 1 ? (
-          <div className="absolute bottom-1 right-1 rounded-md bg-black/75 px-1.5 py-0.5 text-[10px] font-semibold text-white">
-            ×{card.ownedQuantity}
           </div>
         ) : null}
       </CardFrame>

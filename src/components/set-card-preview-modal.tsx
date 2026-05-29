@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import { ListPlus } from "lucide-react";
+import { ListChecks, ListPlus, WalletCards } from "lucide-react";
 import { AddToChecklistSheet } from "@/components/add-to-checklist-sheet";
 import { Button } from "@/components/ui/button";
 import { TextLink } from "@/components/ui/text-link";
@@ -14,7 +14,7 @@ import { Portal } from "@/components/portal";
 import type { CardDetail } from "@/components/card-modal";
 import { writeChecklistCountOverride } from "@/lib/checklist-count-overrides.client";
 import { loadOrEnsureCardClient } from "@/lib/ensure-cards.client";
-import { apiUrl, useLocale, useTranslations } from "@/lib/i18n/context";
+import { useLocale, useTranslations } from "@/lib/i18n/context";
 import { getRarityLabel } from "@/lib/rarity";
 import {
   formatCardPriceLabel,
@@ -37,6 +37,8 @@ type CatalogState = {
 type SetCardPreviewModalProps = {
   card: CardDetail | null;
   rarity?: string | null;
+  ownedQuantity?: number;
+  checklistCount?: number;
   open: boolean;
   onClose: () => void;
   onChecklistChanged?: (cardId: string, checklistCount: number) => void;
@@ -45,6 +47,8 @@ type SetCardPreviewModalProps = {
 export function SetCardPreviewModal({
   card,
   rarity = null,
+  ownedQuantity,
+  checklistCount,
   open,
   onClose,
   onChecklistChanged,
@@ -54,10 +58,6 @@ export function SetCardPreviewModal({
   const [catalogState, setCatalogState] = useState<CatalogState | null>(null);
   const [imageExpanded, setImageExpanded] = useState(false);
   const [checklistOpen, setChecklistOpen] = useState(false);
-  const [checklistCountState, setChecklistCountState] = useState<{
-    cardId: string;
-    count: number;
-  } | null>(null);
 
   const catalogCard =
     catalogState != null &&
@@ -70,10 +70,6 @@ export function SetCardPreviewModal({
     catalogState != null &&
     catalogState.cardId === card?.id &&
     catalogState.status === "failed";
-  const checklistCount =
-    cardData && checklistCountState?.cardId === cardData.id
-      ? checklistCountState.count
-      : null;
 
   useEffect(() => {
     if (!open || !card || card.variants.length > 0) {
@@ -110,39 +106,6 @@ export function SetCardPreviewModal({
     };
   }, [open, card, locale, catalogState?.cardId, catalogState?.status]);
 
-  useEffect(() => {
-    if (!open || !cardData) {
-      return;
-    }
-
-    const cardId = cardData.id;
-    let cancelled = false;
-
-    void (async () => {
-      try {
-        const response = await fetch(
-          apiUrl(`/api/cards/${cardId}/checklist`, locale),
-        );
-        const payload = await response.json();
-        if (!response.ok || cancelled) {
-          return;
-        }
-        const collections: Array<{ onChecklist?: boolean }> =
-          payload.collections ?? [];
-        setChecklistCountState({
-          cardId,
-          count: collections.filter((item) => item.onChecklist).length,
-        });
-      } catch {
-        // Keep prior count hidden until a successful load for this card.
-      }
-    })();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [open, cardData, locale]);
-
   const setLabel = cardData
     ? resolveSetDisplayCode({
         officialCode: cardData.officialCode,
@@ -169,7 +132,6 @@ export function SetCardPreviewModal({
     setImageExpanded(false);
     setChecklistOpen(false);
     setCatalogState(null);
-    setChecklistCountState(null);
     onClose();
   }
 
@@ -222,16 +184,31 @@ export function SetCardPreviewModal({
                   ) : null}
                 </div>
                 <h2 className="text-lg font-semibold text-white">{cardData.name}</h2>
-                {checklistCount !== null && checklistCount > 0 ? (
-                  <TextLink
-                    href={`/collections?cardId=${encodeURIComponent(cardData.id)}`}
-                    onClick={handleClose}
-                    className="mt-1 text-xs text-emerald-300/85 hover:text-emerald-200"
-                  >
-                    {t.plural("sets.checklistOnCount", checklistCount, {
-                      count: checklistCount,
-                    })}
-                  </TextLink>
+                {(ownedQuantity != null && ownedQuantity > 0) ||
+                (checklistCount != null && checklistCount > 0) ? (
+                  <div className="mt-1 flex flex-col items-start gap-0.5">
+                    {ownedQuantity != null && ownedQuantity > 0 ? (
+                      <p className="inline-flex items-center gap-1 text-xs text-zinc-400">
+                        <WalletCards className="h-3.5 w-3.5 shrink-0" aria-hidden />
+                        {t.plural("sets.inventoryOnCount", ownedQuantity, {
+                          count: ownedQuantity,
+                        })}
+                      </p>
+                    ) : null}
+                    {checklistCount != null && checklistCount > 0 ? (
+                      <TextLink
+                        href={`/collections?cardId=${encodeURIComponent(cardData.id)}`}
+                        onClick={handleClose}
+                        showArrow={false}
+                        className="text-xs text-emerald-300/85 hover:text-emerald-200"
+                      >
+                        <ListChecks className="h-3.5 w-3.5 shrink-0" aria-hidden />
+                        {t.plural("sets.checklistOnCount", checklistCount, {
+                          count: checklistCount,
+                        })}
+                      </TextLink>
+                    ) : null}
+                  </div>
                 ) : null}
               </div>
               <SheetCloseButton

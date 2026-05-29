@@ -122,6 +122,8 @@
     "pickCollectionHint": "Open a binder or create one first to add cards.",
     "detailTabOverview": "Checklist",
     "detailTabInventory": "Inventory",
+    "checklistEmptySearch": "No cards for this search.",
+    "checklistEmptySearchAndFilter": "No cards for this search and filters.",
     "detailTabsLabel": "Binder view",
     "detailActions": "Binder",
     "emptyEntries": "Nothing in inventory yet. Add copies to inventory via search or by tapping a card in the grid.",
@@ -141,11 +143,13 @@
     "filteredByCard": "Filtered by card",
     "loadingCard": "Loading card…",
     "clearCardFilter": "Clear card filter",
-    "searchPlaceholder": "Name, number, or set",
+    "searchPlaceholder": "Name, number, set, or illustrator",
     "loading": "Loading binder…",
     "loadingMore": "Loading more inventory entries…",
     "emptyForCard": "Nothing in inventory for this card.",
     "emptyForSearch": "No inventory entries for this search.",
+    "emptyForCondition": "No inventory entries for this condition.",
+    "emptyForSearchAndCondition": "No inventory entries for this search and condition.",
     "emptyDefault": "Nothing in inventory yet. Search for a card or open a set.",
     "expandImage": "Enlarge card image",
     "decreaseQuantity": "Decrease quantity",
@@ -221,6 +225,10 @@
     "checklistOnCount": {
       "one": "On {count} checklist",
       "other": "On {count} checklists"
+    },
+    "inventoryOnCount": {
+      "one": "Already {count} copy in inventory",
+      "other": "Already {count} copies in inventory"
     },
     "checklistTileCount": {
       "one": "On {count} checklist",

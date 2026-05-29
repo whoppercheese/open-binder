@@ -419,7 +419,9 @@ export async function getCollectionWithCards(
       rarity: cards.rarity,
       imageUrl: cards.imageUrl,
       setId: cards.setId,
+      setName: setNameSql,
       officialCode: sets.officialCode,
+      illustrator: cards.illustrator,
       variantId: cardVariants.id,
       variantType: cardVariants.variantType,
       cardmarketProductId: cardVariants.cardmarketProductId,
@@ -448,6 +450,7 @@ export async function getCollectionWithCards(
       cards.rarity,
       cards.imageUrl,
       cards.setId,
+      cards.illustrator,
       sets.names,
       sets.officialCode,
       cardVariants.id,
@@ -501,7 +504,9 @@ type CollectionCardItem = {
   rarity: string | null;
   imageUrl: string | null;
   setId: string;
+  setName: string;
   officialCode: string | null;
+  illustrator: string | null;
   owned: boolean;
   ownedQuantity: number;
   flagged: boolean;
@@ -522,7 +527,9 @@ function groupVariantRows(
     rarity: string | null;
     imageUrl: string | null;
     setId: string;
+    setName: string;
     officialCode: string | null;
+    illustrator: string | null;
     variantId: string;
     variantType: string;
     cardmarketProductId: number | null;
@@ -543,7 +550,9 @@ function groupVariantRows(
       rarity: row.rarity,
       imageUrl: row.imageUrl,
       setId: row.setId,
+      setName: row.setName,
       officialCode: row.officialCode,
+      illustrator: row.illustrator,
       owned: false,
       ownedQuantity: 0,
       flagged: false,
