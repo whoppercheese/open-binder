@@ -226,6 +226,10 @@
       "one": "On {count} checklist",
       "other": "On {count} checklists"
     },
+    "inventoryOnCount": {
+      "one": "Already {count} copy in inventory",
+      "other": "Already {count} copies in inventory"
+    },
     "checklistTileCount": {
       "one": "On {count} checklist",
       "other": "On {count} checklists"

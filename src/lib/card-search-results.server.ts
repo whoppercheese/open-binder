@@ -14,6 +14,7 @@ import {
   extractSetIdFromCardId,
 } from "@/lib/card-id";
 import { getChecklistCountsForCardIds } from "@/lib/checklist-membership.server";
+import { getInventoryCountsForCardIds } from "@/lib/inventory-counts.server";
 import type { UiLocale } from "@/lib/i18n/locale";
 import { getPricePreference } from "@/lib/settings";
 
@@ -27,6 +28,7 @@ export type CardSearchResult = {
   setName: string;
   officialCode: string | null;
   owned: boolean;
+  ownedQuantity: number;
   checklistCount: number;
   variants: Array<{
     id: string;
@@ -97,6 +99,7 @@ export async function loadCardSearchResults(
       setName: row.setName,
       officialCode: row.officialCode,
       owned: false,
+      ownedQuantity: 0,
       checklistCount: 0,
       variants: [],
     };
@@ -146,16 +149,20 @@ export async function loadCardSearchResults(
         : setId,
       officialCode: setMeta?.officialCode ?? null,
       owned: false,
+      ownedQuantity: 0,
       checklistCount: 0,
       variants: [],
     });
   }
 
-  const checklistCounts = await getChecklistCountsForCardIds(
-    ordered.map((card) => card.id),
-  );
+  const [checklistCounts, inventoryCounts] = await Promise.all([
+    getChecklistCountsForCardIds(ordered.map((card) => card.id)),
+    getInventoryCountsForCardIds(ordered.map((card) => card.id)),
+  ]);
   for (const card of ordered) {
     card.checklistCount = checklistCounts.get(card.id) ?? 0;
+    card.ownedQuantity = inventoryCounts.get(card.id) ?? 0;
+    card.owned = card.ownedQuantity > 0;
   }
 
   return ordered;

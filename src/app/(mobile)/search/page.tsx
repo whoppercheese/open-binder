@@ -33,6 +33,7 @@ const PAGE_SIZE = 24;
 type SearchResult = CardDetail & {
   setName: string;
   owned: boolean;
+  ownedQuantity?: number;
   checklistCount?: number;
   rarity?: string | null;
 };
@@ -114,6 +115,9 @@ export default function SearchPage() {
   const [loadingMore, setLoadingMore] = useState(false);
   const [previewCard, setPreviewCard] = useState<CardDetail | null>(null);
   const [previewRarity, setPreviewRarity] = useState<string | null>(null);
+  const [previewOwnedQuantity, setPreviewOwnedQuantity] = useState<
+    number | undefined
+  >();
   const [previewOpen, setPreviewOpen] = useState(false);
   const [bulkChecklistOpen, setBulkChecklistOpen] = useState(false);
   const selection = useCardGridSelection();
@@ -298,6 +302,7 @@ export default function SearchPage() {
     setLoadingMore(false);
     setPreviewCard(null);
     setPreviewRarity(null);
+    setPreviewOwnedQuantity(undefined);
     setPreviewOpen(false);
     clearSavedScrollPosition("/search");
     scrollMainToTop();
@@ -419,7 +424,9 @@ export default function SearchPage() {
               imageUrl: card.imageUrl,
               setName: card.setName,
               officialCode: card.officialCode,
-              owned: card.owned,
+              owned: (card.ownedQuantity ?? 0) > 0,
+              ownedQuantity:
+                (card.ownedQuantity ?? 0) > 0 ? card.ownedQuantity : undefined,
               checklistCount: card.checklistCount ?? 0,
               price: card.variants.find((variant) => variant.price != null)?.price,
             }}
@@ -452,6 +459,9 @@ export default function SearchPage() {
                 variants: card.variants,
               });
               setPreviewRarity(card.rarity ?? null);
+              setPreviewOwnedQuantity(
+                (card.ownedQuantity ?? 0) > 0 ? card.ownedQuantity : undefined,
+              );
               setPreviewOpen(true);
             }}
           />
@@ -470,11 +480,13 @@ export default function SearchPage() {
       <SetCardPreviewModal
         card={previewCard}
         rarity={previewRarity}
+        ownedQuantity={previewOwnedQuantity}
         open={previewOpen}
         onClose={() => {
           setPreviewOpen(false);
           setPreviewCard(null);
           setPreviewRarity(null);
+          setPreviewOwnedQuantity(undefined);
         }}
         onChecklistChanged={(cardId, checklistCount) => {
           writeChecklistCountOverride(cardId, checklistCount);

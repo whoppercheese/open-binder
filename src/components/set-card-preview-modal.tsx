@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import { ListPlus } from "lucide-react";
+import { ListChecks, ListPlus, WalletCards } from "lucide-react";
 import { AddToChecklistSheet } from "@/components/add-to-checklist-sheet";
 import { Button } from "@/components/ui/button";
 import { TextLink } from "@/components/ui/text-link";
@@ -37,6 +37,7 @@ type CatalogState = {
 type SetCardPreviewModalProps = {
   card: CardDetail | null;
   rarity?: string | null;
+  ownedQuantity?: number;
   open: boolean;
   onClose: () => void;
   onChecklistChanged?: (cardId: string, checklistCount: number) => void;
@@ -45,6 +46,7 @@ type SetCardPreviewModalProps = {
 export function SetCardPreviewModal({
   card,
   rarity = null,
+  ownedQuantity,
   open,
   onClose,
   onChecklistChanged,
@@ -222,16 +224,31 @@ export function SetCardPreviewModal({
                   ) : null}
                 </div>
                 <h2 className="text-lg font-semibold text-white">{cardData.name}</h2>
-                {checklistCount !== null && checklistCount > 0 ? (
-                  <TextLink
-                    href={`/collections?cardId=${encodeURIComponent(cardData.id)}`}
-                    onClick={handleClose}
-                    className="mt-1 text-xs text-emerald-300/85 hover:text-emerald-200"
-                  >
-                    {t.plural("sets.checklistOnCount", checklistCount, {
-                      count: checklistCount,
-                    })}
-                  </TextLink>
+                {(ownedQuantity != null && ownedQuantity > 0) ||
+                (checklistCount != null && checklistCount > 0) ? (
+                  <div className="mt-1 flex flex-col items-start gap-0.5">
+                    {ownedQuantity != null && ownedQuantity > 0 ? (
+                      <p className="inline-flex items-center gap-1 text-xs text-zinc-400">
+                        <WalletCards className="h-3.5 w-3.5 shrink-0" aria-hidden />
+                        {t.plural("sets.inventoryOnCount", ownedQuantity, {
+                          count: ownedQuantity,
+                        })}
+                      </p>
+                    ) : null}
+                    {checklistCount != null && checklistCount > 0 ? (
+                      <TextLink
+                        href={`/collections?cardId=${encodeURIComponent(cardData.id)}`}
+                        onClick={handleClose}
+                        showArrow={false}
+                        className="text-xs text-emerald-300/85 hover:text-emerald-200"
+                      >
+                        <ListChecks className="h-3.5 w-3.5 shrink-0" aria-hidden />
+                        {t.plural("sets.checklistOnCount", checklistCount, {
+                          count: checklistCount,
+                        })}
+                      </TextLink>
+                    ) : null}
+                  </div>
                 ) : null}
               </div>
               <SheetCloseButton

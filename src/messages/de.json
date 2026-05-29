@@ -218,13 +218,17 @@
       "other": "{filtered} von {total} Karten"
     },
     "emptyFilteredCards": "Keine Karten für diese Filter.",
-    "addToChecklist": "Zur Sammelliste hinzufügen",
+    "addToChecklist": "Zu Sammelliste hinzufügen",
     "collectionTypeSet": "Set-Sammelordner",
     "checklistPickerTitle": "Sammelliste",
     "checklistOnNone": "Noch auf keiner Sammelliste",
     "checklistOnCount": {
       "one": "Bereits auf {count} Sammelliste",
       "other": "Bereits auf {count} Sammellisten"
+    },
+    "inventoryOnCount": {
+      "one": "Bereits {count} Exemplar im Bestand",
+      "other": "Bereits {count} Exemplare im Bestand"
     },
     "checklistTileCount": {
       "one": "Auf {count} Sammelliste",
@@ -279,7 +283,7 @@
   "selection": {
     "cancel": "Auswahl abbrechen",
     "actions": "Aktionen",
-    "addToChecklist": "Zur Sammelliste hinzufügen",
+    "addToChecklist": "Zu Sammelliste hinzufügen",
     "selectedCount": {
       "one": "{count} ausgewählt",
       "other": "{count} ausgewählt"
