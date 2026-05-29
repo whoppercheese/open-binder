@@ -1,5 +1,6 @@
 import type { CardDetail } from "@/components/card-modal";
 import type { UiLocale } from "@/lib/i18n/locale";
+import type { CardCondition } from "@/lib/utils";
 
 export const OFFLINE_DB_NAME = "openbinder-offline";
 export const OFFLINE_DB_VERSION = 2;
@@ -27,7 +28,9 @@ export type CollectionDetailCard = {
   rarity: string | null;
   imageUrl: string | null;
   setId: string;
+  setName?: string;
   officialCode: string | null;
+  illustrator: string | null;
   owned: boolean;
   ownedQuantity: number;
   flagged: boolean;
@@ -79,6 +82,7 @@ export type CollectionEntryItem = {
   setId: string;
   setName: string;
   setOfficialCode: string | null;
+  illustrator: string | null;
   imageUrl: string | null;
   price: number | null;
   value: number | null;
@@ -122,6 +126,7 @@ export type CollectionEntriesPageResult = {
   total: number;
   totalValue: number;
   hasMore: boolean;
+  availableConditions?: CardCondition[];
   filterCard: {
     cardId: string;
     name: string;

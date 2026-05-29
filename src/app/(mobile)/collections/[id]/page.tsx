@@ -12,6 +12,7 @@ import { CollectionCoverPickerSheet } from "@/components/collection-cover-picker
 import { CardGrid } from "@/components/card-grid";
 import { CardTile } from "@/components/card-tile";
 import { ConfirmDialog } from "@/components/confirm-dialog";
+import { SearchBar } from "@/components/search-bar";
 import { RenameCollectionSheet } from "@/components/rename-collection-sheet";
 import { ProgressBar } from "@/components/progress-bar";
 import { ViewTabs } from "@/components/view-tabs";
@@ -147,14 +148,20 @@ function CollectionDetailHeader({
 type CollectionOverviewTabProps = {
   collectionId: string;
   data: CollectionDetailResponse;
+  query: string;
   ownershipFilter: OwnershipFilter | null;
   rarityFilter: string | null;
   rarities: string[];
   filteredCards: CollectionDetailResponse["cards"];
+  hasActiveSearch: boolean;
   hasActiveFilters: boolean;
+  flaggedFilter: boolean;
+  hasFlaggedCards: boolean;
   readOnly?: boolean;
+  onQueryChange: (query: string) => void;
   onOwnershipFilterChange: (filter: OwnershipFilter | null) => void;
   onRarityFilterChange: (filter: string | null) => void;
+  onFlaggedFilterChange: (active: boolean) => void;
   onOpenCard: (card: CollectionDetailResponse["cards"][number]) => void;
   onQuickAdd?: (card: CollectionDetailResponse["cards"][number]) => void;
 };
@@ -162,20 +169,33 @@ type CollectionOverviewTabProps = {
 function CollectionOverviewTab({
   collectionId,
   data,
+  query,
   ownershipFilter,
   rarityFilter,
   rarities,
   filteredCards,
+  hasActiveSearch,
   hasActiveFilters,
+  flaggedFilter,
+  hasFlaggedCards,
   readOnly = false,
+  onQueryChange,
   onOwnershipFilterChange,
   onRarityFilterChange,
+  onFlaggedFilterChange,
   onOpenCard,
   onQuickAdd,
 }: CollectionOverviewTabProps) {
   const t = useTranslations();
   const isEmpty = data.cards.length === 0;
   const searchHref = `/search?collectionId=${encodeURIComponent(collectionId)}`;
+  const hasActiveSearchOrFilters = hasActiveSearch || hasActiveFilters;
+  const emptyFilteredMessage =
+    hasActiveSearch && hasActiveFilters
+      ? t("collections.checklistEmptySearchAndFilter")
+      : hasActiveSearch
+        ? t("collections.checklistEmptySearch")
+        : t("sets.emptyFilteredCards");
 
   return (
     <div className="space-y-5">
@@ -201,6 +221,14 @@ function CollectionOverviewTab({
         </div>
       ) : (
         <>
+          <SearchBar
+            value={query}
+            onChange={onQueryChange}
+            onClear={() => onQueryChange("")}
+            showClear={hasActiveSearch}
+            placeholder={t("collection.searchPlaceholder")}
+          />
+
           <section className="space-y-3">
             <FilterChipList>
               <FilterChip
@@ -223,6 +251,14 @@ function CollectionOverviewTab({
               >
                 {t("sets.filterMissing")}
               </FilterChip>
+              {hasFlaggedCards ? (
+                <FilterChip
+                  active={flaggedFilter}
+                  onClick={() => onFlaggedFilterChange(!flaggedFilter)}
+                >
+                  {t("common.flagged")}
+                </FilterChip>
+              ) : null}
             </FilterChipList>
 
             {rarities.length > 0 ? (
@@ -243,7 +279,7 @@ function CollectionOverviewTab({
               </FilterChipList>
             ) : null}
 
-            {hasActiveFilters ? (
+            {hasActiveSearchOrFilters ? (
               <p className="text-xs text-zinc-500">
                 {t.plural("sets.filteredCardsSummary", data.cards.length, {
                   filtered: filteredCards.length,
@@ -255,7 +291,7 @@ function CollectionOverviewTab({
 
           {filteredCards.length === 0 ? (
             <div className="rounded-2xl border border-dashed border-white/10 p-8 text-center text-sm text-zinc-500">
-              {t("sets.emptyFilteredCards")}
+              {emptyFilteredMessage}
             </div>
           ) : (
             <CardGrid>
@@ -305,6 +341,8 @@ export function CollectionDetailView({ collectionId }: { collectionId: string })
     null,
   );
   const [rarityFilter, setRarityFilter] = useState<string | null>(null);
+  const [flaggedFilter, setFlaggedFilter] = useState(false);
+  const [checklistQuery, setChecklistQuery] = useState("");
   const [quickAddToast, setQuickAddToast] = useState<QuickAddToastData | null>(
     null,
   );
@@ -335,6 +373,10 @@ export function CollectionDetailView({ collectionId }: { collectionId: string })
   useEffect(() => {
     setViewMode("grid");
     setOfflineHighlightCardId("");
+    setChecklistQuery("");
+    setOwnershipFilter(null);
+    setRarityFilter(null);
+    setFlaggedFilter(false);
   }, [collectionId]);
 
   const bumpRefresh = useCallback(() => {
@@ -443,17 +485,36 @@ export function CollectionDetailView({ collectionId }: { collectionId: string })
     return sortCanonicalRarities(Array.from(unique));
   }, [data]);
 
+  const hasFlaggedCards = useMemo(
+    () => data?.cards.some((card) => card.flagged) ?? false,
+    [data],
+  );
+
   const filteredCards = useMemo(() => {
     if (!data?.cards) return [];
+    const normalizedQuery = checklistQuery.trim().toLowerCase();
     return data.cards.filter((card) => {
       if (ownershipFilter === "owned" && !card.owned) return false;
       if (ownershipFilter === "missing" && card.owned) return false;
+      if (flaggedFilter && !card.flagged) return false;
       if (rarityFilter && card.rarity !== rarityFilter) return false;
+      if (normalizedQuery) {
+        const matchesSearch =
+          card.name.toLowerCase().includes(normalizedQuery) ||
+          card.number.toLowerCase().includes(normalizedQuery) ||
+          card.setName?.toLowerCase().includes(normalizedQuery) ||
+          (card.officialCode?.toLowerCase().includes(normalizedQuery) ??
+            false) ||
+          (card.illustrator?.toLowerCase().includes(normalizedQuery) ?? false);
+        if (!matchesSearch) return false;
+      }
       return true;
     });
-  }, [data, ownershipFilter, rarityFilter]);
+  }, [checklistQuery, data, flaggedFilter, ownershipFilter, rarityFilter]);
 
-  const hasActiveFilters = ownershipFilter != null || rarityFilter != null;
+  const hasActiveSearch = checklistQuery.trim().length > 0;
+  const hasActiveFilters =
+    ownershipFilter != null || rarityFilter != null || flaggedFilter;
 
   const showQuickAddToast = useCallback(
     (toast: QuickAddToastData, duration = 2500) => {
@@ -647,6 +708,7 @@ export function CollectionDetailView({ collectionId }: { collectionId: string })
       <div className="min-h-0 flex-1" role="tabpanel">
         {viewMode === "entries" ? (
           <CollectionEntriesView
+            key={`${collectionId}-${highlightCardId}`}
             collectionId={collectionId}
             cardId={highlightCardId}
             refreshKey={refreshKey}
@@ -658,14 +720,20 @@ export function CollectionDetailView({ collectionId }: { collectionId: string })
           <CollectionOverviewTab
             collectionId={collectionId}
             data={data}
+            query={checklistQuery}
             ownershipFilter={ownershipFilter}
             rarityFilter={rarityFilter}
             rarities={rarities}
             filteredCards={filteredCards}
+            hasActiveSearch={hasActiveSearch}
             hasActiveFilters={hasActiveFilters}
+            flaggedFilter={flaggedFilter}
+            hasFlaggedCards={hasFlaggedCards}
             readOnly={isOfflineView}
+            onQueryChange={setChecklistQuery}
             onOwnershipFilterChange={setOwnershipFilter}
             onRarityFilterChange={setRarityFilter}
+            onFlaggedFilterChange={setFlaggedFilter}
             onOpenCard={openCardModal}
             onQuickAdd={isOfflineView ? undefined : handleQuickAdd}
           />

@@ -14,15 +14,23 @@ import {
   type CollectionEntry,
 } from "@/components/card-modal";
 import { ConfirmDialog } from "@/components/confirm-dialog";
+import { ConditionBadgeButton } from "@/components/condition-badge";
 import { SearchBar } from "@/components/search-bar";
 import { ActiveFilterBanner } from "@/components/ui/active-filter-banner";
+import { FilterChipList } from "@/components/ui/filter-chip";
 import { useLocale, useTranslations } from "@/lib/i18n/context";
-import { loadCardDetail, loadCollectionEntriesPage } from "@/lib/offline/read";
+import {
+  collectAvailableConditions,
+  filterCollectionEntries,
+  loadAllCollectionEntries,
+  loadCardDetail,
+} from "@/lib/offline/read";
 import { notifyCollectionMutated } from "@/lib/offline/types";
 import {
   formatCardPriceLabel,
   formatCurrency,
   resolveSetDisplayCode,
+  type CardCondition,
 } from "@/lib/utils";
 
 const PAGE_SIZE = 20;
@@ -54,6 +62,7 @@ type CollectionItem = {
   setId: string;
   setName: string;
   setOfficialCode: string | null;
+  illustrator: string | null;
   imageUrl: string | null;
   price: number | null;
   value: number | null;
@@ -115,14 +124,13 @@ export function CollectionEntriesView({
   const { locale } = useLocale();
   const t = useTranslations();
 
-  const [items, setItems] = useState<CollectionItem[]>([]);
-  const [filterCard, setFilterCard] = useState<FilterCard | null>(null);
-  const [total, setTotal] = useState(0);
-  const [totalValue, setTotalValue] = useState(0);
-  const [hasMore, setHasMore] = useState(false);
+  const [allItems, setAllItems] = useState<CollectionItem[]>([]);
   const [loading, setLoading] = useState(true);
-  const [loadingMore, setLoadingMore] = useState(false);
   const [query, setQuery] = useState("");
+  const [conditionFilter, setConditionFilter] = useState<CardCondition | null>(
+    null,
+  );
+  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
   const [updatingId, setUpdatingId] = useState<string | null>(null);
   const [deleteCandidate, setDeleteCandidate] = useState<CollectionItem | null>(
     null,
@@ -137,92 +145,85 @@ export function CollectionEntriesView({
   const [editCard, setEditCard] = useState<CardDetail | null>(null);
   const [editOpen, setEditOpen] = useState(false);
   const [editLoadingId, setEditLoadingId] = useState<string | null>(null);
-  const offsetRef = useRef(0);
   const sentinelRef = useRef<HTMLDivElement>(null);
-  const initialLoadDoneRef = useRef(false);
-  const loadedCollectionIdRef = useRef(collectionId);
 
   function variantLabel(type: string) {
     const key = VARIANT_KEYS[type];
     return key ? t(key) : type;
   }
 
-  const loadPage = useCallback(
-    async (reset: boolean, searchQuery: string, filterCardId: string) => {
-      if (reset) {
-        if (loadedCollectionIdRef.current !== collectionId) {
-          loadedCollectionIdRef.current = collectionId;
-          initialLoadDoneRef.current = false;
-        }
-        if (!initialLoadDoneRef.current) {
-          setLoading(true);
-        }
-        offsetRef.current = 0;
-        if (filterCardId) {
-          setFilterCard(null);
-        }
+  const loadAll = useCallback(async () => {
+    setLoading(true);
+    try {
+      const result = await loadAllCollectionEntries(collectionId, locale);
+      if (result.ok) {
+        setAllItems(result.data.items);
       } else {
-        setLoadingMore(true);
+        setAllItems([]);
       }
+    } finally {
+      setLoading(false);
+    }
+  }, [collectionId, locale]);
 
-      const trimmed = searchQuery.trim();
+  useEffect(() => {
+    void loadAll();
+  }, [loadAll, refreshKey]);
 
-      try {
-        const result = await loadCollectionEntriesPage(collectionId, locale, {
-          offset: reset ? 0 : offsetRef.current,
-          limit: PAGE_SIZE,
-          query: trimmed,
-          cardId: filterCardId,
-        });
+  useEffect(() => {
+    setVisibleCount(PAGE_SIZE);
+  }, [query, cardId, conditionFilter, collectionId]);
 
-        if (!result.ok) {
-          if (reset) {
-            setItems([]);
-            setTotal(0);
-            setTotalValue(0);
-            setFilterCard(null);
-          }
-          setHasMore(false);
-          return;
-        }
-
-        const payload = result.data;
-        const newItems = payload.items;
-
-        if (reset) {
-          setItems(newItems);
-          setTotal(payload.total);
-          setTotalValue(payload.totalValue);
-          setFilterCard(payload.filterCard);
-        } else {
-          setItems((current) => [...current, ...newItems]);
-        }
-
-        offsetRef.current = reset
-          ? newItems.length
-          : offsetRef.current + newItems.length;
-        setHasMore(payload.hasMore);
-      } finally {
-        if (reset) {
-          initialLoadDoneRef.current = true;
-        }
-        setLoading(false);
-        setLoadingMore(false);
-      }
-    },
-    [collectionId, locale],
+  const availableConditions = useMemo(
+    () => collectAvailableConditions(allItems, cardId),
+    [allItems, cardId],
   );
 
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      void loadPage(true, query, cardId);
-    }, query.trim() ? 300 : 0);
+  const filteredItems = useMemo(
+    () =>
+      filterCollectionEntries(allItems, {
+        query,
+        cardId,
+        condition:
+          conditionFilter && availableConditions.includes(conditionFilter)
+            ? conditionFilter
+            : null,
+      }),
+    [allItems, availableConditions, cardId, conditionFilter, query],
+  );
 
-    return () => clearTimeout(timer);
-  }, [query, cardId, loadPage, refreshKey]);
+  const total = filteredItems.length;
+  const totalValue = useMemo(
+    () => filteredItems.reduce((sum, item) => sum + (item.value ?? 0), 0),
+    [filteredItems],
+  );
+
+  const items = useMemo(
+    () => filteredItems.slice(0, visibleCount),
+    [filteredItems, visibleCount],
+  );
+
+  const hasMore = visibleCount < filteredItems.length;
+
+  const filterCard = useMemo((): FilterCard | null => {
+    if (!cardId) {
+      return null;
+    }
+    const match = allItems.find((item) => item.cardId === cardId);
+    if (!match) {
+      return null;
+    }
+    return {
+      cardId: match.cardId,
+      name: match.name,
+      number: match.number,
+      setId: match.setId,
+      setName: match.setName,
+    };
+  }, [allItems, cardId]);
 
   useEffect(() => {
-    if (!hasMore || loading || loadingMore) {
+    if (!hasMore || loading) {
       return;
     }
 
@@ -234,7 +235,9 @@ export function CollectionEntriesView({
     const observer = new IntersectionObserver(
       (entries) => {
         if (entries[0]?.isIntersecting) {
-          void loadPage(false, query, cardId);
+          setVisibleCount((current) =>
+            Math.min(current + PAGE_SIZE, filteredItems.length),
+          );
         }
       },
       { rootMargin: "200px" },
@@ -242,7 +245,7 @@ export function CollectionEntriesView({
 
     observer.observe(sentinel);
     return () => observer.disconnect();
-  }, [hasMore, loading, loadingMore, query, cardId, loadPage, items.length]);
+  }, [filteredItems.length, hasMore, loading]);
 
   const groups = useMemo(() => groupBySet(items), [items]);
   const filterLabel = filterCard
@@ -250,16 +253,11 @@ export function CollectionEntriesView({
     : null;
 
   async function removeItem(item: CollectionItem) {
-    const removedValue = item.value;
     setUpdatingId(item.id);
     try {
       await fetch(`/api/collection/${item.id}`, { method: "DELETE" });
       notifyCollectionMutated(collectionId);
-      setItems((current) => current.filter((entry) => entry.id !== item.id));
-      if (removedValue != null) {
-        setTotalValue((value) => value - removedValue);
-      }
-      setTotal((current) => Math.max(0, current - 1));
+      setAllItems((current) => current.filter((entry) => entry.id !== item.id));
       onEntriesMutated?.();
     } finally {
       setUpdatingId((current) => (current === item.id ? null : current));
@@ -286,7 +284,7 @@ export function CollectionEntriesView({
 
       notifyCollectionMutated(collectionId);
 
-      setItems((current) =>
+      setAllItems((current) =>
         current.map((entry) =>
           entry.id === item.id
             ? {
@@ -299,10 +297,6 @@ export function CollectionEntriesView({
         ),
       );
 
-      const unitPrice = item.price;
-      if (unitPrice != null) {
-        setTotalValue((value) => value + unitPrice * delta);
-      }
       onEntriesMutated?.();
     } finally {
       setUpdatingId((current) => (current === item.id ? null : current));
@@ -395,19 +389,16 @@ export function CollectionEntriesView({
 
   const emptyMessage = cardId
     ? t("collection.emptyForCard")
-    : query.trim()
-      ? t("collection.emptyForSearch")
-      : t("collections.emptyEntries");
+    : query.trim() && conditionFilter
+      ? t("collection.emptyForSearchAndCondition")
+      : query.trim()
+        ? t("collection.emptyForSearch")
+        : conditionFilter
+          ? t("collection.emptyForCondition")
+          : t("collections.emptyEntries");
 
   return (
     <div className="space-y-4">
-      <p className="text-sm text-zinc-400">
-        {t("collection.entriesSummary", {
-          entriesPart: t.plural("common.entryCount", total),
-          value: formatCurrency(totalValue, "EUR", locale),
-        })}
-      </p>
-
       {cardId ? (
         <ActiveFilterBanner
           label={t("collection.filteredByCard")}
@@ -424,6 +415,33 @@ export function CollectionEntriesView({
         showClear={hasActiveSearch}
         placeholder={t("collection.searchPlaceholder")}
       />
+
+      {availableConditions.length > 1 ? (
+        <FilterChipList scroll>
+          {availableConditions.map((condition) => (
+            <ConditionBadgeButton
+              key={condition}
+              condition={condition}
+              size="sm"
+              selected={conditionFilter === condition}
+              onClick={() =>
+                setConditionFilter((current) =>
+                  current === condition ? null : condition,
+                )
+              }
+            />
+          ))}
+        </FilterChipList>
+      ) : null}
+
+      {!loading ? (
+        <p className="text-sm text-zinc-400">
+          {t("collection.entriesSummary", {
+            entriesPart: t.plural("common.entryCount", total),
+            value: formatCurrency(totalValue, "EUR", locale),
+          })}
+        </p>
+      ) : null}
 
       {loading ? (
         <p className="text-sm text-zinc-400">{t("collection.loading")}</p>
@@ -596,12 +614,7 @@ export function CollectionEntriesView({
       </div>
 
       {hasMore ? (
-        <div
-          ref={sentinelRef}
-          className="py-4 text-center text-sm text-zinc-500"
-        >
-          {loadingMore ? t("common.loadingMore") : null}
-        </div>
+        <div ref={sentinelRef} className="py-4" aria-hidden="true" />
       ) : null}
 
       <CardImageLightbox

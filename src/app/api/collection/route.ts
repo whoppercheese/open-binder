@@ -18,6 +18,11 @@ import {
 } from "@/lib/localized-names";
 import { getRequestTranslator } from "@/lib/i18n/server";
 import { getPricePreference, pickPrice } from "@/lib/settings";
+import {
+  isCardCondition,
+  sortAvailableConditions,
+  type CardCondition,
+} from "@/lib/utils";
 
 const DEFAULT_LIMIT = 20;
 const MAX_LIMIT = 100;
@@ -41,6 +46,7 @@ function collectionSelect(locale: "en" | "de") {
     setId: sets.id,
     setName: localizedSetNameSql(locale),
     setOfficialCode: sets.officialCode,
+    illustrator: cards.illustrator,
     trendEur: cardPrices.trendEur,
     lowEur: cardPrices.lowEur,
   };
@@ -67,11 +73,15 @@ function buildWhereClause(
   cardId: string,
   collectionId: string,
   locale: "en" | "de",
+  condition?: string,
 ): SQL | undefined {
   const filters = [
     eq(userCards.collectionId, collectionId),
     buildSearchFilter(query, locale),
     cardId.trim() ? eq(cards.id, cardId.trim()) : undefined,
+    condition && isCardCondition(condition)
+      ? eq(userCards.condition, condition)
+      : undefined,
   ].filter((filter): filter is SQL => filter != null);
 
   if (filters.length === 0) {
@@ -79,6 +89,34 @@ function buildWhereClause(
   }
 
   return filters.length === 1 ? filters[0] : and(...filters);
+}
+
+function buildInventoryScopeClause(
+  collectionId: string,
+  cardId: string,
+): SQL {
+  const base = eq(userCards.collectionId, collectionId);
+  const trimmedCardId = cardId.trim();
+  if (!trimmedCardId) {
+    return base;
+  }
+
+  return and(base, eq(cards.id, trimmedCardId))!;
+}
+
+async function loadAvailableConditions(
+  collectionId: string,
+  cardId: string,
+): Promise<CardCondition[]> {
+  const scopeClause = buildInventoryScopeClause(collectionId, cardId);
+  const rows = await db
+    .selectDistinct({ condition: userCards.condition })
+    .from(userCards)
+    .innerJoin(cardVariants, eq(userCards.variantId, cardVariants.id))
+    .innerJoin(cards, eq(cardVariants.cardId, cards.id))
+    .where(scopeClause);
+
+  return sortAvailableConditions(rows.map((row) => row.condition));
 }
 
 function mapCollectionRow(
@@ -128,7 +166,14 @@ export async function GET(request: Request) {
 
     const query = searchParams.get("q")?.trim() ?? "";
     const cardId = searchParams.get("cardId")?.trim() ?? "";
-    const whereClause = buildWhereClause(query, cardId, collectionId, locale);
+    const condition = searchParams.get("condition")?.trim() ?? "";
+    const whereClause = buildWhereClause(
+      query,
+      cardId,
+      collectionId,
+      locale,
+      condition,
+    );
     const selectFields = collectionSelect(locale);
 
     const preference = await getPricePreference();
@@ -202,11 +247,17 @@ export async function GET(request: Request) {
       filterCard = cardRow ?? null;
     }
 
+    const availableConditions =
+      offset === 0
+        ? await loadAvailableConditions(collectionId, cardId)
+        : undefined;
+
     return NextResponse.json({
       items,
       total: offset === 0 ? total : undefined,
       totalValue: offset === 0 ? totalValue : undefined,
       hasMore,
+      availableConditions,
       filterCard,
     });
   } catch (error) {
