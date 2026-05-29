@@ -130,7 +130,7 @@ export function CardTile({
           <div className="pointer-events-none absolute bottom-1.5 right-1.5 z-10 flex flex-col items-end gap-0.5">
             {card.ownedQuantity != null && card.ownedQuantity > 0 ? (
               <div
-                className="flex items-center gap-1 rounded-md bg-black/80 px-1.5 py-1 text-[11px] font-semibold text-emerald-200"
+                className="flex items-center gap-1 rounded-md bg-black/80 px-1.5 py-1 text-[11px] font-semibold text-zinc-200"
                 title={t.plural("common.copyCount", card.ownedQuantity, {
                   count: card.ownedQuantity,
                 })}
@@ -144,7 +144,7 @@ export function CardTile({
             ) : null}
             {card.checklistCount != null && card.checklistCount > 0 ? (
               <div
-                className="flex items-center gap-1 rounded-md bg-black/80 px-1.5 py-1 text-[11px] font-semibold text-emerald-200"
+                className="flex items-center gap-1 rounded-md bg-black/80 px-1.5 py-1 text-[11px] font-semibold text-zinc-200"
                 title={t.plural("sets.checklistTileCount", card.checklistCount, {
                   count: card.checklistCount,
                 })}
