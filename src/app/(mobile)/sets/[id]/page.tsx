@@ -94,6 +94,9 @@ export default function SetDetailPage() {
   const [previewOwnedQuantity, setPreviewOwnedQuantity] = useState<
     number | undefined
   >();
+  const [previewChecklistCount, setPreviewChecklistCount] = useState<
+    number | undefined
+  >();
   const [previewOpen, setPreviewOpen] = useState(false);
   const [bulkChecklistOpen, setBulkChecklistOpen] = useState(false);
   const selection = useCardGridSelection();
@@ -559,6 +562,9 @@ export default function SetDetailPage() {
               setPreviewOwnedQuantity(
                 card.ownedQuantity > 0 ? card.ownedQuantity : undefined,
               );
+              setPreviewChecklistCount(
+                card.checklistCount > 0 ? card.checklistCount : undefined,
+              );
               setPreviewOpen(true);
             }}
           />
@@ -570,12 +576,14 @@ export default function SetDetailPage() {
         card={previewCard}
         rarity={previewRarity}
         ownedQuantity={previewOwnedQuantity}
+        checklistCount={previewChecklistCount}
         open={previewOpen}
         onClose={() => {
           setPreviewOpen(false);
           setPreviewCard(null);
           setPreviewRarity(null);
           setPreviewOwnedQuantity(undefined);
+          setPreviewChecklistCount(undefined);
         }}
         onChecklistChanged={(cardId, checklistCount) => {
           setData((current) => {

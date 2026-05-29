@@ -14,7 +14,7 @@ import { Portal } from "@/components/portal";
 import type { CardDetail } from "@/components/card-modal";
 import { writeChecklistCountOverride } from "@/lib/checklist-count-overrides.client";
 import { loadOrEnsureCardClient } from "@/lib/ensure-cards.client";
-import { apiUrl, useLocale, useTranslations } from "@/lib/i18n/context";
+import { useLocale, useTranslations } from "@/lib/i18n/context";
 import { getRarityLabel } from "@/lib/rarity";
 import {
   formatCardPriceLabel,
@@ -38,6 +38,7 @@ type SetCardPreviewModalProps = {
   card: CardDetail | null;
   rarity?: string | null;
   ownedQuantity?: number;
+  checklistCount?: number;
   open: boolean;
   onClose: () => void;
   onChecklistChanged?: (cardId: string, checklistCount: number) => void;
@@ -47,6 +48,7 @@ export function SetCardPreviewModal({
   card,
   rarity = null,
   ownedQuantity,
+  checklistCount,
   open,
   onClose,
   onChecklistChanged,
@@ -56,10 +58,6 @@ export function SetCardPreviewModal({
   const [catalogState, setCatalogState] = useState<CatalogState | null>(null);
   const [imageExpanded, setImageExpanded] = useState(false);
   const [checklistOpen, setChecklistOpen] = useState(false);
-  const [checklistCountState, setChecklistCountState] = useState<{
-    cardId: string;
-    count: number;
-  } | null>(null);
 
   const catalogCard =
     catalogState != null &&
@@ -72,10 +70,6 @@ export function SetCardPreviewModal({
     catalogState != null &&
     catalogState.cardId === card?.id &&
     catalogState.status === "failed";
-  const checklistCount =
-    cardData && checklistCountState?.cardId === cardData.id
-      ? checklistCountState.count
-      : null;
 
   useEffect(() => {
     if (!open || !card || card.variants.length > 0) {
@@ -112,39 +106,6 @@ export function SetCardPreviewModal({
     };
   }, [open, card, locale, catalogState?.cardId, catalogState?.status]);
 
-  useEffect(() => {
-    if (!open || !cardData) {
-      return;
-    }
-
-    const cardId = cardData.id;
-    let cancelled = false;
-
-    void (async () => {
-      try {
-        const response = await fetch(
-          apiUrl(`/api/cards/${cardId}/checklist`, locale),
-        );
-        const payload = await response.json();
-        if (!response.ok || cancelled) {
-          return;
-        }
-        const collections: Array<{ onChecklist?: boolean }> =
-          payload.collections ?? [];
-        setChecklistCountState({
-          cardId,
-          count: collections.filter((item) => item.onChecklist).length,
-        });
-      } catch {
-        // Keep prior count hidden until a successful load for this card.
-      }
-    })();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [open, cardData, locale]);
-
   const setLabel = cardData
     ? resolveSetDisplayCode({
         officialCode: cardData.officialCode,
@@ -171,7 +132,6 @@ export function SetCardPreviewModal({
     setImageExpanded(false);
     setChecklistOpen(false);
     setCatalogState(null);
-    setChecklistCountState(null);
     onClose();
   }
 

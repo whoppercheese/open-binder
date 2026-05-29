@@ -118,6 +118,9 @@ export default function SearchPage() {
   const [previewOwnedQuantity, setPreviewOwnedQuantity] = useState<
     number | undefined
   >();
+  const [previewChecklistCount, setPreviewChecklistCount] = useState<
+    number | undefined
+  >();
   const [previewOpen, setPreviewOpen] = useState(false);
   const [bulkChecklistOpen, setBulkChecklistOpen] = useState(false);
   const selection = useCardGridSelection();
@@ -303,6 +306,7 @@ export default function SearchPage() {
     setPreviewCard(null);
     setPreviewRarity(null);
     setPreviewOwnedQuantity(undefined);
+    setPreviewChecklistCount(undefined);
     setPreviewOpen(false);
     clearSavedScrollPosition("/search");
     scrollMainToTop();
@@ -462,6 +466,9 @@ export default function SearchPage() {
               setPreviewOwnedQuantity(
                 (card.ownedQuantity ?? 0) > 0 ? card.ownedQuantity : undefined,
               );
+              setPreviewChecklistCount(
+                (card.checklistCount ?? 0) > 0 ? card.checklistCount : undefined,
+              );
               setPreviewOpen(true);
             }}
           />
@@ -481,12 +488,14 @@ export default function SearchPage() {
         card={previewCard}
         rarity={previewRarity}
         ownedQuantity={previewOwnedQuantity}
+        checklistCount={previewChecklistCount}
         open={previewOpen}
         onClose={() => {
           setPreviewOpen(false);
           setPreviewCard(null);
           setPreviewRarity(null);
           setPreviewOwnedQuantity(undefined);
+          setPreviewChecklistCount(undefined);
         }}
         onChecklistChanged={(cardId, checklistCount) => {
           writeChecklistCountOverride(cardId, checklistCount);
