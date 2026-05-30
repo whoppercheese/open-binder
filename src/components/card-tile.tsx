@@ -43,6 +43,8 @@ type CardTileProps = {
   showPrice?: boolean;
   showMeta?: boolean;
   selected?: boolean;
+  /** Keep the owned overlay when an inventory count badge is shown (e.g. checklist tab). */
+  showOwnedOverlayWithInventoryCount?: boolean;
 };
 
 const LONG_PRESS_PRESETS = {
@@ -61,6 +63,7 @@ export function CardTile({
   showPrice = true,
   showMeta = true,
   selected = false,
+  showOwnedOverlayWithInventoryCount = false,
 }: CardTileProps) {
   const { locale } = useLocale();
   const t = useTranslations();
@@ -162,7 +165,9 @@ export function CardTile({
             ) : null}
           </div>
         ) : null}
-        {card.owned && !(card.ownedQuantity != null && card.ownedQuantity > 0) ? (
+        {card.owned &&
+        (showOwnedOverlayWithInventoryCount ||
+          !(card.ownedQuantity != null && card.ownedQuantity > 0)) ? (
           <div
             className="pointer-events-none absolute inset-0 flex items-center justify-center"
             aria-hidden
