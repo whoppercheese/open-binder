@@ -199,7 +199,6 @@ export function SetCardPreviewModal({
                       <TextLink
                         href={`/collections?cardId=${encodeURIComponent(cardData.id)}`}
                         onClick={handleClose}
-                        showArrow={false}
                         className="text-xs text-emerald-300/85 hover:text-emerald-200"
                       >
                         <ListChecks className="h-3.5 w-3.5 shrink-0" aria-hidden />
