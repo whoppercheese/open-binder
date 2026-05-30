@@ -1,18 +1,36 @@
 ---
-description: After implementing changes, run npm run build and fix all errors before finishing. Repeat until the build succeeds.
+description: After implementing changes, verify with npm run build (app) or npm run worker (worker) as applicable before finishing.
 alwaysApply: true
 ---
 
 # Build verification (mandatory)
 
-After **every completed implementation** (feature, fix, or refactor — not after each single edit mid-task), verify the project builds cleanly.
+After **every completed implementation** (feature, fix, or refactor — not after each single edit mid-task), verify the affected runtime starts cleanly.
 
-## When to run
+## When to run `npm run build`
 
-- Run `npm run build` once the requested work is **fully implemented**, before declaring the task done.
-- Skip only when the user explicitly asks not to build, or the change cannot affect the build (e.g. pure docs with no code).
+Run `npm run build` **only when changes touch the Next.js app**, for example:
 
-## Workflow
+- `src/app/`, `src/components/`, `public/`
+- App config (`next.config.*`, `tsconfig.json`, etc.)
+- Shared code that affects app routes, pages, or UI
+
+**Skip** `npm run build` when changes are limited to worker-only paths, docs, deployment scripts, or other non-app code — unless those changes also modify app-facing code.
+
+Also skip when the user explicitly asks not to build.
+
+## When to run `npm run worker`
+
+Run `npm run worker` **when changes touch the sync worker or its dependencies**, for example:
+
+- `src/jobs/`
+- Shared `src/lib/` modules imported by the worker
+
+Start the worker and confirm it boots without errors (e.g. reaches `[worker] Ready`). Stop it after verification — do not leave a background worker running.
+
+Also skip when the user explicitly asks not to run the worker.
+
+## App build workflow
 
 1. Run `npm run build` from the project root.
 2. If it **fails**: read the full error output, fix the root cause in the codebase, then run `npm run build` again.
@@ -20,16 +38,21 @@ After **every completed implementation** (feature, fix, or refactor — not afte
 4. After a **successful** build, reset the service worker cache name for local dev:
    - Open `public/sw.js`
    - Set `CACHE_NAME` back to `"openbinder-static-dev"` (build regenerates this file with a git-hash suffix)
-5. Only then report the task as complete.
+
+## Worker verification workflow
+
+1. Run `npm run worker` from the project root.
+2. Confirm the process starts successfully (no fatal error; `[worker] Ready` in output).
+3. Stop the worker after confirming startup.
 
 ## Fixing failures
 
-- Fix **all** reported errors (TypeScript, ESLint, Next.js compile, missing imports, etc.), not just the first one.
+- Fix **all** reported errors (TypeScript, ESLint, Next.js compile, missing imports, worker startup crashes, etc.), not just the first one.
 - Prefer minimal, targeted fixes aligned with existing project patterns.
 - Do not silence errors with `@ts-ignore`, `eslint-disable`, or similar unless the codebase already uses that pattern for the same case.
 
 ## Reporting
 
-- If the build fails and you fix it, briefly note what was wrong and what you changed.
+- If verification fails and you fix it, briefly note what was wrong and what you changed.
 - If you reset `public/sw.js` after build, no need to mention it unless something went wrong.
-- If the build still fails after reasonable attempts, say so explicitly and leave the remaining errors visible — do not claim success.
+- If verification still fails after reasonable attempts, say so explicitly and leave the remaining errors visible — do not claim success.
