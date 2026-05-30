@@ -130,7 +130,7 @@ create_container() {
   wait_for_network "$id"
   run_in_container "$id" "$CONTAINER_INSTALL_URL"
 
-  log "To update later: pct enter ${id} — inside the container, run: 'update'"
+  log "To update OS, Docker, and OpenBinder later, run 'update' inside the container (from the Proxmox host: pct enter ${id})"
 }
 
 update_container() {

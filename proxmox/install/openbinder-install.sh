@@ -107,4 +107,3 @@ log "Deploy finished"
 touch "${INSTALL_DIR}/.openbinder-proxmox"
 install_update_command
 log "OpenBinder is available at http://${LOCAL_IP}:3000"
-log "To update OS, Docker, and OpenBinder later, run 'update' inside this container"
