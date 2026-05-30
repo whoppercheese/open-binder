@@ -23,15 +23,23 @@ After install:
 - App: `http://<container-ip>:3000`
 - Postgres credentials: `pct enter <CTID>` → `cat ~/openbinder.creds`
 
-## One-liner (update)
+## Update
+
+Inside the container as **root** (e.g. `pct enter <CTID>`):
 
 ```bash
-OPENBINDER_MODE=update bash -c "$(curl -fsSL https://raw.githubusercontent.com/whoppercheese/open-binder/main/proxmox/install.sh)"
+update
 ```
 
-Finds the container by hostname `openbinder`, or set `OPENBINDER_CTID=123`.
+That runs apt/Docker upgrades and `./scripts/deploy.sh` (git pull + rebuild).
 
-Inside the container you can also run:
+From the Proxmox host without entering the shell:
+
+```bash
+pct exec <CTID> -- update
+```
+
+For app-only changes (skip OS/Docker upgrades):
 
 ```bash
 cd /opt/open-binder && ./scripts/deploy.sh
@@ -70,7 +78,7 @@ Optional:
 | --- | --- | --- |
 | `proxmox/install.sh` | Proxmox host | Create LXC or trigger update |
 | `proxmox/install/openbinder-install.sh` | LXC | Docker, clone, `.env`, first deploy |
-| `proxmox/install/openbinder-update.sh` | LXC | apt + Docker upgrade + `deploy.sh` |
+| `proxmox/install/openbinder-update.sh` | LXC | apt + Docker upgrade + `deploy.sh` (also installed as `/usr/bin/update`) |
 
 ## Stack
 

@@ -130,11 +130,7 @@ create_container() {
   wait_for_network "$id"
   run_in_container "$id" "$CONTAINER_INSTALL_URL"
 
-  local ip
-  ip="$(container_ip "$id")"
-  log "Done. OpenBinder: http://${ip:-<container-ip>}:3000"
-  log "Credentials (if created): pct enter ${id} — cat ~/openbinder.creds"
-  log "Update later: OPENBINDER_MODE=update OPENBINDER_CTID=${id} bash -c \"\$(curl -fsSL ${RAW_BASE}/proxmox/install.sh)\""
+  log "To update later: pct enter ${id} — inside the container, run: 'update'"
 }
 
 update_container() {
@@ -150,9 +146,6 @@ update_container() {
   [[ -f "/etc/pve/lxc/${id}.conf" ]] || die "Container ${id} does not exist."
   log "Updating container ${id}…"
   run_in_container "$id" "$CONTAINER_UPDATE_URL"
-  local ip
-  ip="$(container_ip "$id")"
-  log "Done. OpenBinder: http://${ip:-<container-ip>}:3000"
 }
 
 main() {

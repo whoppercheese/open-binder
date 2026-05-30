@@ -3,6 +3,8 @@
 set -euo pipefail
 
 INSTALL_DIR="/opt/open-binder"
+REPO_URL="${OPENBINDER_REPO_URL:-}"
+REPO_BRANCH="${OPENBINDER_REPO_BRANCH:-}"
 VERBOSE="${OPENBINDER_VERBOSE:-no}"
 
 log() { printf '[OpenBinder] %s\n' "$*"; }
@@ -18,6 +20,23 @@ run() {
 
 require_root() {
   [[ "$(id -u)" -eq 0 ]] || die "Must run as root inside the container."
+}
+
+raw_repo_base() {
+  local repo_path="${REPO_URL#https://github.com/}"
+  repo_path="${repo_path#http://github.com/}"
+  repo_path="${repo_path%.git}"
+  printf 'https://raw.githubusercontent.com/%s/%s' "$repo_path" "$REPO_BRANCH"
+}
+
+install_update_command() {
+  local update_url
+  update_url="$(raw_repo_base)/proxmox/install/openbinder-update.sh"
+  cat >/usr/bin/update <<EOF
+#!/usr/bin/env bash
+exec bash -c "\$(curl -fsSL '${update_url}')"
+EOF
+  chmod +x /usr/bin/update
 }
 
 require_root
@@ -39,6 +58,14 @@ log "Updating OpenBinder"
 cd "$INSTALL_DIR"
 chmod +x ./scripts/deploy.sh
 run ./scripts/deploy.sh
+
+if [[ -z "$REPO_URL" && -d "${INSTALL_DIR}/.git" ]]; then
+  REPO_URL="$(git -C "$INSTALL_DIR" remote get-url origin 2>/dev/null || true)"
+  REPO_BRANCH="$(git -C "$INSTALL_DIR" rev-parse --abbrev-ref HEAD 2>/dev/null || true)"
+fi
+REPO_URL="${REPO_URL:-https://github.com/whoppercheese/open-binder.git}"
+REPO_BRANCH="${REPO_BRANCH:-main}"
+install_update_command
 
 LOCAL_IP="$(hostname -I 2>/dev/null | awk '{print $1}')"
 log "Update finished"

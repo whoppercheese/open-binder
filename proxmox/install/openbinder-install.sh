@@ -29,6 +29,23 @@ get_local_ip() {
   printf '%s' "$ip"
 }
 
+raw_repo_base() {
+  local repo_path="${REPO_URL#https://github.com/}"
+  repo_path="${repo_path#http://github.com/}"
+  repo_path="${repo_path%.git}"
+  printf 'https://raw.githubusercontent.com/%s/%s' "$repo_path" "$REPO_BRANCH"
+}
+
+install_update_command() {
+  local update_url
+  update_url="$(raw_repo_base)/proxmox/install/openbinder-update.sh"
+  cat >/usr/bin/update <<EOF
+#!/usr/bin/env bash
+exec bash -c "\$(curl -fsSL '${update_url}')"
+EOF
+  chmod +x /usr/bin/update
+}
+
 require_root
 
 export DEBIAN_FRONTEND=noninteractive
@@ -88,4 +105,6 @@ run ./scripts/deploy.sh
 log "Deploy finished"
 
 touch "${INSTALL_DIR}/.openbinder-proxmox"
+install_update_command
 log "OpenBinder is available at http://${LOCAL_IP}:3000"
+log "To update OS, Docker, and OpenBinder later, run 'update' inside this container"
