@@ -236,9 +236,6 @@ main() {
 
   log "Deploy finished."
   log "App: http://localhost:3000"
-  if target_selected full || target_selected worker; then
-    log "First catalog sync can take 15–30 minutes (see README)."
-  fi
 }
 
 main
