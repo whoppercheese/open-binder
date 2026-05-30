@@ -38,7 +38,7 @@ import { IconMenuButton } from "@/components/ui/icon-button";
 import { PageHeader } from "@/components/ui/page-header";
 import { cn, resolveSetDisplayCode } from "@/lib/utils";
 
-type OwnershipFilter = "owned" | "missing";
+type ChecklistStatusFilter = "owned" | "missing" | "flagged";
 type ViewMode = "grid" | "entries";
 
 type CollectionDetailHeaderProps = {
@@ -149,19 +149,17 @@ type CollectionOverviewTabProps = {
   collectionId: string;
   data: CollectionDetailResponse;
   query: string;
-  ownershipFilter: OwnershipFilter | null;
+  statusFilter: ChecklistStatusFilter | null;
   rarityFilter: string | null;
   rarities: string[];
   filteredCards: CollectionDetailResponse["cards"];
   hasActiveSearch: boolean;
   hasActiveFilters: boolean;
-  flaggedFilter: boolean;
   hasFlaggedCards: boolean;
   readOnly?: boolean;
   onQueryChange: (query: string) => void;
-  onOwnershipFilterChange: (filter: OwnershipFilter | null) => void;
+  onStatusFilterChange: (filter: ChecklistStatusFilter | null) => void;
   onRarityFilterChange: (filter: string | null) => void;
-  onFlaggedFilterChange: (active: boolean) => void;
   onOpenCard: (card: CollectionDetailResponse["cards"][number]) => void;
   onQuickAdd?: (card: CollectionDetailResponse["cards"][number]) => void;
 };
@@ -170,19 +168,17 @@ function CollectionOverviewTab({
   collectionId,
   data,
   query,
-  ownershipFilter,
+  statusFilter,
   rarityFilter,
   rarities,
   filteredCards,
   hasActiveSearch,
   hasActiveFilters,
-  flaggedFilter,
   hasFlaggedCards,
   readOnly = false,
   onQueryChange,
-  onOwnershipFilterChange,
+  onStatusFilterChange,
   onRarityFilterChange,
-  onFlaggedFilterChange,
   onOpenCard,
   onQuickAdd,
 }: CollectionOverviewTabProps) {
@@ -232,20 +228,20 @@ function CollectionOverviewTab({
           <section className="space-y-3">
             <FilterChipList>
               <FilterChip
-                active={ownershipFilter === "owned"}
+                active={statusFilter === "owned"}
                 onClick={() =>
-                  onOwnershipFilterChange(
-                    ownershipFilter === "owned" ? null : "owned",
+                  onStatusFilterChange(
+                    statusFilter === "owned" ? null : "owned",
                   )
                 }
               >
                 {t("sets.filterOwned")}
               </FilterChip>
               <FilterChip
-                active={ownershipFilter === "missing"}
+                active={statusFilter === "missing"}
                 onClick={() =>
-                  onOwnershipFilterChange(
-                    ownershipFilter === "missing" ? null : "missing",
+                  onStatusFilterChange(
+                    statusFilter === "missing" ? null : "missing",
                   )
                 }
               >
@@ -253,8 +249,12 @@ function CollectionOverviewTab({
               </FilterChip>
               {hasFlaggedCards ? (
                 <FilterChip
-                  active={flaggedFilter}
-                  onClick={() => onFlaggedFilterChange(!flaggedFilter)}
+                  active={statusFilter === "flagged"}
+                  onClick={() =>
+                    onStatusFilterChange(
+                      statusFilter === "flagged" ? null : "flagged",
+                    )
+                  }
                 >
                   {t("common.flagged")}
                 </FilterChip>
@@ -339,11 +339,10 @@ export function CollectionDetailView({ collectionId }: { collectionId: string })
   const [selectedCard, setSelectedCard] = useState<CardDetail | null>(null);
   const [open, setOpen] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
-  const [ownershipFilter, setOwnershipFilter] = useState<OwnershipFilter | null>(
+  const [statusFilter, setStatusFilter] = useState<ChecklistStatusFilter | null>(
     null,
   );
   const [rarityFilter, setRarityFilter] = useState<string | null>(null);
-  const [flaggedFilter, setFlaggedFilter] = useState(false);
   const [checklistQuery, setChecklistQuery] = useState("");
   const [quickAddToast, setQuickAddToast] = useState<QuickAddToastData | null>(
     null,
@@ -376,9 +375,8 @@ export function CollectionDetailView({ collectionId }: { collectionId: string })
     setViewMode("grid");
     setOfflineHighlightCardId("");
     setChecklistQuery("");
-    setOwnershipFilter(null);
+    setStatusFilter(null);
     setRarityFilter(null);
-    setFlaggedFilter(false);
   }, [collectionId]);
 
   const bumpRefresh = useCallback(() => {
@@ -496,9 +494,9 @@ export function CollectionDetailView({ collectionId }: { collectionId: string })
     if (!data?.cards) return [];
     const normalizedQuery = checklistQuery.trim().toLowerCase();
     return data.cards.filter((card) => {
-      if (ownershipFilter === "owned" && !card.owned) return false;
-      if (ownershipFilter === "missing" && card.owned) return false;
-      if (flaggedFilter && !card.flagged) return false;
+      if (statusFilter === "owned" && !card.owned) return false;
+      if (statusFilter === "missing" && card.owned) return false;
+      if (statusFilter === "flagged" && !card.flagged) return false;
       if (rarityFilter && card.rarity !== rarityFilter) return false;
       if (normalizedQuery) {
         const matchesSearch =
@@ -512,11 +510,10 @@ export function CollectionDetailView({ collectionId }: { collectionId: string })
       }
       return true;
     });
-  }, [checklistQuery, data, flaggedFilter, ownershipFilter, rarityFilter]);
+  }, [checklistQuery, data, rarityFilter, statusFilter]);
 
   const hasActiveSearch = checklistQuery.trim().length > 0;
-  const hasActiveFilters =
-    ownershipFilter != null || rarityFilter != null || flaggedFilter;
+  const hasActiveFilters = statusFilter != null || rarityFilter != null;
 
   const showQuickAddToast = useCallback(
     (toast: QuickAddToastData, duration = 2500) => {
@@ -723,19 +720,17 @@ export function CollectionDetailView({ collectionId }: { collectionId: string })
             collectionId={collectionId}
             data={data}
             query={checklistQuery}
-            ownershipFilter={ownershipFilter}
+            statusFilter={statusFilter}
             rarityFilter={rarityFilter}
             rarities={rarities}
             filteredCards={filteredCards}
             hasActiveSearch={hasActiveSearch}
             hasActiveFilters={hasActiveFilters}
-            flaggedFilter={flaggedFilter}
             hasFlaggedCards={hasFlaggedCards}
             readOnly={isOfflineView}
             onQueryChange={setChecklistQuery}
-            onOwnershipFilterChange={setOwnershipFilter}
+            onStatusFilterChange={setStatusFilter}
             onRarityFilterChange={setRarityFilter}
-            onFlaggedFilterChange={setFlaggedFilter}
             onOpenCard={openCardModal}
             onQuickAdd={isOfflineView ? undefined : handleQuickAdd}
           />
