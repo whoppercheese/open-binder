@@ -305,13 +305,15 @@ function CollectionOverviewTab({
                     setId: card.setId,
                     imageUrl: card.imageUrl,
                     owned: card.owned,
-                    ownedQuantity: card.ownedQuantity,
+                    ownedQuantity:
+                      card.inventoryQuantity ?? card.ownedQuantity,
                     flagged: card.flagged,
                     officialCode: card.officialCode,
                     price: card.variants.find((variant) => variant.price != null)
                       ?.price,
                   }}
                   compact
+                  showOwnedOverlayWithInventoryCount
                   onClick={() => void onOpenCard(card)}
                   onLongPress={
                     onQuickAdd ? () => void onQuickAdd(card) : undefined

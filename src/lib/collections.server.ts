@@ -23,6 +23,7 @@ import {
   UNKNOWN_LABEL,
 } from "@/lib/localized-names";
 import type { UiLocale } from "@/lib/i18n/locale";
+import { getInventoryCountsForCardIds } from "@/lib/inventory-counts.server";
 import { getPricePreference, pickPrice } from "@/lib/settings";
 
 export type CollectionRow = typeof collections.$inferSelect;
@@ -473,6 +474,12 @@ export async function getCollectionWithCards(
           cardVariants.variantType,
         );
   const cardsList = groupVariantRows(cardRows, preference);
+  const inventoryCounts = await getInventoryCountsForCardIds(
+    cardsList.map((card) => card.id),
+  );
+  for (const card of cardsList) {
+    card.inventoryQuantity = inventoryCounts.get(card.id) ?? 0;
+  }
   const progress = await getCollectionProgress(collection);
 
   return {
@@ -509,6 +516,7 @@ type CollectionCardItem = {
   illustrator: string | null;
   owned: boolean;
   ownedQuantity: number;
+  inventoryQuantity: number;
   flagged: boolean;
   variants: Array<{
     id: string;
@@ -555,6 +563,7 @@ function groupVariantRows(
       illustrator: row.illustrator,
       owned: false,
       ownedQuantity: 0,
+      inventoryQuantity: 0,
       flagged: false,
       variants: [],
     };

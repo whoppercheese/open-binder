@@ -33,6 +33,8 @@ export type CollectionDetailCard = {
   illustrator: string | null;
   owned: boolean;
   ownedQuantity: number;
+  /** Total inventory copies across all binders (Bestand gesamt). */
+  inventoryQuantity?: number;
   flagged: boolean;
   variants: Array<{
     id: string;
