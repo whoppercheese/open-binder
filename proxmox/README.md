@@ -67,7 +67,7 @@ Optional:
 | --- | --- |
 | `OPENBINDER_CTID` | Fixed container ID (install) or target ID (update) |
 | `OPENBINDER_STORAGE` | Storage ID for rootfs and template |
-| `OPENBINDER_PASSWORD` | Root password (default: Proxmox auto-login) |
+| `OPENBINDER_PASSWORD` | Optional root password for SSH (console uses `cmode shell`, no login prompt) |
 | `OPENBINDER_VERBOSE=yes` | Show command output during install/update |
 | `OPENBINDER_GITHUB_REPO` | Fork override (`owner/repo`) |
 | `OPENBINDER_GITHUB_BRANCH` | Branch override (default `main`) |
@@ -87,6 +87,8 @@ Optional:
 - Volumes: `postgres_data`, `image_storage`
 
 ## Troubleshooting
+
+**Proxmox console asks for a password:** New installs use `cmode shell` (no login prompt, like helper-script LXCs). For an existing container: `pct set <CTID> -cmode shell` on the Proxmox host. Host access without a password: `pct enter <CTID>`.
 
 **Docker in unprivileged LXC:** Nesting and keyctl are enabled automatically. If containers fail to start after a Docker upgrade, see [ProxmoxVE #8967](https://github.com/community-scripts/ProxmoxVE/issues/8967) (AppArmor / `ip_unprivileged_port_start`).
 

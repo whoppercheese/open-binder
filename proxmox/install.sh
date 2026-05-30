@@ -122,6 +122,7 @@ create_container() {
     --net0 "name=eth0,bridge=${BRIDGE},ip=dhcp" \
     --unprivileged 1 \
     --features nesting=1,keyctl=1 \
+    --cmode shell \
     --tags openbinder \
     "${pw_args[@]}"
 
