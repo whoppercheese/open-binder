@@ -7,7 +7,7 @@ alwaysApply: true
 
 After **every completed implementation** (feature, fix, or refactor — not after each single edit mid-task), verify ESLint passes cleanly.
 
-Run ESLint **before** `npm run build` (see build-verification rule): lint is faster and catches many issues early.
+Run ESLint **before** app build verification (see build-verification rule): lint is faster and catches many issues early.
 
 ## When to run
 
@@ -21,7 +21,7 @@ During implementation, you may use the IDE linter (`ReadLints`) on edited files 
 1. Run `npm run lint` from the project root.
 2. If it **fails**: read the full error output, fix the root cause in the codebase, then run `npm run lint` again.
 3. **Repeat** steps 1–2 until lint exits with code 0 (no errors).
-4. Then run `npm run build` per build-verification.
+4. Then run verification per build-verification (`npm run build` for app changes, `npm run worker` for worker changes).
 
 To lint only files touched by the task (faster mid-task check):
 

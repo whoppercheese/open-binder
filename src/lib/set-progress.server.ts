@@ -1,5 +1,4 @@
 import type { UiLocale } from "@/lib/i18n/locale";
-import { getLocalizedString } from "@/lib/catalog-languages";
 import { listCollections } from "@/lib/collections.server";
 
 export async function buildSetHasCollectionIds(
@@ -15,19 +14,4 @@ export async function buildSetHasCollectionIds(
   }
 
   return setIds;
-}
-
-export function resolveSetDisplayNames(
-  setRows: ReadonlyArray<{
-    id: string;
-    names: Record<string, string> | null;
-  }>,
-  locale: UiLocale,
-): Map<string, string> {
-  return new Map(
-    setRows.map((set) => [
-      set.id,
-      getLocalizedString(set.names, locale) ?? set.id,
-    ]),
-  );
 }

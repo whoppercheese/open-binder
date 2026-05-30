@@ -11,7 +11,7 @@ import type {
   SyncJobFailure,
   SyncJobProgress,
 } from "@/lib/sync-job-display";
-import { resolveSetDisplayNames } from "@/lib/set-progress.server";
+import { resolveSetDisplayNames } from "@/lib/set-display-names";
 
 export type { CatalogCardError, SyncJobFailure, SyncJobProgress };
 

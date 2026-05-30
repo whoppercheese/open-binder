@@ -8,7 +8,7 @@ import {
 } from "@/jobs/boss";
 import { findActiveSyncJob } from "@/jobs/sync-job-utils";
 import { getRequestTranslator } from "@/lib/i18n/server";
-import { resolveSetDisplayNames } from "@/lib/set-progress.server";
+import { resolveSetDisplayNames } from "@/lib/set-display-names";
 
 export async function GET(request: Request) {
   const { locale, t } = getRequestTranslator(request);
