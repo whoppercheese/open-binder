@@ -342,6 +342,24 @@ On first start, the worker enqueues an initial catalog sync if the database is e
 
 If you already synced before adding local image caching, run **Sync sets** in Settings to download missing images.
 
+## Proxmox VE (LXC)
+
+Install OpenBinder as an unprivileged Debian 13 LXC on [Proxmox VE](https://www.proxmox.com/) (8.x or 9.x). On the **Proxmox host**, as root:
+
+```bash
+bash -c "$(curl -fsSL https://raw.githubusercontent.com/whoppercheese/open-binder/main/proxmox/install.sh)"
+```
+
+This creates an LXC named `openbinder` (1 CPU, 2 GB RAM, 32 GB disk by default), installs Docker inside the container, clones this repo to `/opt/open-binder`, and runs `./scripts/deploy.sh`. When finished, open the app at port **3000** on the container’s IP address. Postgres credentials are in `/root/openbinder.creds` inside the LXC (`pct enter <CTID>`).
+
+Update an existing install from the host:
+
+```bash
+OPENBINDER_MODE=update bash -c "$(curl -fsSL https://raw.githubusercontent.com/whoppercheese/open-binder/main/proxmox/install.sh)"
+```
+
+More options (resource overrides, troubleshooting): [`proxmox/README.md`](proxmox/README.md).
+
 ## Reset (Dev)
 
 Clear catalog, collections, sync jobs, pg-boss queue, and cached card images:
