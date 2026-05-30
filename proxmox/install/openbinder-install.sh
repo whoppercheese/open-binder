@@ -14,7 +14,7 @@ run() {
   if [[ "$VERBOSE" == "yes" ]]; then
     "$@"
   else
-    "$@" >/dev/null 2>&1
+    "$@" >/dev/null
   fi
 }
 
@@ -101,9 +101,13 @@ fi
 log "Deploying OpenBinder (this can take several minutes)"
 cd "$INSTALL_DIR"
 chmod +x ./scripts/deploy.sh
-run ./scripts/deploy.sh
+if ! ./scripts/deploy.sh; then
+  die "Deploy failed. Run OPENBINDER_VERBOSE=yes update or cd ${INSTALL_DIR} && ./scripts/deploy.sh for details."
+fi
 log "Deploy finished"
 
 touch "${INSTALL_DIR}/.openbinder-proxmox"
+grep -qxF '.openbinder-proxmox' "${INSTALL_DIR}/.gitignore" 2>/dev/null ||
+  printf '\n.openbinder-proxmox\n' >>"${INSTALL_DIR}/.gitignore"
 install_update_command
 log "OpenBinder is available at http://${LOCAL_IP}:3000"

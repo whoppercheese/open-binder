@@ -14,8 +14,15 @@ run() {
   if [[ "$VERBOSE" == "yes" ]]; then
     "$@"
   else
-    "$@" >/dev/null 2>&1
+    "$@" >/dev/null
   fi
+}
+
+ensure_proxmox_marker_ignored() {
+  [[ -f "${INSTALL_DIR}/.openbinder-proxmox" ]] || return 0
+  grep -qxF '.openbinder-proxmox' "${INSTALL_DIR}/.gitignore" 2>/dev/null &&
+    return 0
+  printf '\n.openbinder-proxmox\n' >>"${INSTALL_DIR}/.gitignore"
 }
 
 require_root() {
@@ -56,8 +63,11 @@ run apt-get install -y --only-upgrade \
 
 log "Updating OpenBinder"
 cd "$INSTALL_DIR"
+ensure_proxmox_marker_ignored
 chmod +x ./scripts/deploy.sh
-run ./scripts/deploy.sh
+if ! ./scripts/deploy.sh; then
+  die "Deploy failed. Run OPENBINDER_VERBOSE=yes update or cd ${INSTALL_DIR} && ./scripts/deploy.sh for details."
+fi
 
 if [[ -z "$REPO_URL" && -d "${INSTALL_DIR}/.git" ]]; then
   REPO_URL="$(git -C "$INSTALL_DIR" remote get-url origin 2>/dev/null || true)"

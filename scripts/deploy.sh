@@ -141,8 +141,8 @@ EOF
 }
 
 pull_latest() {
-  if [[ -n "$(git status --porcelain 2>/dev/null)" ]]; then
-    die "Uncommitted changes detected. Commit, stash, or discard them before updating."
+  if [[ -n "$(git status --porcelain --untracked-files=no 2>/dev/null)" ]]; then
+    die "Uncommitted changes to tracked files detected. Commit, stash, or discard them before updating."
   fi
 
   if ! git remote get-url "$GITHUB_REMOTE" >/dev/null 2>&1; then
