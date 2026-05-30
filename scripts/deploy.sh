@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Initial setup and updates: pull main, prepare env, rebuild & start via Docker Compose.
+# Initial setup and updates: pull latest from the configured branch, prepare env, rebuild & start via Docker Compose.
 # Pass targets to rebuild only specific services (faster for app-only changes).
 set -euo pipefail
 
@@ -7,8 +7,12 @@ REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$REPO_ROOT"
 
 GITHUB_REMOTE="${GITHUB_REMOTE:-origin}"
-GITHUB_BRANCH="${GITHUB_BRANCH:-main}"
 REPO_URL="${REPO_URL:-https://github.com/whoppercheese/open-binder.git}"
+
+if [[ -z "${GITHUB_BRANCH:-}" && -d .git ]]; then
+  GITHUB_BRANCH="$(git symbolic-ref -q --short HEAD 2>/dev/null || true)"
+fi
+GITHUB_BRANCH="${GITHUB_BRANCH:-main}"
 
 VALID_TARGETS=(full app worker migrate postgres)
 IMAGE_TARGETS=(app worker migrate)
