@@ -9,7 +9,8 @@ FROM base AS builder
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 ENV NEXT_TELEMETRY_DISABLED=1
-RUN npm run build
+ARG BUILD_TIMESTAMP
+RUN NEXT_PUBLIC_BUILD_TIMESTAMP="${BUILD_TIMESTAMP:-$(date -u +%Y-%m-%dT%H:%M:%SZ)}" npm run build
 
 FROM base AS runner
 ENV NODE_ENV=production

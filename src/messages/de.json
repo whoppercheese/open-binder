@@ -43,7 +43,8 @@
     "issueKindSet": "Set",
     "issueKindCard": "Karte",
     "issueKindJob": "Job",
-    "disclaimer": "OpenBinder ist ein inoffizielles Fan-Tool. Pokémon und alle zugehörigen Marken sind Eigentum von Nintendo / Creatures Inc. / GAME FREAK inc. Kartendaten via TCGdex, Preise via Cardmarket (über TCGdex)."
+    "disclaimer": "OpenBinder ist ein inoffizielles Fan-Tool. Pokémon und alle zugehörigen Marken sind Eigentum von Nintendo / Creatures Inc. / GAME FREAK inc. Kartendaten via TCGdex, Preise via Cardmarket (über TCGdex).",
+    "buildTimestamp": "Gebaut am {date}"
   },
   "dashboard": {
     "title": "Dashboard",

@@ -43,7 +43,8 @@
     "issueKindSet": "Set",
     "issueKindCard": "Card",
     "issueKindJob": "Job",
-    "disclaimer": "OpenBinder is an unofficial fan tool. Pokémon and all related brands are property of Nintendo / Creatures Inc. / GAME FREAK inc. Card data via TCGdex, prices via Cardmarket (via TCGdex)."
+    "disclaimer": "OpenBinder is an unofficial fan tool. Pokémon and all related brands are property of Nintendo / Creatures Inc. / GAME FREAK inc. Card data via TCGdex, prices via Cardmarket (via TCGdex).",
+    "buildTimestamp": "Built {date}"
   },
   "dashboard": {
     "title": "Dashboard",

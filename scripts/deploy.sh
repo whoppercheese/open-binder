@@ -25,7 +25,7 @@ usage() {
 Usage: $(basename "$0") [TARGET...]
 
 Targets:
-  full (default)  Stop stack, pull, rebuild and start everything.
+  full (default)  Pull, rebuild images, migrate, and restart app and worker.
   app             Pull, rebuild app image, restart app only.
   worker          Pull, rebuild image, restart worker only.
   migrate         Pull, rebuild image, run database migrations.
@@ -111,13 +111,8 @@ require_cmd docker
 require_cmd git
 docker compose version >/dev/null 2>&1 || die "'docker compose' (Compose v2 plugin) is required."
 
-stop_compose() {
-  if docker compose ps -q 2>/dev/null | grep -q .; then
-    log "Stopping running services…"
-    docker compose down
-  else
-    log "No running Compose services."
-  fi
+compose_has_services() {
+  docker compose ps -q 2>/dev/null | grep -q .
 }
 
 ensure_git_repo() {
@@ -184,9 +179,16 @@ run_migrate() {
   docker compose run --rm migrate
 }
 
-start_full_compose() {
-  log "Building images and starting services (migrate runs automatically)…"
+start_initial_compose() {
+  log "First start — building images and starting full stack…"
   docker compose up -d --build --pull always
+}
+
+deploy_full_update() {
+  build_app_image
+  run_migrate
+  log "Restarting: app worker…"
+  docker compose up -d --no-deps app worker
 }
 
 start_partial_compose() {
@@ -225,9 +227,12 @@ main() {
   ensure_env_file
 
   if target_selected full; then
-    stop_compose
     pull_latest
-    start_full_compose
+    if compose_has_services; then
+      deploy_full_update
+    else
+      start_initial_compose
+    fi
   else
     pull_latest
     ensure_postgres_running

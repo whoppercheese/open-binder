@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "SW_CACHE_VERSION=dev node scripts/generate-sw.mjs && next dev",
-    "build": "node scripts/generate-sw.mjs && next build",
+    "build": "node scripts/generate-sw.mjs && node scripts/next-build.mjs",
     "generate-sw": "node scripts/generate-sw.mjs",
     "generate-icons": "node scripts/generate-icons.mjs",
     "start": "next start",

@@ -25,6 +25,8 @@ import {
   type CardCondition,
 } from "@/lib/utils";
 
+const BUILD_TIMESTAMP = process.env.NEXT_PUBLIC_BUILD_TIMESTAMP;
+
 type SyncJob = {
   id: string;
   jobType: "catalog" | "set_cards" | "prices";
@@ -346,6 +348,14 @@ export default function SettingsPage() {
       <p className="text-xs leading-relaxed text-zinc-600">
         {t("settings.disclaimer")}
       </p>
+
+      {BUILD_TIMESTAMP ? (
+        <p className="text-xs text-zinc-600">
+          {t("settings.buildTimestamp", {
+            date: formatDate(BUILD_TIMESTAMP, locale),
+          })}
+        </p>
+      ) : null}
 
       <ConfirmDialog
         open={confirmClearOpen}
