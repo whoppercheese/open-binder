@@ -106,8 +106,6 @@ if ! ./scripts/deploy.sh; then
 fi
 log "Deploy finished"
 
-touch "${INSTALL_DIR}/.openbinder-proxmox"
-grep -qxF '.openbinder-proxmox' "${INSTALL_DIR}/.gitignore" 2>/dev/null ||
-  printf '\n.openbinder-proxmox\n' >>"${INSTALL_DIR}/.gitignore"
+touch /root/.openbinder-proxmox-installed
 install_update_command
 log "OpenBinder is available at http://${LOCAL_IP}:3000"
