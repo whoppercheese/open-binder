@@ -1,7 +1,7 @@
 import { eq } from "drizzle-orm";
 import { db } from "@/db/client";
 import { appSettings } from "@/db/schema";
-import { isCardCondition, type CardCondition } from "@/lib/utils";
+import { normalizeLegacyCondition, type CardCondition } from "@/lib/utils";
 
 export async function getSetting(
   key: string,
@@ -32,7 +32,7 @@ export async function getPricePreference(): Promise<PricePreference> {
 
 export async function getDefaultCondition(): Promise<CardCondition> {
   const value = await getSetting("default_condition", "nm");
-  return isCardCondition(value) ? value : "nm";
+  return normalizeLegacyCondition(value) ?? "nm";
 }
 
 export async function getUiLanguage(): Promise<"en" | "de"> {

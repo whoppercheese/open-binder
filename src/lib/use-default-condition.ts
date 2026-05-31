@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { isCardCondition, type CardCondition } from "@/lib/utils";
+import { normalizeLegacyCondition, type CardCondition } from "@/lib/utils";
 
 export function useDefaultCondition() {
   const [defaultCondition, setDefaultCondition] = useState<CardCondition>("nm");
@@ -11,8 +11,11 @@ export function useDefaultCondition() {
     if (!response.ok) return;
 
     const data = (await response.json()) as { defaultCondition?: string };
-    if (data.defaultCondition && isCardCondition(data.defaultCondition)) {
-      setDefaultCondition(data.defaultCondition);
+    if (data.defaultCondition) {
+      const normalized = normalizeLegacyCondition(data.defaultCondition);
+      if (normalized) {
+        setDefaultCondition(normalized);
+      }
     }
   }, []);
 

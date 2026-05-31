@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { ChevronDown, RefreshCw } from "lucide-react";
+import { ChevronDown, ExternalLink, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   formatJobStatusLabel,
@@ -19,6 +19,7 @@ import { MobilePage, MobilePageHeader } from "@/components/mobile-page";
 import { clearAllOfflineData, getOfflineCacheStats } from "@/lib/offline/db";
 import { useOffline } from "@/lib/offline/offline-provider";
 import { UI_LOCALES, type UiLocale } from "@/lib/i18n/locale";
+import { getCardmarketConditionHelpUrl } from "@/lib/cardmarket";
 import {
   CARD_CONDITIONS,
   formatDate,
@@ -199,7 +200,7 @@ export default function SettingsPage() {
       <section className="space-y-3 rounded-2xl border border-white/10 bg-white/[0.03] p-4">
         <h2 className="font-medium">{t("settings.defaultCondition")}</h2>
         <p className="text-sm text-zinc-400">{t("settings.defaultConditionHelp")}</p>
-        <div className="grid grid-cols-3 gap-2 sm:grid-cols-5">
+        <div className="grid grid-cols-4 gap-2 sm:grid-cols-7">
           {CARD_CONDITIONS.map((value) => (
             <ConditionBadgeButton
               key={value}
@@ -209,6 +210,15 @@ export default function SettingsPage() {
             />
           ))}
         </div>
+        <a
+          href={getCardmarketConditionHelpUrl(locale)}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-flex items-center gap-1 text-sm text-zinc-500 transition hover:text-emerald-400 hover:underline"
+        >
+          {t("settings.defaultConditionCardmarketHelp")}
+          <ExternalLink className="h-3.5 w-3.5 shrink-0 opacity-80" aria-hidden />
+        </a>
       </section>
 
       <section className="space-y-3 rounded-2xl border border-white/10 bg-white/[0.03] p-4">

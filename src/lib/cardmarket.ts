@@ -38,6 +38,11 @@ export async function fetchProductCatalog(): Promise<CardmarketProductCatalog> {
   return response.json() as Promise<CardmarketProductCatalog>;
 }
 
+export function getCardmarketConditionHelpUrl(locale?: UiLocale): string {
+  const lang = cardmarketLocalePath(locale ?? "en");
+  return `https://help.cardmarket.com/${lang}/CardCondition`;
+}
+
 export function getCardmarketProductUrl(
   productId: number,
   options?: { foil?: boolean; locale?: UiLocale },

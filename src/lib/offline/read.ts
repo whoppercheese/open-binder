@@ -18,7 +18,11 @@ import type {
   CollectionSummary,
 } from "@/lib/offline/types";
 import { fetchAllEntriesPages } from "@/lib/offline/utils";
-import { sortAvailableConditions, type CardCondition } from "@/lib/utils";
+import {
+  normalizeLegacyCondition,
+  sortAvailableConditions,
+  type CardCondition,
+} from "@/lib/utils";
 
 export type LoadResult<T> =
   | { ok: true; data: T; fromCache: boolean }
@@ -75,7 +79,10 @@ export function filterCollectionEntries(
     filtered = filtered.filter((item) => item.cardId === cardId);
   }
   if (options.condition) {
-    filtered = filtered.filter((item) => item.condition === options.condition);
+    filtered = filtered.filter(
+      (item) =>
+        normalizeLegacyCondition(item.condition) === options.condition,
+    );
   }
   return filtered;
 }

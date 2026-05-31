@@ -460,7 +460,7 @@ function CardModalForm({
 
                 <div className="block space-y-2">
                   <span className="text-zinc-400">{t("cardModal.condition")}</span>
-                  <div className="grid grid-cols-5 gap-2">
+                  <div className="grid grid-cols-4 gap-2 sm:grid-cols-7">
                     {CARD_CONDITIONS.map((value) => (
                       <ConditionBadgeButton
                         key={value}

@@ -29,11 +29,13 @@ export const variantTypeEnum = pgEnum("variant_type", [
 ]);
 
 export const conditionEnum = pgEnum("card_condition", [
-  "mint",
+  "mt",
   "nm",
+  "ex",
+  "gd",
   "lp",
-  "mp",
-  "hp",
+  "pl",
+  "po",
 ]);
 
 export const languageEnum = pgEnum("card_language", ["de", "en"]);

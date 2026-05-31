@@ -4,7 +4,7 @@ import type { CardCondition } from "@/lib/utils";
 
 export const OFFLINE_DB_NAME = "openbinder-offline";
 export const OFFLINE_DB_VERSION = 2;
-export const OFFLINE_SCHEMA_VERSION = 1;
+export const OFFLINE_SCHEMA_VERSION = 2;
 
 export type CollectionSummary = {
   id: string;

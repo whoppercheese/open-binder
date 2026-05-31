@@ -5,7 +5,7 @@ import {
   cn,
   conditionBadgeClassName,
   CONDITION_I18N_KEYS,
-  isCardCondition,
+  normalizeLegacyCondition,
   type CardCondition,
 } from "@/lib/utils";
 
@@ -23,7 +23,7 @@ export function ConditionBadge({
   className,
 }: ConditionBadgeProps) {
   const t = useTranslations();
-  const resolved = isCardCondition(condition) ? condition : null;
+  const resolved = normalizeLegacyCondition(condition);
 
   return (
     <span

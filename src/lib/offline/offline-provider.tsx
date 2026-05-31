@@ -22,6 +22,8 @@ import {
 import {
   COLLECTION_MUTATED_EVENT,
   FULL_MIRROR_EVENT,
+  notifyFullMirror,
+  OFFLINE_SCHEMA_VERSION,
   type CollectionMutatedDetail,
 } from "@/lib/offline/types";
 import { useLocale } from "@/lib/i18n/context";
@@ -53,6 +55,9 @@ export function OfflineProvider({ children }: { children: ReactNode }) {
       ]);
       setLastSyncedAt(meta?.lastFullSyncAt ?? null);
       setHasCachedData(cached);
+      if (meta && meta.schemaVersion !== OFFLINE_SCHEMA_VERSION) {
+        notifyFullMirror();
+      }
     } catch {
       setHasCachedData(false);
     } finally {
