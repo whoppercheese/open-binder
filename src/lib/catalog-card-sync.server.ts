@@ -10,7 +10,7 @@ import {
   getLocalizedString,
   type LocalizedStrings,
 } from "@/lib/catalog-languages";
-import { upsertVariantWithPricing } from "@/lib/card-pricing.server";
+import { upsertVariantWithCardmarketId } from "@/lib/card-pricing.server";
 import { ensureCardImage } from "@/lib/image-storage";
 import type { UiLocale } from "@/lib/i18n/locale";
 import { normalizeRarity } from "@/lib/rarity";
@@ -27,7 +27,6 @@ import {
   buildMultilangNameHints,
   mergeSetLocalizedFields,
   pickSetImageDetails,
-  pricingForVariant,
   resolveCardImageCandidates,
   resolveSetCardSummariesFromDetails,
   type TcgdexSetDetail,
@@ -159,11 +158,10 @@ export async function syncSingleCard(
   await rebuildCardSearchVectors(card.id);
 
   const variantTypes = deriveVariantTypes(card.variants);
-  const pricing = card.pricing?.cardmarket;
+  const cardmarketProductId = card.pricing?.cardmarket?.idProduct ?? null;
 
   for (const variantType of variantTypes) {
-    const variantPricing = pricingForVariant(variantType, pricing, card.variants);
-    await upsertVariantWithPricing(card.id, variantType, variantPricing);
+    await upsertVariantWithCardmarketId(card.id, variantType, cardmarketProductId);
   }
 }
 

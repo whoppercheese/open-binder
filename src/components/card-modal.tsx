@@ -33,9 +33,6 @@ import { useDefaultCondition } from "@/lib/use-default-condition";
 import {
   CARD_CONDITIONS,
   cn,
-  formatCardPriceLabel,
-  formatCurrency,
-  hasCardPrice,
   resolveSetDisplayCode,
   type CardCondition,
 } from "@/lib/utils";
@@ -44,7 +41,6 @@ export type CardVariantOption = {
   id: string;
   variantType: string;
   ownedQuantity?: number | null;
-  price?: number | null;
   cardmarketProductId?: number | null;
 };
 
@@ -386,8 +382,6 @@ function CardModalForm({
                       {variant.ownedQuantity != null && variant.ownedQuantity > 0
                         ? ` · ×${variant.ownedQuantity}`
                         : ""}
-                      {" · "}
-                      {formatCardPriceLabel(variant.price, t("common.price"), locale)}
                     </p>
                   ))}
                 </div>
@@ -405,7 +399,6 @@ function CardModalForm({
                     {card.variants.map((variant) => (
                       <option key={variant.id} value={variant.id}>
                         {variantLabel(variant.variantType)}
-                        {` · ${formatCardPriceLabel(variant.price, t("common.price"), locale)}`}
                       </option>
                     ))}
                   </select>
@@ -556,48 +549,29 @@ function CardModalForm({
               )
             ) : null}
 
-            {!needsSetDownload && selectedVariant ? (
+            {!needsSetDownload && selectedVariant?.cardmarketProductId ? (
               <p className="mb-3 text-sm">
-                {selectedVariant.cardmarketProductId &&
-                selectedVariant.price != null &&
-                !readOnly ? (
-                  <a
-                    href={getCardmarketProductUrl(
-                      selectedVariant.cardmarketProductId,
-                      {
-                        foil: cardmarketIsFoilForVariant(
-                          selectedVariant.variantType as VariantType,
-                          availableVariantTypes,
-                        ),
-                        locale,
-                      },
-                    )}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center gap-1 font-medium text-emerald-400 transition hover:text-emerald-300 hover:underline"
-                  >
-                    {t("cardModal.cardmarketLink", {
-                      price: formatCurrency(selectedVariant.price, "EUR", locale),
-                    })}
-                    <ExternalLink
-                      className="h-3.5 w-3.5 shrink-0 opacity-80"
-                      aria-hidden
-                    />
-                  </a>
-                ) : (
-                  <span className="text-zinc-400 tabular-nums">
-                    {t("cardModal.cardmarketPrice")}{" "}
-                    {hasCardPrice(selectedVariant.price) ? (
-                      <span className="font-medium text-emerald-400">
-                        {formatCurrency(selectedVariant.price, "EUR", locale)}
-                      </span>
-                    ) : (
-                      <span className="font-semibold">
-                        {t("common.priceUnavailable")}
-                      </span>
-                    )}
-                  </span>
-                )}
+                <a
+                  href={getCardmarketProductUrl(
+                    selectedVariant.cardmarketProductId,
+                    {
+                      foil: cardmarketIsFoilForVariant(
+                        selectedVariant.variantType as VariantType,
+                        availableVariantTypes,
+                      ),
+                      locale,
+                    },
+                  )}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1 font-medium text-emerald-400 transition hover:text-emerald-300 hover:underline"
+                >
+                  {t("cardModal.cardmarketLink")}
+                  <ExternalLink
+                    className="h-3.5 w-3.5 shrink-0 opacity-80"
+                    aria-hidden
+                  />
+                </a>
               </p>
             ) : null}
 

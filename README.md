@@ -5,14 +5,14 @@
 <h1 align="center">OpenBinder</h1>
 
 <p align="center">
-  Mobile-first, self-hostable web app to manage your Pokémon TCG collection — with multiple collections, checklists, inventory tracking, and Cardmarket EUR portfolio values.
+  Mobile-first, self-hostable web app to manage your Pokémon TCG collection — with multiple collections, checklists, inventory tracking, and direct Cardmarket links.
 </p>
 
 ---
 
 ## Overview
 
-OpenBinder is an unofficial fan tool for Pokémon TCG collectors who want **multiple binders**, **set progress**, and a **live EUR portfolio** without spreadsheets. Card data comes from [TCGdex](https://tcgdex.dev); prices from Cardmarket (via TCGdex). The app runs as a **Progressive Web App (PWA)** — install it on your phone or use it in the browser, with a mobile-first layout and bottom navigation.
+OpenBinder is an unofficial fan tool for Pokémon TCG collectors who want **multiple binders**, **set progress**, and easy **Cardmarket links** without spreadsheets. Card data comes from [TCGdex](https://tcgdex.dev). The app runs as a **Progressive Web App (PWA)** — install it on your phone or use it in the browser, with a mobile-first layout and bottom navigation.
 
 **Navigation:** Dashboard · Sets · Collections · Search · Settings
 
@@ -77,7 +77,7 @@ OpenBinder organizes your cards in **multiple collections** (*Sammlungen*) — t
 3. **Record what you own** — open the collection, switch to the **Checklist** tab, tap or long-press a card to add copies to **Inventory** (*Bestand*).
 4. **Review inventory** — the **Inventory** tab lists all recorded copies with quantity, value, search, and edit/delete.
 
-The dashboard **portfolio value** sums inventory across **all collections**. The legacy route `/collection` redirects to `/collections`.
+The legacy route `/collection` redirects to `/collections`.
 
 ---
 
@@ -87,8 +87,7 @@ The dashboard **portfolio value** sums inventory across **all collections**. The
 
 Home screen with a snapshot across all collections:
 
-- **Portfolio value** — estimated total in EUR (Cardmarket, based on your Trend/Low price setting)
-- **Cards & entries** — physical card count vs. inventory entries (different variants/conditions count separately)
+- **Inventory overview** — unique card count and total copies across all collections
 - **Your collections** — up to six collections by progress (*X of Y in inventory* / *X von Y im Bestand*); link to all collections
 - **Recently recorded** (*Zuletzt erfasst*) — latest inventory entries; tap opens that collection’s Inventory tab filtered to the card
 
@@ -109,7 +108,7 @@ Catalog view for a single set — browse cards and manage set collections:
 
 - **Your collections for this set** — list with progress; **Create collection from set** (*Sammlung aus Set erstellen*)
 - Hint: *“To track your progress, create a collection from this set.”*
-- **Card grid** (3–4 columns) with number, name, Cardmarket price, and checklist badge (*On N checklist(s)* / *Auf N Checkliste(n)*)
+- **Card grid** (3–4 columns) with number, name, and checklist badge (*On N checklist(s)* / *Auf N Checkliste(n)*)
 - **Tap** → card preview modal → **Add to checklist** (see below)
 - **Long-press (select mode)** → select multiple cards and add to checklists in bulk (see below)
 - **Filters** by **rarity** (Common, Rare, Ultra Rare, … — German labels in the UI)
@@ -124,7 +123,7 @@ Find cards across the full catalog and add them to checklists:
   - **Name** — e.g. “Glurak” (Charizard)
   - **Number** — e.g. “4”
   - **Set + number** — e.g. “Dschungel 60” or “BS 4”
-- Results show set name, Cardmarket price, and checklist badge
+- Results show set name and checklist badge
 - **Tap** → card preview modal → **Add to checklist**
 - **Long-press (select mode)** → select multiple cards and add to checklists in bulk (see below)
 - With `?collectionId=…` (from a custom collection’s *Go to search* link): subtitle becomes *“Add cards to checklist”*
@@ -155,14 +154,13 @@ Inside a single collection — where progress and ownership live:
 
 #### Inventory tab (*Bestand*)
 
-- **Summary** — entry count and total value
+- **Summary** — entry count
 - **Search** by name, number, or set
 - **Card filter** — via URL `?view=entries&cardId=…` (e.g. from the card modal or dashboard)
 - **Infinite scroll** — loads more entries while scrolling (20 per page)
 - Per entry:
   - Card image (tap → lightbox with zoom)
   - Variant, condition, language, notes
-  - Cardmarket value (quantity × price)
   - **Quantity** via +/- (at 0 → confirm delete)
   - **Delete** with confirmation dialog
 
@@ -170,11 +168,9 @@ Inside a single collection — where progress and ownership live:
 
 ### Settings (`/settings`)
 
-- **Cardmarket price** — *Trend* or *Low* for portfolio calculation and display
 - **Default condition** (*Standard-Zustand*) — used for Quick Add and as preset when recording new copies in the card modal
 - **Manual sync**
   - *Sync sets* — refresh set metadata from the catalog
-  - *Sync prices now* — fetch Cardmarket prices immediately
 - **Job history** — status, progress, and error details for recent sync jobs
 - Note: the **worker** must be running for sync jobs to be processed
 
@@ -231,14 +227,12 @@ OpenBinder syncs data in **three stages** via a background worker (pg-boss):
 | --- | --- | --- | --- |
 | **Catalog (sets)** | Set metadata (name, series, code, logos) | Weekly Sun 03:00 UTC · on first start (empty DB) | Worker bootstrap, manual in Settings |
 | **Card data (per set)** | Cards, variants, images → local disk | On demand | “Load cards” on set list or set detail |
-| **Prices** | Cardmarket EUR (Trend + Low) | Daily 04:00 UTC | Automatic, manual in Settings |
 
 **First-start flow:**
 
 1. Worker starts, detects empty database → initial catalog sync (15–30 min)
 2. Set list appears; card data per set must be **loaded on demand**
 3. Images are stored under `storage/images` during card sync (configurable via `IMAGE_STORAGE_PATH`)
-4. Prices update daily or on manual trigger
 
 **Important:** App and worker run separately — without the worker, sync jobs stay queued. Docker Compose includes both services.
 
@@ -246,14 +240,9 @@ For faster local testing, use `CATALOG_SET_IDS` and `CATALOG_SET_CARD_LIMIT` (se
 
 ---
 
-## Portfolio & prices
+## Cardmarket links
 
-- Values based on **Cardmarket EUR** via TCGdex
-- Configurable: **Trend price** (default) or **Low price**
-- Separate price per **variant** (Normal vs. Holo vs. Reverse Holo vs. 1st Edition)
-- Portfolio = Σ (price × quantity) across all **inventory entries in all collections**
-- Per-collection totals appear on each collection’s Inventory tab
-- Cards without a price are counted but excluded from the total value
+Each card variant has a direct link to its Cardmarket product page (stored during card sync via TCGdex). The link opens in your browser so you can look up current prices, seller listings, and condition details yourself. No EUR values are stored or displayed in the app.
 
 ---
 
@@ -277,7 +266,6 @@ When you go **offline**, the app switches to a **read-only offline view**:
 | --- | --- |
 | All tabs (Dashboard, Sets, Collections, Search, Settings) | **Collections only** — other tabs are disabled |
 | Full editing (checklist, inventory, create binders) | **View only** — browse binders, open checklist & inventory tabs, inspect card details |
-| Live Cardmarket prices | Values from last sync |
 | Search & catalog browsing | Not available |
 
 A banner at the top shows **“Offline view · as of {date} · read-only”** (with the timestamp of the last full sync). Within Collections, you can switch between the binder list and individual binders without a network connection — navigation stays in-memory so iOS Safari does not show a native offline error page.
@@ -294,7 +282,7 @@ In **Settings → Offline cache** you can see how many binders are cached, when 
 
 - Dashboard, Sets, Search, and Settings
 - Creating or editing binders, checklists, or inventory entries
-- Catalog sync, search, and live price updates
+- Catalog sync and search
 
 ---
 

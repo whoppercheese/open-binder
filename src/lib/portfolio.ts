@@ -1,7 +1,6 @@
 import { and, eq, sql } from "drizzle-orm";
 import { db } from "@/db/client";
 import {
-  cardPrices,
   cards,
   cardVariants,
   sets,
@@ -22,10 +21,8 @@ import type { UiLocale } from "@/lib/i18n/locale";
 import { getLocalizedString } from "@/lib/catalog-languages";
 import { buildCardVariantEntry } from "@/lib/card-variants.server";
 import { getSetCollectionEntryCount } from "@/lib/set-cards";
-import { getPricePreference, pickPrice } from "@/lib/settings";
 
 export async function getPortfolioSummary(locale: UiLocale = "en") {
-  const preference = await getPricePreference();
   const cardNameSql = localizedCardNameSql(locale);
   const setNameSql = localizedSetNameSql(locale);
 
@@ -33,8 +30,6 @@ export async function getPortfolioSummary(locale: UiLocale = "en") {
     .select({
       cardId: cards.id,
       quantity: userCards.quantity,
-      trendEur: cardPrices.trendEur,
-      lowEur: cardPrices.lowEur,
       cardName: cardNameSql,
       setName: setNameSql,
       updatedAt: userCards.updatedAt,
@@ -42,11 +37,8 @@ export async function getPortfolioSummary(locale: UiLocale = "en") {
     .from(userCards)
     .innerJoin(cardVariants, eq(userCards.variantId, cardVariants.id))
     .innerJoin(cards, eq(cardVariants.cardId, cards.id))
-    .innerJoin(sets, eq(cards.setId, sets.id))
-    .leftJoin(cardPrices, eq(cardPrices.variantId, cardVariants.id));
+    .innerJoin(sets, eq(cards.setId, sets.id));
 
-  let totalValue = 0;
-  let cardsWithPrice = 0;
   let totalCards = 0;
   const uniqueCardIds = new Set<string>();
 
@@ -55,11 +47,6 @@ export async function getPortfolioSummary(locale: UiLocale = "en") {
       uniqueCardIds.add(row.cardId);
     }
     totalCards += row.quantity;
-    const unit = pickPrice(row, preference);
-    if (unit != null) {
-      totalValue += unit * row.quantity;
-      cardsWithPrice += row.quantity;
-    }
   }
 
   const allCollections = await listCollections(locale);
@@ -131,23 +118,14 @@ export async function getPortfolioSummary(locale: UiLocale = "en") {
     orderBy: (table, { desc }) => [desc(table.createdAt)],
   });
 
-  const latestPriceSync = await db.query.syncJobs.findFirst({
-    where: eq(syncJobs.jobType, "prices"),
-    orderBy: (table, { desc }) => [desc(table.createdAt)],
-  });
-
   return {
-    totalValue,
     totalCards,
-    cardsWithPrice,
     uniqueCards: uniqueCardIds.size,
     collections: topCollections,
     recent,
     sync: {
       catalog: latestCatalogSync ?? null,
-      prices: latestPriceSync ?? null,
     },
-    pricePreference: preference,
   };
 }
 
@@ -157,7 +135,6 @@ export async function getSetWithCards(setId: string, locale: UiLocale = "en") {
   });
   if (!set) return null;
 
-  const preference = await getPricePreference();
   const cardNameSql = localizedCardNameSql(locale);
 
   const setCards = await db
@@ -172,25 +149,10 @@ export async function getSetWithCards(setId: string, locale: UiLocale = "en") {
       cardmarketProductId: cardVariants.cardmarketProductId,
       ownedQuantity: sql<number>`0::int`,
       flagged: sql<boolean>`false`,
-      trendEur: cardPrices.trendEur,
-      lowEur: cardPrices.lowEur,
     })
     .from(cards)
     .innerJoin(cardVariants, eq(cardVariants.cardId, cards.id))
-    .leftJoin(cardPrices, eq(cardPrices.variantId, cardVariants.id))
     .where(eq(cards.setId, setId))
-    .groupBy(
-      cards.id,
-      cards.number,
-      cards.names,
-      cards.rarity,
-      cards.imageUrl,
-      cardVariants.id,
-      cardVariants.variantType,
-      cardVariants.cardmarketProductId,
-      cardPrices.trendEur,
-      cardPrices.lowEur,
-    )
     .orderBy(sql`lpad(${cards.number}, 4, '0')`, cardVariants.variantType);
 
   const grouped = new Map<
@@ -209,7 +171,6 @@ export async function getSetWithCards(setId: string, locale: UiLocale = "en") {
         id: string;
         variantType: string;
         ownedQuantity: number;
-        price: number | null;
         cardmarketProductId: number | null;
       }>;
     }
@@ -234,7 +195,7 @@ export async function getSetWithCards(setId: string, locale: UiLocale = "en") {
     existing.owned = existing.owned || ownedQuantity > 0;
     existing.flagged = existing.flagged || Boolean(row.flagged);
     existing.variants.push(
-      buildCardVariantEntry(row, preference, ownedQuantity),
+      buildCardVariantEntry(row, ownedQuantity),
     );
     grouped.set(row.id, existing);
   }
@@ -280,7 +241,6 @@ export async function getCardWithVariants(
   locale: UiLocale = "en",
   collectionId?: string,
 ) {
-  const preference = await getPricePreference();
   const cardNameSql = localizedCardNameSql(locale);
   const setNameSql = localizedSetNameSql(locale);
 
@@ -297,8 +257,6 @@ export async function getCardWithVariants(
       variantType: cardVariants.variantType,
       cardmarketProductId: cardVariants.cardmarketProductId,
       ownedQuantity: sql<number>`coalesce(sum(${userCards.quantity}), 0)::int`,
-      trendEur: cardPrices.trendEur,
-      lowEur: cardPrices.lowEur,
     })
     .from(cards)
     .innerJoin(sets, eq(cards.setId, sets.id))
@@ -312,7 +270,6 @@ export async function getCardWithVariants(
           )
         : sql`false`,
     )
-    .leftJoin(cardPrices, eq(cardPrices.variantId, cardVariants.id))
     .where(eq(cards.id, cardId))
     .groupBy(
       cards.id,
@@ -325,8 +282,6 @@ export async function getCardWithVariants(
       cardVariants.id,
       cardVariants.variantType,
       cardVariants.cardmarketProductId,
-      cardPrices.trendEur,
-      cardPrices.lowEur,
     )
     .orderBy(cardVariants.variantType);
 
@@ -334,9 +289,9 @@ export async function getCardWithVariants(
     return null;
   }
 
-  const first = rows[0];
+  const first = rows[0]!;
   const variants = rows.map((row) =>
-    buildCardVariantEntry(row, preference, Number(row.ownedQuantity)),
+    buildCardVariantEntry(row, Number(row.ownedQuantity)),
   );
 
   return {

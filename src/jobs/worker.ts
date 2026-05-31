@@ -5,7 +5,6 @@ import {
   ensureQueues,
   getBoss,
   JOB_CATALOG_SYNC,
-  JOB_PRICE_SYNC,
   JOB_SET_CARDS_SYNC,
   scheduleRecurringJobs,
 } from "./boss";
@@ -14,7 +13,6 @@ import {
   runSetsSync,
   runWeeklyCatalogRefresh,
 } from "./sync-catalog";
-import { runPriceSync } from "./sync-prices";
 import { requeueInterruptedSyncJobs } from "./sync-job-utils";
 
 loadEnvFile();
@@ -59,15 +57,6 @@ async function main() {
     }
   });
 
-  await boss.work(JOB_PRICE_SYNC, async (jobs) => {
-    for (const job of jobs) {
-      console.log("[worker] Price sync started");
-      const jobId = (job.data as { jobId?: string }).jobId;
-      await runPriceSync(jobId);
-      console.log("[worker] Price sync finished");
-    }
-  });
-
   const shouldBootstrap =
     process.env.BOOTSTRAP_CATALOG_SYNC === "true" ||
     process.env.NODE_ENV !== "production";
@@ -80,7 +69,7 @@ async function main() {
         .insert(syncJobs)
         .values({ jobType: "catalog", status: "pending" })
         .returning();
-      await boss.send(JOB_CATALOG_SYNC, { jobId: bootstrapJob.id });
+      await boss.send(JOB_CATALOG_SYNC, { jobId: bootstrapJob!.id });
     }
   }
 

@@ -432,7 +432,6 @@ export default function SearchPage() {
               ownedQuantity:
                 (card.ownedQuantity ?? 0) > 0 ? card.ownedQuantity : undefined,
               checklistCount: card.checklistCount ?? 0,
-              price: card.variants.find((variant) => variant.price != null)?.price,
             }}
             selected={selection.isSelected(card.id)}
             longPressPreset="select"

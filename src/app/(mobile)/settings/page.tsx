@@ -44,7 +44,6 @@ type SyncJob = {
 export default function SettingsPage() {
   const { locale, setLocale } = useLocale();
   const t = useTranslations();
-  const [pricePreference, setPricePreference] = useState<"trend" | "low">("trend");
   const [defaultCondition, setDefaultCondition] = useState<CardCondition>("nm");
   const [jobs, setJobs] = useState<SyncJob[]>([]);
   const [loading, setLoading] = useState<string | null>(null);
@@ -65,7 +64,6 @@ export default function SettingsPage() {
     ]);
     const settings = await settingsRes.json();
     const sync = await syncRes.json();
-    setPricePreference(settings.pricePreference ?? "trend");
     setDefaultCondition(settings.defaultCondition ?? "nm");
     setJobs(sync.jobs ?? []);
     setCacheStats(offlineStats);
@@ -92,18 +90,6 @@ export default function SettingsPage() {
   const catalogActive = jobs.some(
     (job) => job.jobType === "catalog" && isActiveSyncJob(job.status),
   );
-  const pricesActive = jobs.some(
-    (job) => job.jobType === "prices" && isActiveSyncJob(job.status),
-  );
-
-  async function savePreference(value: "trend" | "low") {
-    setPricePreference(value);
-    await fetch("/api/settings", {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ pricePreference: value }),
-    });
-  }
 
   async function saveDefaultCondition(value: CardCondition) {
     setDefaultCondition(value);
@@ -123,7 +109,7 @@ export default function SettingsPage() {
     });
   }
 
-  async function triggerSync(type: "catalog" | "prices") {
+  async function triggerSync(type: "catalog") {
     setSyncError(null);
     setLoading(type);
     const response = await fetch("/api/sync", {
@@ -172,26 +158,6 @@ export default function SettingsPage() {
               }`}
             >
               {value === "en" ? t("settings.languageEn") : t("settings.languageDe")}
-            </button>
-          ))}
-        </div>
-      </section>
-
-      <section className="space-y-3 rounded-2xl border border-white/10 bg-white/[0.03] p-4">
-        <h2 className="font-medium">{t("settings.cardmarketPrice")}</h2>
-        <div className="grid grid-cols-2 gap-2">
-          {(["trend", "low"] as const).map((value) => (
-            <button
-              key={value}
-              type="button"
-              onClick={() => savePreference(value)}
-              className={`rounded-xl px-3 py-2 text-sm font-medium ${
-                pricePreference === value
-                  ? "bg-emerald-500 text-black"
-                  : "bg-white/5 text-zinc-300"
-              }`}
-            >
-              {value === "trend" ? t("settings.priceTrend") : t("settings.priceLow")}
             </button>
           ))}
         </div>
@@ -268,18 +234,6 @@ export default function SettingsPage() {
             onClick={() => triggerSync("catalog")}
           >
             {t("settings.syncSets")}
-          </Button>
-          <Button
-            variant="secondary"
-            fullWidth
-            loading={loading === "prices"}
-            disabled={loading != null || pricesActive}
-            icon={
-              loading !== "prices" ? <RefreshCw className="h-4 w-4" /> : undefined
-            }
-            onClick={() => triggerSync("prices")}
-          >
-            {t("settings.syncPricesNow")}
           </Button>
         </div>
       </section>

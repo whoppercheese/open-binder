@@ -2,7 +2,7 @@ import "server-only";
 
 import { and, eq, inArray, sql } from "drizzle-orm";
 import { db } from "@/db/client";
-import { cardPrices, cards, cardVariants, sets, userCards } from "@/db/schema";
+import { cards, cardVariants, sets, userCards } from "@/db/schema";
 import {
   localizedCardNameSql,
   localizedSetNameSql,
@@ -16,7 +16,6 @@ import {
 import { getChecklistCountsForCardIds } from "@/lib/checklist-membership.server";
 import { getInventoryCountsForCardIds } from "@/lib/inventory-counts.server";
 import type { UiLocale } from "@/lib/i18n/locale";
-import { getPricePreference } from "@/lib/settings";
 
 export type CardSearchResult = {
   id: string;
@@ -34,7 +33,6 @@ export type CardSearchResult = {
     id: string;
     variantType: string;
     ownedQuantity: number | null;
-    price: number | null;
     cardmarketProductId: number | null;
   }>;
 };
@@ -49,7 +47,6 @@ export async function loadCardSearchResults(
     return [];
   }
 
-  const preference = await getPricePreference();
   const nameSql = localizedCardNameSql(locale);
   const setNameSql = localizedSetNameSql(locale);
 
@@ -67,8 +64,6 @@ export async function loadCardSearchResults(
       variantType: cardVariants.variantType,
       cardmarketProductId: cardVariants.cardmarketProductId,
       ownedQuantity: userCards.quantity,
-      trendEur: cardPrices.trendEur,
-      lowEur: cardPrices.lowEur,
     })
     .from(cards)
     .innerJoin(sets, eq(cards.setId, sets.id))
@@ -82,7 +77,6 @@ export async function loadCardSearchResults(
           )
         : sql`false`,
     )
-    .leftJoin(cardPrices, eq(cardPrices.variantId, cardVariants.id))
     .where(inArray(cards.id, cardIds))
     .orderBy(nameSql);
 
@@ -107,7 +101,7 @@ export async function loadCardSearchResults(
     const ownedQuantity = row.ownedQuantity ?? 0;
     existing.owned = existing.owned || ownedQuantity > 0;
     existing.variants.push({
-      ...buildCardVariantEntry(row, preference, ownedQuantity),
+      ...buildCardVariantEntry(row, ownedQuantity),
       ownedQuantity: row.ownedQuantity,
     });
     grouped.set(row.id, existing);

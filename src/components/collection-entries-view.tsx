@@ -27,8 +27,6 @@ import {
 } from "@/lib/offline/read";
 import { notifyCollectionMutated } from "@/lib/offline/types";
 import {
-  formatCardPriceLabel,
-  formatCurrency,
   resolveSetDisplayCode,
   type CardCondition,
 } from "@/lib/utils";
@@ -64,8 +62,6 @@ type CollectionItem = {
   setOfficialCode: string | null;
   illustrator: string | null;
   imageUrl: string | null;
-  price: number | null;
-  value: number | null;
 };
 
 type CollectionGroup = {
@@ -193,10 +189,6 @@ export function CollectionEntriesView({
   );
 
   const total = filteredItems.length;
-  const totalValue = useMemo(
-    () => filteredItems.reduce((sum, item) => sum + (item.value ?? 0), 0),
-    [filteredItems],
-  );
 
   const items = useMemo(
     () => filteredItems.slice(0, visibleCount),
@@ -287,12 +279,7 @@ export function CollectionEntriesView({
       setAllItems((current) =>
         current.map((entry) =>
           entry.id === item.id
-            ? {
-                ...entry,
-                quantity: newQuantity,
-                value:
-                  entry.price != null ? entry.price * newQuantity : null,
-              }
+            ? { ...entry, quantity: newQuantity }
             : entry,
         ),
       );
@@ -354,7 +341,6 @@ export function CollectionEntriesView({
               id: item.variantId,
               variantType: item.variantType,
               ownedQuantity: item.quantity,
-              price: item.price,
             },
           ],
         },
@@ -436,10 +422,7 @@ export function CollectionEntriesView({
 
       {!loading ? (
         <p className="text-sm text-zinc-400">
-          {t("collection.entriesSummary", {
-            entriesPart: t.plural("common.entryCount", total),
-            value: formatCurrency(totalValue, "EUR", locale),
-          })}
+          {t.plural("common.entryCount", total)}
         </p>
       ) : null}
 
@@ -513,17 +496,6 @@ export function CollectionEntriesView({
                       {item.notes ? (
                         <p className="mt-1 text-xs text-zinc-500">{item.notes}</p>
                       ) : null}
-                      <p
-                        className={`mt-1 text-sm font-semibold ${item.value != null ? "text-emerald-400" : "text-zinc-500"}`}
-                      >
-                        {item.value != null
-                          ? formatCurrency(item.value, "EUR", locale)
-                          : formatCardPriceLabel(
-                              null,
-                              t("collection.valueLabel"),
-                              locale,
-                            )}
-                      </p>
                     </div>
                   ) : (
                     <button
@@ -547,17 +519,6 @@ export function CollectionEntriesView({
                       {item.notes ? (
                         <p className="mt-1 text-xs text-zinc-500">{item.notes}</p>
                       ) : null}
-                      <p
-                        className={`mt-1 text-sm font-semibold ${item.value != null ? "text-emerald-400" : "text-zinc-500"}`}
-                      >
-                        {item.value != null
-                          ? formatCurrency(item.value, "EUR", locale)
-                          : formatCardPriceLabel(
-                              null,
-                              t("collection.valueLabel"),
-                              locale,
-                            )}
-                      </p>
                     </button>
                   )}
                   {readOnly ? (

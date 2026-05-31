@@ -6,12 +6,10 @@ import { CardFlagBadge } from "@/components/card-flag-badge";
 import { CardFrame } from "@/components/card-frame";
 import { CardImage } from "@/components/card-image";
 import { LongPressIndicator } from "@/components/long-press-indicator";
-import { useLocale, useTranslations } from "@/lib/i18n/context";
+import { useTranslations } from "@/lib/i18n/context";
 import { useLongPress } from "@/lib/use-long-press";
 import {
   cn,
-  formatCurrency,
-  hasCardPrice,
   resolveSetDisplayCode,
 } from "@/lib/utils";
 
@@ -28,7 +26,6 @@ export type CardPreview = {
   officialCode?: string | null;
   collectionName?: string;
   checklistCount?: number;
-  price?: number | null;
 };
 
 type CardTileProps = {
@@ -40,7 +37,6 @@ type CardTileProps = {
   longPressActive?: boolean;
   longPressPreset?: "quickAdd" | "select";
   compact?: boolean;
-  showPrice?: boolean;
   showMeta?: boolean;
   selected?: boolean;
   /** Keep the owned overlay when an inventory count badge is shown (e.g. checklist tab). */
@@ -60,12 +56,10 @@ export function CardTile({
   longPressActive = true,
   longPressPreset = "quickAdd",
   compact = false,
-  showPrice = true,
   showMeta = true,
   selected = false,
   showOwnedOverlayWithInventoryCount = false,
 }: CardTileProps) {
-  const { locale } = useLocale();
   const t = useTranslations();
   const preset = LONG_PRESS_PRESETS[longPressPreset];
   const longPress = useLongPress<HTMLButtonElement>(() => onLongPress?.(), {
@@ -209,20 +203,6 @@ export function CardTile({
             ) : null}
           </>
         )}
-        {showPrice ? (
-          <p className="text-[10px] tabular-nums">
-            {hasCardPrice(card.price) ? (
-              <span className="font-semibold text-emerald-400">
-                {formatCurrency(card.price, "EUR", locale)}
-              </span>
-            ) : (
-              <span className="text-zinc-500">
-                <span className="font-normal">{t("common.price")} </span>
-                <span className="font-semibold">{t("common.priceUnavailable")}</span>
-              </span>
-            )}
-          </p>
-        ) : null}
       </div>
       ) : null}
     </>

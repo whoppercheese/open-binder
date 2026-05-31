@@ -2,7 +2,6 @@ import { and, asc, desc, eq, ilike, isNull, or, sql, type SQL } from "drizzle-or
 import { NextResponse } from "next/server";
 import { db } from "@/db/client";
 import {
-  cardPrices,
   cards,
   cardVariants,
   collectionCards,
@@ -17,7 +16,6 @@ import {
   localizedSetNameSql,
 } from "@/lib/localized-names";
 import { getRequestTranslator } from "@/lib/i18n/server";
-import { getPricePreference, pickPrice } from "@/lib/settings";
 import {
   isCardCondition,
   sortAvailableConditions,
@@ -47,8 +45,6 @@ function collectionSelect(locale: "en" | "de") {
     setName: localizedSetNameSql(locale),
     setOfficialCode: sets.officialCode,
     illustrator: cards.illustrator,
-    trendEur: cardPrices.trendEur,
-    lowEur: cardPrices.lowEur,
   };
 }
 
@@ -119,23 +115,6 @@ async function loadAvailableConditions(
   return sortAvailableConditions(rows.map((row) => row.condition));
 }
 
-function mapCollectionRow(
-  row: {
-    quantity: number;
-    trendEur: string | null;
-    lowEur: string | null;
-    [key: string]: unknown;
-  },
-  preference: Awaited<ReturnType<typeof getPricePreference>>,
-) {
-  const price = pickPrice(row, preference);
-  return {
-    ...row,
-    price,
-    value: price != null ? price * row.quantity : null,
-  };
-}
-
 export async function GET(request: Request) {
   try {
     const { locale } = getRequestTranslator(request);
@@ -176,29 +155,17 @@ export async function GET(request: Request) {
     );
     const selectFields = collectionSelect(locale);
 
-    const preference = await getPricePreference();
-
     let total = 0;
-    let totalValue = 0;
     if (offset === 0) {
-      const statsRows = await db
-        .select({
-          quantity: userCards.quantity,
-          trendEur: cardPrices.trendEur,
-          lowEur: cardPrices.lowEur,
-        })
+      const countRows = await db
+        .select({ id: userCards.id })
         .from(userCards)
         .innerJoin(cardVariants, eq(userCards.variantId, cardVariants.id))
         .innerJoin(cards, eq(cardVariants.cardId, cards.id))
         .innerJoin(sets, eq(cards.setId, sets.id))
-        .leftJoin(cardPrices, eq(cardPrices.variantId, cardVariants.id))
         .where(whereClause);
 
-      total = statsRows.length;
-      totalValue = statsRows.reduce((sum, row) => {
-        const price = pickPrice(row, preference);
-        return sum + (price != null ? price * row.quantity : 0);
-      }, 0);
+      total = countRows.length;
     }
 
     const setNameOrder = localizedSetNameSql(locale);
@@ -208,7 +175,6 @@ export async function GET(request: Request) {
       .innerJoin(cardVariants, eq(userCards.variantId, cardVariants.id))
       .innerJoin(cards, eq(cardVariants.cardId, cards.id))
       .innerJoin(sets, eq(cards.setId, sets.id))
-      .leftJoin(cardPrices, eq(cardPrices.variantId, cardVariants.id))
       .where(whereClause)
       .orderBy(
         asc(setNameOrder),
@@ -218,7 +184,7 @@ export async function GET(request: Request) {
       .limit(limit)
       .offset(offset);
 
-    const items = rows.map((row) => mapCollectionRow(row, preference));
+    const items = rows;
     const loadedCount = offset + items.length;
     const hasMore =
       offset === 0 ? loadedCount < total : items.length === limit;
@@ -255,7 +221,6 @@ export async function GET(request: Request) {
     return NextResponse.json({
       items,
       total: offset === 0 ? total : undefined,
-      totalValue: offset === 0 ? totalValue : undefined,
       hasMore,
       availableConditions,
       filterCard,

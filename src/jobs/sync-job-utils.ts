@@ -3,7 +3,6 @@ import { db } from "@/db/client";
 import { sets, syncJobs } from "@/db/schema";
 import {
   enqueueCatalogSync,
-  enqueuePriceSync,
   enqueueSetCardsSync,
 } from "@/jobs/boss";
 import type {
@@ -56,8 +55,6 @@ export async function requeueInterruptedSyncJobs() {
       await enqueueCatalogSync(job.id);
     } else if (job.jobType === "set_cards" && job.setId) {
       await enqueueSetCardsSync(job.id, job.setId);
-    } else if (job.jobType === "prices") {
-      await enqueuePriceSync(job.id);
     }
   }
 
@@ -138,7 +135,7 @@ export async function withSyncJob<T>({
   }
 }
 
-export async function findActiveSyncJob(jobType: "catalog" | "prices") {
+export async function findActiveSyncJob(jobType: "catalog") {
   return db.query.syncJobs.findFirst({
     where: and(
       eq(syncJobs.jobType, jobType),
