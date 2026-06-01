@@ -26,7 +26,7 @@ export default async function DashboardPage() {
           <WalletCards className="h-4 w-4" />
           <span className="text-sm font-medium">{t("dashboard.inventoryTitle")}</span>
         </div>
-        <p className="text-3xl font-bold text-white">
+        <p className="text-2xl font-bold text-white">
           {t.plural("common.uniqueCardCount", summary.uniqueCards)}
         </p>
         <p className="mt-1 text-sm text-zinc-400">

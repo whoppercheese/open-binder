@@ -35,22 +35,15 @@ export function FilterChip({
 
 type FilterChipListProps = {
   children: ReactNode;
-  /** Horizontal scroll row (e.g. rarity filters). */
-  scroll?: boolean;
   className?: string;
 };
 
-export function FilterChipList({
-  children,
-  scroll = false,
-  className,
-}: FilterChipListProps) {
+/** Single horizontal row of filter chips; scrolls when content overflows. */
+export function FilterChipList({ children, className }: FilterChipListProps) {
   return (
     <div
       className={cn(
-        scroll
-          ? "-mx-4 flex gap-2 overflow-x-auto px-4 pb-1"
-          : "flex flex-wrap gap-2",
+        "-mx-4 flex gap-2 overflow-x-auto px-4 pb-1",
         className,
       )}
     >

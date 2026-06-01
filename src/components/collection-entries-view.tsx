@@ -403,7 +403,7 @@ export function CollectionEntriesView({
       />
 
       {availableConditions.length > 1 ? (
-        <FilterChipList scroll>
+        <FilterChipList>
           {availableConditions.map((condition) => (
             <ConditionBadgeButton
               key={condition}

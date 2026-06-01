@@ -262,7 +262,7 @@ function CollectionOverviewTab({
             </FilterChipList>
 
             {rarities.length > 0 ? (
-              <FilterChipList scroll>
+              <FilterChipList>
                 {rarities.map((rarity) => (
                   <FilterChip
                     key={rarity}

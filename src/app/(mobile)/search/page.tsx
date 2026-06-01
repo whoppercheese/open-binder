@@ -15,7 +15,7 @@ import {
 } from "@/components/mobile-scroll-shell";
 import { MobilePage, MobilePageHeader } from "@/components/mobile-page";
 import { SearchBar } from "@/components/search-bar";
-import { FilterChip } from "@/components/ui/filter-chip";
+import { FilterChip, FilterChipList } from "@/components/ui/filter-chip";
 import { apiUrl, useLocale, useTranslations } from "@/lib/i18n/context";
 import {
   applyChecklistCountOverrides,
@@ -399,12 +399,14 @@ export default function SearchPage() {
           onClear={resetSearch}
           showClear={hasActiveSearch}
         />
-        <FilterChip
-          active={searchAllSets}
-          onClick={() => setSearchAllSets(!searchAllSets)}
-        >
-          {t("search.allSetsButton")}
-        </FilterChip>
+        <FilterChipList>
+          <FilterChip
+            active={searchAllSets}
+            onClick={() => setSearchAllSets(!searchAllSets)}
+          >
+            {t("search.allSetsButton")}
+          </FilterChip>
+        </FilterChipList>
       </div>
 
       {loading ? (
