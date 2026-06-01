@@ -26,7 +26,7 @@ services:
 
   app:
     build: .
-    command: npm run start
+    command: sh -c "npm run db:migrate && npm run start"
     environment:
       DATABASE_URL: postgres://${POSTGRES_USER:-binder}:${POSTGRES_PASSWORD:-binder}@postgres:5432/${POSTGRES_DB:-binder}
       IMAGE_STORAGE_PATH: /app/storage/images
@@ -36,12 +36,14 @@ services:
     ports:
       - "3000:3000"
     depends_on:
+      postgres:
+        condition: service_healthy
       migrate:
         condition: service_completed_successfully
 
   worker:
     build: .
-    command: npm run worker
+    command: sh -c "npm run db:migrate && npm run worker"
     environment:
       DATABASE_URL: postgres://${POSTGRES_USER:-binder}:${POSTGRES_PASSWORD:-binder}@postgres:5432/${POSTGRES_DB:-binder}
       IMAGE_STORAGE_PATH: /app/storage/images
@@ -52,6 +54,8 @@ services:
     volumes:
       - image_storage:/app/storage/images
     depends_on:
+      postgres:
+        condition: service_healthy
       migrate:
         condition: service_completed_successfully
 

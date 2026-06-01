@@ -281,6 +281,13 @@ export async function POST(request: Request) {
       );
     }
 
+    if (!isCardCondition(condition)) {
+      return NextResponse.json(
+        { errorCode: "INVALID_CONDITION" },
+        { status: 400 },
+      );
+    }
+
     if (collection.type === "custom") {
       await db
         .insert(collectionCards)

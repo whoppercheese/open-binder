@@ -203,7 +203,7 @@ start_partial_compose() {
     build_app_image
   fi
 
-  if target_selected migrate; then
+  if target_selected migrate || target_selected app || target_selected worker; then
     run_migrate
   fi
 
