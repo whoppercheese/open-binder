@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import { ListChecks, ListPlus, WalletCards } from "lucide-react";
+import { ExternalLink, ListChecks, ListPlus, WalletCards } from "lucide-react";
 import { AddToChecklistSheet } from "@/components/add-to-checklist-sheet";
 import { Button } from "@/components/ui/button";
 import { TextLink } from "@/components/ui/text-link";
@@ -14,10 +14,11 @@ import { Portal } from "@/components/portal";
 import type { CardDetail } from "@/components/card-modal";
 import { writeChecklistCountOverride } from "@/lib/checklist-count-overrides.client";
 import { loadOrEnsureCardClient } from "@/lib/ensure-cards.client";
+import { getCardmarketProductUrl } from "@/lib/cardmarket";
 import { useLocale, useTranslations } from "@/lib/i18n/context";
 import { getRarityLabel } from "@/lib/rarity";
+import { cardmarketIsFoilForVariant, type VariantType } from "@/lib/tcgdex";
 import {
-  formatCardPriceLabel,
   resolveSetDisplayCode,
 } from "@/lib/utils";
 
@@ -123,10 +124,19 @@ export function SetCardPreviewModal({
       return {
         id: variant.id,
         label,
-        price: formatCardPriceLabel(variant.price, t("common.price"), locale),
       };
     });
-  }, [cardData, locale, t]);
+  }, [cardData, t]);
+
+  const cardmarketVariant = useMemo(() => {
+    if (!cardData) return null;
+    return cardData.variants.find((v) => v.cardmarketProductId != null) ?? null;
+  }, [cardData]);
+
+  const availableVariantTypes = useMemo(
+    () => (cardData?.variants ?? []).map((v) => v.variantType as VariantType),
+    [cardData],
+  );
 
   function handleClose() {
     setImageExpanded(false);
@@ -269,15 +279,40 @@ export function SetCardPreviewModal({
                   {variantLines.map((variant) => (
                     <li
                       key={variant.id}
-                      className="flex items-center justify-between gap-2 rounded-xl border border-white/10 bg-white/[0.03] px-3 py-2"
+                      className="rounded-xl border border-white/10 bg-white/[0.03] px-3 py-2"
                     >
                       <span className="text-zinc-200">{variant.label}</span>
-                      <span className="shrink-0 text-zinc-400">{variant.price}</span>
                     </li>
                   ))}
                 </ul>
               </div>
             )}
+
+            {!needsCatalog && cardmarketVariant?.cardmarketProductId ? (
+              <p className="mb-3 text-sm">
+                <a
+                  href={getCardmarketProductUrl(
+                    cardmarketVariant.cardmarketProductId,
+                    {
+                      foil: cardmarketIsFoilForVariant(
+                        cardmarketVariant.variantType as VariantType,
+                        availableVariantTypes,
+                      ),
+                      locale,
+                    },
+                  )}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1 font-medium text-emerald-400 transition hover:text-emerald-300 hover:underline"
+                >
+                  {t("cardModal.cardmarketLink")}
+                  <ExternalLink
+                    className="h-3.5 w-3.5 shrink-0 opacity-80"
+                    aria-hidden
+                  />
+                </a>
+              </p>
+            ) : null}
 
             {!needsCatalog ? (
               <Button

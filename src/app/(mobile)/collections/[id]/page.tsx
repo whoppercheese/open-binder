@@ -309,8 +309,6 @@ function CollectionOverviewTab({
                       card.inventoryQuantity ?? card.ownedQuantity,
                     flagged: card.flagged,
                     officialCode: card.officialCode,
-                    price: card.variants.find((variant) => variant.price != null)
-                      ?.price,
                   }}
                   compact
                   showOwnedOverlayWithInventoryCount

@@ -78,6 +78,13 @@
       "when": 1780400000000,
       "tag": "0010_cardmarket_conditions",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1780500000000,
+      "tag": "0011_drop_card_prices",
+      "breakpoints": true
     }
   ]
 }

@@ -24,13 +24,11 @@ export async function getBoss() {
 
 export const JOB_CATALOG_SYNC = "catalog-sync";
 export const JOB_SET_CARDS_SYNC = "set-cards-sync";
-export const JOB_PRICE_SYNC = "price-sync";
 
 export async function ensureQueues() {
   const instance = await getBoss();
   await instance.createQueue(JOB_CATALOG_SYNC);
   await instance.createQueue(JOB_SET_CARDS_SYNC);
-  await instance.createQueue(JOB_PRICE_SYNC);
   return instance;
 }
 
@@ -44,14 +42,8 @@ export async function enqueueSetCardsSync(jobId: string, setId: string) {
   return instance.send(JOB_SET_CARDS_SYNC, { jobId, setId });
 }
 
-export async function enqueuePriceSync(jobId: string) {
-  const instance = await ensureQueues();
-  return instance.send(JOB_PRICE_SYNC, { jobId });
-}
-
 export async function scheduleRecurringJobs() {
   const instance = await ensureQueues();
 
   await instance.schedule(JOB_CATALOG_SYNC, "0 3 * * 0", {}, { tz: "UTC" });
-  await instance.schedule(JOB_PRICE_SYNC, "0 4 * * *", {}, { tz: "UTC" });
 }

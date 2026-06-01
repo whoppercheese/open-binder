@@ -40,7 +40,6 @@ export type CollectionDetailCard = {
     id: string;
     variantType: string;
     ownedQuantity: number;
-    price: number | null;
     cardmarketProductId: number | null;
   }>;
 };
@@ -86,8 +85,6 @@ export type CollectionEntryItem = {
   setOfficialCode: string | null;
   illustrator: string | null;
   imageUrl: string | null;
-  price: number | null;
-  value: number | null;
 };
 
 export type CollectionEntriesStore = {
@@ -96,7 +93,6 @@ export type CollectionEntriesStore = {
   locale: UiLocale;
   items: CollectionEntryItem[];
   total: number;
-  totalValue: number;
   syncedAt: string;
 };
 
@@ -126,7 +122,6 @@ export type OfflineMeta = {
 export type CollectionEntriesPageResult = {
   items: CollectionEntryItem[];
   total: number;
-  totalValue: number;
   hasMore: boolean;
   availableConditions?: CardCondition[];
   filterCard: {

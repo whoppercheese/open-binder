@@ -50,7 +50,6 @@ async function mirrorCollectionDetail(
     locale,
     entries.items,
     entries.total,
-    entries.totalValue,
   );
 }
 

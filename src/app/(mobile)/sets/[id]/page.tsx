@@ -527,7 +527,6 @@ export default function SetDetailPage() {
               flagged: card.flagged,
               officialCode: data.set.officialCode,
               checklistCount: card.checklistCount,
-              price: card.variants.find((variant) => variant.price != null)?.price,
             }}
             compact
             selected={selection.isSelected(card.id)}

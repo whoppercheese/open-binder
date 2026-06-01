@@ -31,7 +31,6 @@ export type LoadResult<T> =
 export type CollectionEntriesLoadResult = {
   items: CollectionEntryItem[];
   total: number;
-  totalValue: number;
 };
 
 function isNetworkFailure(error: unknown): boolean {
@@ -112,21 +111,20 @@ export async function loadAllCollectionEntries(
       data: {
         items: store.items,
         total: store.total,
-        totalValue: store.totalValue,
       },
       fromCache: true,
     };
   }
 
   try {
-    const { items, total, totalValue } = await fetchAllEntriesPages(
+    const { items, total } = await fetchAllEntriesPages(
       collectionId,
       locale,
     );
-    await putCollectionEntries(collectionId, locale, items, total, totalValue);
+    await putCollectionEntries(collectionId, locale, items, total);
     return {
       ok: true,
-      data: { items, total, totalValue },
+      data: { items, total },
       fromCache: false,
     };
   } catch (error) {
@@ -145,7 +143,6 @@ export async function loadAllCollectionEntries(
     data: {
       items: store.items,
       total: store.total,
-      totalValue: store.totalValue,
     },
     fromCache: true,
   };

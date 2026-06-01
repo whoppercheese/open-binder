@@ -1,8 +1,6 @@
 import { NextResponse } from "next/server";
 import {
   getDefaultCondition,
-  getPricePreference,
-  getSetting,
   getUiLanguage,
   setSetting,
 } from "@/lib/settings";
@@ -12,9 +10,7 @@ import { isCardCondition } from "@/lib/utils";
 
 export async function GET() {
   try {
-    const pricePreference = await getPricePreference();
     return NextResponse.json({
-      pricePreference,
       defaultCondition: await getDefaultCondition(),
       uiLanguage: await getUiLanguage(),
     });
@@ -31,10 +27,6 @@ export async function PATCH(request: Request) {
   try {
     const body = await request.json();
 
-    if (body.pricePreference === "trend" || body.pricePreference === "low") {
-      await setSetting("price_preference", body.pricePreference);
-    }
-
     if (body.uiLanguage === "de" || body.uiLanguage === "en") {
       await setSetting("ui_language", body.uiLanguage);
     }
@@ -48,7 +40,6 @@ export async function PATCH(request: Request) {
 
     const uiLanguage = await getUiLanguage();
     const response = NextResponse.json({
-      pricePreference: await getPricePreference(),
       defaultCondition: await getDefaultCondition(),
       uiLanguage,
     });

@@ -182,7 +182,6 @@ export async function putCollectionEntries(
   locale: UiLocale,
   items: CollectionEntryItem[],
   total: number,
-  totalValue: number,
 ): Promise<void> {
   const db = await getDb();
   await db.put("collectionEntries", {
@@ -191,7 +190,6 @@ export async function putCollectionEntries(
     locale,
     items,
     total,
-    totalValue,
     syncedAt: new Date().toISOString(),
   });
 }

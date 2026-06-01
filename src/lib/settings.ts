@@ -23,13 +23,6 @@ export async function setSetting(key: string, value: string) {
     });
 }
 
-export type PricePreference = "trend" | "low";
-
-export async function getPricePreference(): Promise<PricePreference> {
-  const value = await getSetting("price_preference", "trend");
-  return value === "low" ? "low" : "trend";
-}
-
 export async function getDefaultCondition(): Promise<CardCondition> {
   const value = await getSetting("default_condition", "nm");
   return normalizeLegacyCondition(value) ?? "nm";
@@ -38,18 +31,4 @@ export async function getDefaultCondition(): Promise<CardCondition> {
 export async function getUiLanguage(): Promise<"en" | "de"> {
   const value = await getSetting("ui_language", "en");
   return value === "de" ? "de" : "en";
-}
-
-export function pickPrice(
-  price: { trendEur?: string | null; lowEur?: string | null } | null | undefined,
-  preference: PricePreference,
-): number | null {
-  if (!price) return null;
-  const raw =
-    preference === "low"
-      ? (price.lowEur ?? price.trendEur)
-      : (price.trendEur ?? price.lowEur);
-  if (raw == null) return null;
-  const num = parseFloat(raw);
-  return Number.isNaN(num) ? null : num;
 }

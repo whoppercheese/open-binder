@@ -326,7 +326,13 @@ export function buildSearchSql(
     SELECT c.id
     FROM cards c
     INNER JOIN sets s ON s.id = c.set_id
-    WHERE ${sql.join(conditions, sql` AND `)}
+    WHERE (
+      s.cards_synced_at IS NOT NULL
+      OR EXISTS (
+        SELECT 1 FROM collection_cards cc WHERE cc.card_id = c.id
+      )
+    )
+    AND ${sql.join(conditions, sql` AND `)}
     ORDER BY s.release_date DESC NULLS LAST, c.number
     LIMIT ${limit}
     OFFSET ${offset}

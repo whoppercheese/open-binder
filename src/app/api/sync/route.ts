@@ -4,7 +4,6 @@ import { db } from "@/db/client";
 import { sets, syncJobs } from "@/db/schema";
 import {
   enqueueCatalogSync,
-  enqueuePriceSync,
 } from "@/jobs/boss";
 import { findActiveSyncJob } from "@/jobs/sync-job-utils";
 import { getRequestTranslator } from "@/lib/i18n/server";
@@ -57,23 +56,20 @@ export async function POST(request: Request) {
   const { t } = getRequestTranslator(request);
   try {
     const body = await request.json();
-    const type = body.type as "catalog" | "prices";
+    const type = body.type as string;
 
-    if (type !== "catalog" && type !== "prices") {
+    if (type !== "catalog") {
       return NextResponse.json(
         { error: t("errors.api.syncInvalidType") },
         { status: 400 },
       );
     }
 
-    const activeJob = await findActiveSyncJob(type);
+    const activeJob = await findActiveSyncJob("catalog");
     if (activeJob) {
       return NextResponse.json(
         {
-          error:
-            type === "catalog"
-              ? t("errors.api.syncCatalogAlreadyRunning")
-              : t("errors.api.syncPricesAlreadyRunning"),
+          error: t("errors.api.syncCatalogAlreadyRunning"),
           job: activeJob,
         },
         { status: 409 },
@@ -82,14 +78,10 @@ export async function POST(request: Request) {
 
     const [job] = await db
       .insert(syncJobs)
-      .values({ jobType: type, status: "pending" })
+      .values({ jobType: "catalog", status: "pending" })
       .returning();
 
-    if (type === "catalog") {
-      await enqueueCatalogSync(job.id);
-    } else {
-      await enqueuePriceSync(job.id);
-    }
+    await enqueueCatalogSync(job!.id);
 
     return NextResponse.json({ job }, { status: 202 });
   } catch (error) {

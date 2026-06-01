@@ -1,74 +1,37 @@
 import { eq } from "drizzle-orm";
 import { db } from "@/db/client";
-import { cardPrices, cardVariants } from "@/db/schema";
-import { pricingForVariant, type VariantType } from "@/lib/tcgdex";
+import { cardVariants } from "@/db/schema";
+import type { VariantType } from "@/lib/tcgdex";
 
-type VariantPricing = ReturnType<typeof pricingForVariant>;
-
-export async function upsertVariantPricing(
-  variantId: string,
-  variantPricing: NonNullable<VariantPricing>,
-) {
-  await db
-    .insert(cardPrices)
-    .values({
-      variantId,
-      trendEur: variantPricing.trendEur?.toString() ?? null,
-      lowEur: variantPricing.lowEur?.toString() ?? null,
-      avgEur: variantPricing.avgEur?.toString() ?? null,
-      source: "tcgdex",
-      updatedAt: new Date(),
-    })
-    .onConflictDoUpdate({
-      target: cardPrices.variantId,
-      set: {
-        trendEur: variantPricing.trendEur?.toString() ?? null,
-        lowEur: variantPricing.lowEur?.toString() ?? null,
-        avgEur: variantPricing.avgEur?.toString() ?? null,
-        source: "tcgdex",
-        updatedAt: new Date(),
-      },
-    });
-}
-
-export async function upsertVariantWithPricing(
+export async function upsertVariantWithCardmarketId(
   cardId: string,
   variantType: VariantType,
-  variantPricing: VariantPricing,
+  cardmarketProductId: number | null,
 ) {
   const [variant] = await db
     .insert(cardVariants)
     .values({
       cardId,
       variantType,
-      cardmarketProductId: variantPricing?.cardmarketProductId ?? null,
+      cardmarketProductId: cardmarketProductId ?? null,
     })
     .onConflictDoUpdate({
       target: [cardVariants.cardId, cardVariants.variantType],
       set: {
-        cardmarketProductId: variantPricing?.cardmarketProductId ?? null,
+        cardmarketProductId: cardmarketProductId ?? null,
       },
     })
     .returning();
 
-  if (variantPricing && (variantPricing.trendEur || variantPricing.lowEur)) {
-    await upsertVariantPricing(variant.id, variantPricing);
-  }
-
-  return variant;
+  return variant!;
 }
 
-export async function updateVariantPricing(
-  variant: { id: string; variantType: string; cardmarketProductId: number | null },
-  variantPricing: NonNullable<VariantPricing>,
+export async function updateVariantCardmarketId(
+  variantId: string,
+  cardmarketProductId: number | null,
 ) {
   await db
     .update(cardVariants)
-    .set({
-      cardmarketProductId:
-        variantPricing.cardmarketProductId ?? variant.cardmarketProductId,
-    })
-    .where(eq(cardVariants.id, variant.id));
-
-  await upsertVariantPricing(variant.id, variantPricing);
+    .set({ cardmarketProductId: cardmarketProductId ?? null })
+    .where(eq(cardVariants.id, variantId));
 }

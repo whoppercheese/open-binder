@@ -12,7 +12,7 @@ import {
   uniqueIndex,
   uuid,
 } from "drizzle-orm/pg-core";
-import { relations, sql } from "drizzle-orm";
+import { relations } from "drizzle-orm";
 import type { SyncJobProgress } from "@/lib/sync-job-display";
 
 const tsvector = customType<{ data: string }>({
@@ -141,21 +141,6 @@ export const cardVariants = pgTable(
   ],
 );
 
-export const cardPrices = pgTable(
-  "card_prices",
-  {
-    variantId: uuid("variant_id")
-      .primaryKey()
-      .references(() => cardVariants.id, { onDelete: "cascade" }),
-    trendEur: numeric("trend_eur", { precision: 12, scale: 2 }),
-    lowEur: numeric("low_eur", { precision: 12, scale: 2 }),
-    avgEur: numeric("avg_eur", { precision: 12, scale: 2 }),
-    source: text("source").notNull().default("tcgdex"),
-    updatedAt: timestamp("updated_at", { withTimezone: true })
-      .notNull()
-      .defaultNow(),
-  },
-);
 
 export const collections = pgTable(
   "collections",
@@ -283,10 +268,6 @@ export const cardsRelations = relations(cards, ({ one, many }) => ({
 
 export const cardVariantsRelations = relations(cardVariants, ({ one, many }) => ({
   card: one(cards, { fields: [cardVariants.cardId], references: [cards.id] }),
-  price: one(cardPrices, {
-    fields: [cardVariants.id],
-    references: [cardPrices.variantId],
-  }),
   userCards: many(userCards),
 }));
 

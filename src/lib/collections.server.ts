@@ -4,7 +4,6 @@ import {
   cards,
   collectionCards,
   collections,
-  cardPrices,
   cardVariants,
   sets,
   userCards,
@@ -24,7 +23,6 @@ import {
 } from "@/lib/localized-names";
 import type { UiLocale } from "@/lib/i18n/locale";
 import { getInventoryCountsForCardIds } from "@/lib/inventory-counts.server";
-import { getPricePreference, pickPrice } from "@/lib/settings";
 
 export type CollectionRow = typeof collections.$inferSelect;
 
@@ -378,7 +376,6 @@ export async function getCollectionWithCards(
     return null;
   }
 
-  const preference = await getPricePreference();
   const cardNameSql = localizedCardNameSql(locale);
   const setNameSql = localizedSetNameSql(locale);
 
@@ -428,8 +425,6 @@ export async function getCollectionWithCards(
       cardmarketProductId: cardVariants.cardmarketProductId,
       ownedQuantity: sql<number>`coalesce(sum(case when ${userCards.collectionId} = ${collectionId} then ${userCards.quantity} else 0 end), 0)::int`,
       flagged: sql<boolean>`coalesce(bool_or(case when ${userCards.collectionId} = ${collectionId} then ${userCards.flagged} else false end), false)`,
-      trendEur: cardPrices.trendEur,
-      lowEur: cardPrices.lowEur,
     })
     .from(collectionCards)
     .innerJoin(cards, eq(collectionCards.cardId, cards.id))
@@ -442,7 +437,6 @@ export async function getCollectionWithCards(
         eq(userCards.collectionId, collectionId),
       ),
     )
-    .leftJoin(cardPrices, eq(cardPrices.variantId, cardVariants.id))
     .where(eq(collectionCards.collectionId, collectionId))
     .groupBy(
       cards.id,
@@ -457,8 +451,6 @@ export async function getCollectionWithCards(
       cardVariants.id,
       cardVariants.variantType,
       cardVariants.cardmarketProductId,
-      cardPrices.trendEur,
-      cardPrices.lowEur,
     );
 
   const cardRows =
@@ -473,7 +465,7 @@ export async function getCollectionWithCards(
           asc(cardNameSql),
           cardVariants.variantType,
         );
-  const cardsList = groupVariantRows(cardRows, preference);
+  const cardsList = groupVariantRows(cardRows);
   const inventoryCounts = await getInventoryCountsForCardIds(
     cardsList.map((card) => card.id),
   );
@@ -522,7 +514,6 @@ type CollectionCardItem = {
     id: string;
     variantType: string;
     ownedQuantity: number;
-    price: number | null;
     cardmarketProductId: number | null;
   }>;
 };
@@ -543,10 +534,7 @@ function groupVariantRows(
     cardmarketProductId: number | null;
     ownedQuantity: number;
     flagged: boolean;
-    trendEur: string | null;
-    lowEur: string | null;
   }>,
-  preference: Awaited<ReturnType<typeof getPricePreference>>,
 ): CollectionCardItem[] {
   const grouped = new Map<string, CollectionCardItem>();
 
@@ -573,7 +561,7 @@ function groupVariantRows(
     existing.owned = existing.owned || ownedQuantity > 0;
     existing.flagged = existing.flagged || Boolean(row.flagged);
     existing.variants.push(
-      buildCardVariantEntry(row, preference, ownedQuantity),
+      buildCardVariantEntry(row, ownedQuantity),
     );
     grouped.set(row.id, existing);
   }
@@ -606,7 +594,6 @@ export async function getCardWithVariantsForCollection(
   collectionId: string,
   locale: UiLocale,
 ) {
-  const preference = await getPricePreference();
   const cardNameSql = localizedCardNameSql(locale);
   const setNameSql = localizedSetNameSql(locale);
 
@@ -623,8 +610,6 @@ export async function getCardWithVariantsForCollection(
       variantType: cardVariants.variantType,
       cardmarketProductId: cardVariants.cardmarketProductId,
       ownedQuantity: sql<number>`coalesce(sum(case when ${userCards.collectionId} = ${collectionId} then ${userCards.quantity} else 0 end), 0)::int`,
-      trendEur: cardPrices.trendEur,
-      lowEur: cardPrices.lowEur,
     })
     .from(cards)
     .innerJoin(sets, eq(cards.setId, sets.id))
@@ -636,7 +621,6 @@ export async function getCardWithVariantsForCollection(
         eq(userCards.collectionId, collectionId),
       ),
     )
-    .leftJoin(cardPrices, eq(cardPrices.variantId, cardVariants.id))
     .where(eq(cards.id, cardId))
     .groupBy(
       cards.id,
@@ -649,8 +633,6 @@ export async function getCardWithVariantsForCollection(
       cardVariants.id,
       cardVariants.variantType,
       cardVariants.cardmarketProductId,
-      cardPrices.trendEur,
-      cardPrices.lowEur,
     )
     .orderBy(cardVariants.variantType);
 
@@ -660,7 +642,7 @@ export async function getCardWithVariantsForCollection(
 
   const first = rows[0]!;
   const variants = rows.map((row) =>
-    buildCardVariantEntry(row, preference, Number(row.ownedQuantity)),
+    buildCardVariantEntry(row, Number(row.ownedQuantity)),
   );
 
   return {
@@ -681,10 +663,6 @@ export async function getCollectionEntriesForCard(
   cardId: string,
   locale: UiLocale,
 ) {
-  const cardNameSql = localizedCardNameSql(locale);
-  const setNameSql = localizedSetNameSql(locale);
-  const preference = await getPricePreference();
-
   const rows = await db
     .select({
       id: userCards.id,
@@ -696,14 +674,10 @@ export async function getCollectionEntriesForCard(
       flagged: userCards.flagged,
       variantId: cardVariants.id,
       variantType: cardVariants.variantType,
-      trendEur: cardPrices.trendEur,
-      lowEur: cardPrices.lowEur,
     })
     .from(userCards)
     .innerJoin(cardVariants, eq(userCards.variantId, cardVariants.id))
     .innerJoin(cards, eq(cardVariants.cardId, cards.id))
-    .innerJoin(sets, eq(cards.setId, sets.id))
-    .leftJoin(cardPrices, eq(cardPrices.variantId, cardVariants.id))
     .where(
       and(
         eq(userCards.collectionId, collectionId),
@@ -712,20 +686,15 @@ export async function getCollectionEntriesForCard(
     )
     .orderBy(desc(userCards.updatedAt));
 
-  return rows.map((row) => {
-    const price = pickPrice(row, preference);
-    return {
-      id: row.id,
-      quantity: row.quantity,
-      condition: row.condition,
-      language: row.language,
-      notes: row.notes,
-      purchasePrice: row.purchasePrice,
-      flagged: row.flagged,
-      variantId: row.variantId,
-      variantType: row.variantType,
-      price,
-      value: price != null ? price * row.quantity : null,
-    };
-  });
+  return rows.map((row) => ({
+    id: row.id,
+    quantity: row.quantity,
+    condition: row.condition,
+    language: row.language,
+    notes: row.notes,
+    purchasePrice: row.purchasePrice,
+    flagged: row.flagged,
+    variantId: row.variantId,
+    variantType: row.variantType,
+  }));
 }

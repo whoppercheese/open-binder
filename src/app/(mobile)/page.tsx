@@ -1,4 +1,4 @@
-import { TrendingUp } from "lucide-react";
+import { WalletCards } from "lucide-react";
 import { TextLink } from "@/components/ui/text-link";
 import { CardGrid } from "@/components/card-grid";
 import { CardTile } from "@/components/card-tile";
@@ -6,7 +6,6 @@ import { MobilePage, MobilePageHeader } from "@/components/mobile-page";
 import { CollectionListItem } from "@/components/collection-list-item";
 import { getServerTranslator } from "@/lib/i18n/server";
 import { getPortfolioSummary } from "@/lib/portfolio";
-import { formatCurrency } from "@/lib/utils";
 
 export default async function DashboardPage() {
   const { locale, t } = await getServerTranslator();
@@ -24,26 +23,14 @@ export default async function DashboardPage() {
 
       <section className="rounded-3xl border border-emerald-500/20 bg-gradient-to-br from-emerald-500/10 to-transparent p-5">
         <div className="mb-2 flex items-center gap-2 text-emerald-400">
-          <TrendingUp className="h-4 w-4" />
-          <span className="text-sm font-medium">{t("dashboard.portfolioValue")}</span>
+          <WalletCards className="h-4 w-4" />
+          <span className="text-sm font-medium">{t("dashboard.inventoryTitle")}</span>
         </div>
         <p className="text-3xl font-bold text-white">
-          {formatCurrency(summary.totalValue, "EUR", locale)}
+          {t.plural("common.uniqueCardCount", summary.uniqueCards)}
         </p>
         <p className="mt-1 text-sm text-zinc-400">
-          {t("dashboard.cardsSummary", {
-            uniqueCardsPart: t.plural(
-              "common.uniqueCardCount",
-              summary.uniqueCards,
-            ),
-            copiesPart: t.plural("common.copyCount", summary.totalCards),
-          })}
-          {summary.cardsWithPrice < summary.totalCards
-            ? t.plural(
-                "dashboard.cardsWithoutPriceSuffix",
-                summary.totalCards - summary.cardsWithPrice,
-              )
-            : ""}
+          {t.plural("common.copyCount", summary.totalCards)}
         </p>
       </section>
 
@@ -84,7 +71,6 @@ export default async function DashboardPage() {
               <CardTile
                 key={item.id}
                 compact
-                showPrice={false}
                 href={`/collections/${item.collectionId}?view=entries&cardId=${encodeURIComponent(item.cardId)}`}
                 card={{
                   id: item.cardId,

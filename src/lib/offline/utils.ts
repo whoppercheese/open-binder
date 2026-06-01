@@ -29,11 +29,10 @@ export async function mapWithConcurrency<T>(
 export async function fetchAllEntriesPages(
   collectionId: string,
   locale: UiLocale,
-): Promise<{ items: CollectionEntryItem[]; total: number; totalValue: number }> {
+): Promise<{ items: CollectionEntryItem[]; total: number }> {
   const allItems: CollectionEntryItem[] = [];
   let offset = 0;
   let total = 0;
-  let totalValue = 0;
   let hasMore = true;
 
   while (hasMore) {
@@ -52,7 +51,6 @@ export async function fetchAllEntriesPages(
     const payload = (await response.json()) as {
       items?: CollectionEntryItem[];
       total?: number;
-      totalValue?: number;
       hasMore?: boolean;
     };
 
@@ -61,12 +59,11 @@ export async function fetchAllEntriesPages(
 
     if (offset === 0) {
       total = payload.total ?? pageItems.length;
-      totalValue = payload.totalValue ?? 0;
     }
 
     offset += pageItems.length;
     hasMore = Boolean(payload.hasMore) && pageItems.length > 0;
   }
 
-  return { items: allItems, total, totalValue };
+  return { items: allItems, total };
 }
