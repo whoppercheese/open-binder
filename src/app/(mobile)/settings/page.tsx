@@ -173,7 +173,7 @@ export default function SettingsPage() {
       <section className="space-y-3 rounded-2xl border border-white/10 bg-white/[0.03] p-4">
         <h2 className="font-medium">{t("settings.colorTheme")}</h2>
         <p className="text-sm text-zinc-400">{t("settings.colorThemeHelp")}</p>
-        <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+        <div className="grid grid-cols-2 gap-2">
           {COLOR_THEMES.map((themeId) => {
             const selected = colorTheme === themeId;
             const previewColor = THEME_DEFINITIONS[themeId].previewColor;
