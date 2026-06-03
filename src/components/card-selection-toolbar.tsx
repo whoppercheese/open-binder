@@ -44,7 +44,7 @@ export function CardSelectionToolbar({
           className="pointer-events-none fixed inset-x-0 bottom-[calc(4.5rem+env(safe-area-inset-bottom))] z-50 px-4"
           aria-live="polite"
         >
-          <div className="pointer-events-auto mx-auto flex max-w-lg items-center gap-2 rounded-2xl border border-emerald-400/25 bg-[#0f1612]/95 px-3 py-2.5 shadow-xl shadow-black/40 backdrop-blur-sm">
+          <div className="pointer-events-auto mx-auto flex max-w-lg items-center gap-2 rounded-2xl border border-accent-hover/25 bg-[#0f1612]/95 px-3 py-2.5 shadow-xl shadow-black/40 backdrop-blur-sm">
             <IconButton
               variant="subtle"
               onClick={onCancel}
@@ -53,7 +53,7 @@ export function CardSelectionToolbar({
               <X className="h-5 w-5" />
             </IconButton>
 
-            <p className="min-w-0 flex-1 truncate text-sm font-medium text-emerald-100">
+            <p className="min-w-0 flex-1 truncate text-sm font-medium text-accent-text-soft">
               {t.plural("selection.selectedCount", selectedCount, {
                 count: selectedCount,
               })}

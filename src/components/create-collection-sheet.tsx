@@ -164,7 +164,7 @@ export function CreateCollectionSheet({
                   value={name}
                   onChange={(event) => setName(event.target.value)}
                   placeholder={t("collections.namePlaceholder")}
-                  className="mt-1 w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-white outline-none focus:border-emerald-500/50"
+                  className="mt-1 w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-white outline-none focus:border-accent/50"
                   autoFocus
                 />
               </label>

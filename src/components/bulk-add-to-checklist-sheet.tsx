@@ -55,7 +55,7 @@ function ChecklistSelectionIndicator({ selected }: { selected: boolean }) {
       className={cn(
         "flex h-8 w-8 shrink-0 items-center justify-center rounded-full border-2 transition-colors",
         selected
-          ? "border-emerald-400/50 bg-emerald-500/25 text-emerald-300"
+          ? "border-accent-hover/50 bg-accent/25 text-accent-text"
           : "border-white/20 bg-white/5 text-transparent",
       )}
       aria-hidden
@@ -72,7 +72,7 @@ function checklistRowClassName(selected: boolean) {
   return cn(
     "flex w-full items-center gap-3 rounded-2xl border px-3 py-2.5 text-left transition",
     selected
-      ? "border-emerald-500/35 bg-emerald-500/15"
+      ? "border-accent/35 bg-accent/15"
       : "border-white/10 bg-white/[0.03] hover:bg-white/[0.06]",
   );
 }
@@ -263,7 +263,7 @@ export function BulkAddToChecklistSheet({
                 ) : null}
                 {alreadyOnChecklist.length > 0 ? (
                   <section className="space-y-2">
-                    <p className="text-xs font-medium uppercase tracking-wide text-emerald-400/90">
+                    <p className="text-xs font-medium uppercase tracking-wide text-accent-hover/90">
                       {t("sets.checklistAlreadyAdded")}
                     </p>
                     <ul className="space-y-2">
@@ -277,7 +277,7 @@ export function BulkAddToChecklistSheet({
                             })}
                             className={cn(
                               checklistRowClassName(true),
-                              "cursor-pointer hover:bg-emerald-500/20 active:bg-emerald-500/25",
+                              "cursor-pointer hover:bg-accent/20 active:bg-accent/25",
                             )}
                           >
                             <ChecklistSelectionIndicator selected />
@@ -289,13 +289,13 @@ export function BulkAddToChecklistSheet({
                               className="h-10 w-10 shrink-0 text-xs"
                             />
                             <span className="min-w-0 flex-1">
-                              <span className="block truncate font-medium text-emerald-100">
+                              <span className="block truncate font-medium text-accent-text-soft">
                                 {item.name}
                               </span>
                               <CollectionTypeLabel type={item.type} t={t} />
                             </span>
                             <ChevronRight
-                              className="h-5 w-5 shrink-0 text-emerald-300/70"
+                              className="h-5 w-5 shrink-0 text-accent-text/70"
                               aria-hidden
                             />
                           </Link>
@@ -339,7 +339,7 @@ export function BulkAddToChecklistSheet({
                                 <span
                                   className={cn(
                                     "block truncate font-medium",
-                                    checked ? "text-emerald-100" : "text-white",
+                                    checked ? "text-accent-text-soft" : "text-white",
                                   )}
                                 >
                                   {item.name}

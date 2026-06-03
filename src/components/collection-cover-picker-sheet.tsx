@@ -157,7 +157,7 @@ export function CollectionCoverPickerSheet({
                       fallbackLabel={setLogo.setOfficialCode}
                       className={cn(
                         "aspect-[5/7] w-full text-sm",
-                        isSetLogoSelected && "ring-2 ring-emerald-400/70",
+                        isSetLogoSelected && "ring-2 ring-accent-hover/70",
                       )}
                     />
                     <p className="mt-1 truncate text-center text-[10px] text-zinc-400">

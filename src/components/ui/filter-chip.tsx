@@ -23,7 +23,7 @@ export function FilterChip({
       className={cn(
         "shrink-0 cursor-pointer rounded-full border px-3 py-1.5 text-xs font-medium transition-colors",
         active
-          ? "border-emerald-400/50 bg-emerald-500/15 text-emerald-200"
+          ? "border-accent-hover/50 bg-accent/15 text-accent-text-soft"
           : "border-white/10 bg-white/5 text-zinc-400 hover:border-white/20 hover:text-zinc-200",
         className,
       )}

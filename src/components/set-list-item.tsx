@@ -47,7 +47,7 @@ export function SetListItem({
     <div className="relative rounded-2xl border border-white/10 bg-white/[0.03] transition hover:bg-white/[0.06]">
       <Link
         href={`/sets/${id}`}
-        className="absolute inset-0 z-0 rounded-2xl focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400/50"
+        className="absolute inset-0 z-0 rounded-2xl focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-hover/50"
         aria-label={t("sets.openSet", { name })}
       />
 
@@ -76,7 +76,7 @@ export function SetListItem({
                   : undefined
               }
             >
-              <Loader2 className="h-3.5 w-3.5 shrink-0 animate-spin text-emerald-400" />
+              <Loader2 className="h-3.5 w-3.5 shrink-0 animate-spin text-accent-hover" />
               <span className="truncate">
                 {syncStatus === "pending" ? t("sets.waiting") : t("sets.loading")}
               </span>

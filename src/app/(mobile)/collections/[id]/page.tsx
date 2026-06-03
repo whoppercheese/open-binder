@@ -79,7 +79,7 @@ function CollectionDetailHeader({
     <>
       {t("collections.createdFromSetPrefix")}
       {readOnly ? (
-        <span className="text-emerald-400/90">
+        <span className="text-accent-hover/90">
           {resolveSetDisplayCode({
             officialCode: set.officialCode,
             setId: set.id,
@@ -88,7 +88,7 @@ function CollectionDetailHeader({
       ) : (
         <Link
           href={`/sets/${set.id}`}
-          className="text-emerald-400 hover:text-emerald-300"
+          className="text-accent-hover hover:text-accent-text"
         >
           {resolveSetDisplayCode({
             officialCode: set.officialCode,

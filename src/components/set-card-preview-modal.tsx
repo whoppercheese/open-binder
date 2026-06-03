@@ -176,12 +176,12 @@ export function SetCardPreviewModal({
                       <Link
                         href={`/sets/${cardData.setId}`}
                         onClick={handleClose}
-                        className="inline-flex items-center rounded-lg bg-emerald-500/10 px-2 py-0.5 text-sm font-medium text-emerald-400 transition hover:bg-emerald-500/20 hover:text-emerald-300"
+                        className="inline-flex items-center rounded-lg bg-accent/10 px-2 py-0.5 text-sm font-medium text-accent-hover transition hover:bg-accent/20 hover:text-accent-text"
                       >
                         {setLabel}
                       </Link>
                     ) : (
-                      <span className="inline-flex items-center rounded-lg bg-emerald-500/10 px-2 py-0.5 text-sm font-medium text-emerald-400">
+                      <span className="inline-flex items-center rounded-lg bg-accent/10 px-2 py-0.5 text-sm font-medium text-accent-hover">
                         {setLabel}
                       </span>
                     )
@@ -209,7 +209,7 @@ export function SetCardPreviewModal({
                       <TextLink
                         href={`/collections?cardId=${encodeURIComponent(cardData.id)}`}
                         onClick={handleClose}
-                        className="text-xs text-emerald-300/85 hover:text-emerald-200"
+                        className="text-xs text-accent-text/85 hover:text-accent-text-soft"
                       >
                         <ListChecks className="h-3.5 w-3.5 shrink-0" aria-hidden />
                         {t.plural("sets.checklistOnCount", checklistCount, {
@@ -303,7 +303,7 @@ export function SetCardPreviewModal({
                   )}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1 font-medium text-emerald-400 transition hover:text-emerald-300 hover:underline"
+                  className="inline-flex items-center gap-1 font-medium text-accent-hover transition hover:text-accent-text hover:underline"
                 >
                   {t("cardModal.cardmarketLink")}
                   <ExternalLink
@@ -318,7 +318,7 @@ export function SetCardPreviewModal({
               <Button
                 variant="outline"
                 fullWidth
-                className="border-emerald-500/30"
+                className="border-accent/30"
                 icon={<ListPlus className="h-4 w-4 shrink-0" />}
                 onClick={() => setChecklistOpen(true)}
               >

@@ -468,8 +468,8 @@ export function SetsPageContent({ initialSets }: SetsPageContentProps) {
       />
 
       {syncIndicator ? (
-        <div className="flex items-start gap-3 rounded-2xl border border-emerald-500/20 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-100">
-          <Loader2 className="mt-0.5 h-4 w-4 shrink-0 animate-spin text-emerald-400" />
+        <div className="flex items-start gap-3 rounded-2xl border border-accent/20 bg-accent/10 px-4 py-3 text-sm text-accent-text-soft">
+          <Loader2 className="mt-0.5 h-4 w-4 shrink-0 animate-spin text-accent-hover" />
           <div className="min-w-0 space-y-1">
             {syncIndicator.catalogActive && !syncIndicator.runningSetName ? (
               <p className="font-medium">
@@ -490,12 +490,12 @@ export function SetsPageContent({ initialSets }: SetsPageContentProps) {
               </p>
             ) : null}
             {syncIndicator.runningMessage ? (
-              <p className="truncate text-xs text-emerald-200/70">
+              <p className="truncate text-xs text-accent-text-soft/70">
                 {formatSyncJobMessage(syncIndicator.runningMessage, t)}
               </p>
             ) : null}
             {syncIndicator.runningSetName && syncIndicator.pendingCount > 0 ? (
-              <p className="text-xs text-emerald-200/70">
+              <p className="text-xs text-accent-text-soft/70">
                 {t.plural("sets.additionalSetsWaiting", syncIndicator.pendingCount)}
               </p>
             ) : null}

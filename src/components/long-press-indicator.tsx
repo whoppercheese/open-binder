@@ -67,7 +67,7 @@ export function LongPressIndicator({
             stroke="currentColor"
             strokeWidth="2.5"
             strokeLinecap="round"
-            className="text-emerald-400"
+            className="text-accent-hover"
             strokeDasharray={RING_CIRCUMFERENCE}
             strokeDashoffset={RING_CIRCUMFERENCE}
             style={{
@@ -77,7 +77,7 @@ export function LongPressIndicator({
         </svg>
         <Icon
           className={cn(
-            "absolute inset-0 m-auto text-emerald-200",
+            "absolute inset-0 m-auto text-accent-text-soft",
             INDICATOR_ICON_SIZES[icon],
           )}
           strokeWidth={2.5}

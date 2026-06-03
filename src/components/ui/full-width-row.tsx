@@ -16,9 +16,9 @@ const fullWidthRowVariants = cva(
         neutral:
           "border border-white/10 bg-white/5 text-zinc-200 hover:bg-white/10",
         emeraldNav:
-          "justify-between border border-emerald-500/30 bg-emerald-500/10 text-emerald-200 hover:bg-emerald-500/20",
+          "justify-between border border-accent/30 bg-accent/10 text-accent-text-soft hover:bg-accent/20",
         emeraldAction:
-          "justify-center border border-emerald-500/30 bg-emerald-500/10 text-emerald-200 hover:bg-emerald-500/20",
+          "justify-center border border-accent/30 bg-accent/10 text-accent-text-soft hover:bg-accent/20",
       },
     },
     defaultVariants: {
@@ -61,7 +61,7 @@ function RowChevron({
     <ChevronRight
       className={cn(
         "h-5 w-5 shrink-0",
-        variant === "neutral" ? "text-zinc-400" : "text-emerald-200/80",
+        variant === "neutral" ? "text-zinc-400" : "text-accent-text-soft/80",
         className,
       )}
       aria-hidden
@@ -194,7 +194,7 @@ function FullWidthIconRowContent({
           <Icon
             className={cn(
               "h-4 w-4 shrink-0",
-              variant === "neutral" ? "text-zinc-400" : "text-emerald-200/80",
+              variant === "neutral" ? "text-zinc-400" : "text-accent-text-soft/80",
               iconClassName,
             )}
             aria-hidden
@@ -291,7 +291,7 @@ function FullWidthCountRowContent({
         <Icon
           className={cn(
             "h-4 w-4 shrink-0",
-            variant === "neutral" ? "text-zinc-400" : "text-emerald-200/80",
+            variant === "neutral" ? "text-zinc-400" : "text-accent-text-soft/80",
             iconClassName,
           )}
           aria-hidden

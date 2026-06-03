@@ -17,7 +17,7 @@ export function TextLink({
   return (
     <Link
       className={cn(
-        "inline-flex items-center gap-1 text-sm text-emerald-400 transition hover:text-emerald-300",
+        "inline-flex items-center gap-1 text-sm text-accent-hover transition hover:text-accent-text",
         className,
       )}
       {...props}

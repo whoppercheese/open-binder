@@ -28,7 +28,7 @@ export function NavTab({
     disabled
       ? "text-zinc-600"
       : active
-        ? "text-emerald-400"
+        ? "text-accent-hover"
         : "text-zinc-400 hover:text-zinc-200",
   );
 

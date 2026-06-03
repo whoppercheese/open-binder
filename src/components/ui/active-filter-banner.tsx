@@ -23,12 +23,12 @@ export function ActiveFilterBanner({
   return (
     <div
       className={cn(
-        "flex items-center gap-2 rounded-2xl border border-emerald-500/20 bg-emerald-500/10 px-3 py-2 text-sm text-emerald-100",
+        "flex items-center gap-2 rounded-2xl border border-accent/20 bg-accent/10 px-3 py-2 text-sm text-accent-text-soft",
         className,
       )}
     >
       <div className="min-w-0 flex-1">
-        <p className="text-xs uppercase tracking-wide text-emerald-300/80">
+        <p className="text-xs uppercase tracking-wide text-accent-text/80">
           {label}
         </p>
         <p className="truncate font-medium">{value}</p>

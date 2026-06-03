@@ -108,11 +108,11 @@ export function CardTile({
         {selected ? (
           <>
             <div
-              className="pointer-events-none absolute inset-0 z-20 rounded-[inherit] border-[4px] border-emerald-400"
+              className="pointer-events-none absolute inset-0 z-20 rounded-[inherit] border-[4px] border-accent-hover"
               aria-hidden
             />
             <div
-              className="pointer-events-none absolute right-1.5 top-1.5 z-30 flex h-7 w-7 items-center justify-center rounded-full bg-emerald-400 text-black ring-2 ring-white/90"
+              className="pointer-events-none absolute right-1.5 top-1.5 z-30 flex h-7 w-7 items-center justify-center rounded-full bg-accent-hover text-accent-foreground ring-2 ring-white/90"
               aria-hidden
             >
               <CheckCircle2 className="h-5 w-5" strokeWidth={2.5} />
@@ -166,8 +166,8 @@ export function CardTile({
             className="pointer-events-none absolute inset-0 flex items-center justify-center"
             aria-hidden
           >
-            <div className="rounded-full bg-emerald-500 p-0.5 shadow-md shadow-black ring-2 ring-white/25">
-              <CheckCircle2 className="h-8 w-8 text-black" strokeWidth={2.5} />
+            <div className="rounded-full bg-accent p-0.5 shadow-md shadow-black ring-2 ring-white/25">
+              <CheckCircle2 className="h-8 w-8 text-accent-foreground" strokeWidth={2.5} />
             </div>
           </div>
         ) : null}
@@ -183,7 +183,7 @@ export function CardTile({
               {[setLabel, card.number].filter(Boolean).join(" · ")}
             </p>
             {card.collectionName ? (
-              <p className="truncate text-[10px] font-medium text-emerald-400/90">
+              <p className="truncate text-[10px] font-medium text-accent-hover/90">
                 {card.collectionName}
               </p>
             ) : null}
@@ -197,7 +197,7 @@ export function CardTile({
               <p className="truncate text-[10px] text-zinc-500">{setLabel}</p>
             ) : null}
             {card.collectionName ? (
-              <p className="truncate text-[10px] font-medium text-emerald-400/90">
+              <p className="truncate text-[10px] font-medium text-accent-hover/90">
                 {card.collectionName}
               </p>
             ) : null}

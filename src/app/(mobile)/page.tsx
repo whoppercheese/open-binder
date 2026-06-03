@@ -21,8 +21,8 @@ export default async function DashboardPage() {
         subtitle={t("dashboard.subtitle")}
       />
 
-      <section className="rounded-3xl border border-emerald-500/20 bg-gradient-to-br from-emerald-500/10 to-transparent p-5">
-        <div className="mb-2 flex items-center gap-2 text-emerald-400">
+      <section className="rounded-3xl border border-accent/20 bg-gradient-to-br from-accent/10 to-transparent p-5">
+        <div className="mb-2 flex items-center gap-2 text-accent-hover">
           <WalletCards className="h-4 w-4" />
           <span className="text-sm font-medium">{t("dashboard.inventoryTitle")}</span>
         </div>

@@ -323,7 +323,7 @@ function CardModalForm({
                       <Link
                         href={`/sets/${card.setId}`}
                         onClick={handleClose}
-                        className="inline-flex items-center rounded-lg bg-emerald-500/10 px-2 py-0.5 text-sm font-medium text-emerald-400 transition hover:bg-emerald-500/20 hover:text-emerald-300"
+                        className="inline-flex items-center rounded-lg bg-accent/10 px-2 py-0.5 text-sm font-medium text-accent-hover transition hover:bg-accent/20 hover:text-accent-text"
                       >
                         {setLabel}
                       </Link>
@@ -564,7 +564,7 @@ function CardModalForm({
                   )}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1 font-medium text-emerald-400 transition hover:text-emerald-300 hover:underline"
+                  className="inline-flex items-center gap-1 font-medium text-accent-hover transition hover:text-accent-text hover:underline"
                 >
                   {t("cardModal.cardmarketLink")}
                   <ExternalLink

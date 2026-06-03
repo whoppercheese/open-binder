@@ -13,6 +13,12 @@ import {
   type SyncJobProgress,
 } from "@/lib/sync-job-display";
 import { useLocale, useTranslations } from "@/lib/i18n/context";
+import { useColorTheme } from "@/lib/theme/context";
+import {
+  COLOR_THEMES,
+  THEME_DEFINITIONS,
+  THEME_I18N_KEYS,
+} from "@/lib/theme/themes";
 import { ConditionBadgeButton } from "@/components/condition-badge";
 import { ConfirmDialog } from "@/components/confirm-dialog";
 import { MobilePage, MobilePageHeader } from "@/components/mobile-page";
@@ -43,6 +49,7 @@ type SyncJob = {
 
 export default function SettingsPage() {
   const { locale, setLocale } = useLocale();
+  const { colorTheme, setColorTheme } = useColorTheme();
   const t = useTranslations();
   const [defaultCondition, setDefaultCondition] = useState<CardCondition>("nm");
   const [jobs, setJobs] = useState<SyncJob[]>([]);
@@ -153,13 +160,47 @@ export default function SettingsPage() {
               onClick={() => void saveLanguage(value)}
               className={`rounded-xl px-3 py-2 text-sm font-medium ${
                 locale === value
-                  ? "bg-emerald-500 text-black"
+                  ? "bg-accent text-accent-foreground"
                   : "bg-white/5 text-zinc-300"
               }`}
             >
               {value === "en" ? t("settings.languageEn") : t("settings.languageDe")}
             </button>
           ))}
+        </div>
+      </section>
+
+      <section className="space-y-3 rounded-2xl border border-white/10 bg-white/[0.03] p-4">
+        <h2 className="font-medium">{t("settings.colorTheme")}</h2>
+        <p className="text-sm text-zinc-400">{t("settings.colorThemeHelp")}</p>
+        <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+          {COLOR_THEMES.map((themeId) => {
+            const selected = colorTheme === themeId;
+            const previewColor = THEME_DEFINITIONS[themeId].previewColor;
+            const labelKey = THEME_I18N_KEYS[themeId] as Parameters<
+              typeof t
+            >[0];
+
+            return (
+              <button
+                key={themeId}
+                type="button"
+                onClick={() => setColorTheme(themeId)}
+                className={`flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-medium ${
+                  selected
+                    ? "bg-accent text-accent-foreground"
+                    : "bg-white/5 text-zinc-300"
+                }`}
+              >
+                <span
+                  className="h-4 w-4 shrink-0 rounded-full ring-1 ring-white/20"
+                  style={{ backgroundColor: previewColor }}
+                  aria-hidden
+                />
+                <span className="truncate">{t(labelKey)}</span>
+              </button>
+            );
+          })}
         </div>
       </section>
 
@@ -180,7 +221,7 @@ export default function SettingsPage() {
           href={getCardmarketConditionHelpUrl(locale)}
           target="_blank"
           rel="noopener noreferrer"
-          className="inline-flex items-center gap-1 text-sm text-zinc-500 transition hover:text-emerald-400 hover:underline"
+          className="inline-flex items-center gap-1 text-sm text-zinc-500 transition hover:text-accent-hover hover:underline"
         >
           {t("settings.defaultConditionCardmarketHelp")}
           <ExternalLink className="h-3.5 w-3.5 shrink-0 opacity-80" aria-hidden />
@@ -259,7 +300,7 @@ export default function SettingsPage() {
                 <span
                   className={
                     job.status === "running"
-                      ? "text-emerald-400"
+                      ? "text-accent-hover"
                       : job.status === "failed"
                         ? "text-red-400"
                         : issueSummary

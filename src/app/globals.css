@@ -3,6 +3,11 @@
 :root {
   --background: #0b0d12;
   --foreground: #f4f4f5;
+  --accent: #10b981;
+  --accent-hover: #34d399;
+  --accent-text: #6ee7b7;
+  --accent-text-soft: #a7f3d0;
+  --accent-foreground: #000000;
   --card-aspect-w: 2.5;
   --card-aspect-h: 3.44;
   /* 1.65% of shorter card edge; applied on .rounded-card inside .card-frame */
@@ -44,6 +49,11 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
+  --color-accent: var(--accent);
+  --color-accent-hover: var(--accent-hover);
+  --color-accent-text: var(--accent-text);
+  --color-accent-text-soft: var(--accent-text-soft);
+  --color-accent-foreground: var(--accent-foreground);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }

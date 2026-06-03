@@ -113,7 +113,7 @@ export function ChecklistCreateCollectionInline({
           onChange={(event) => setName(event.target.value)}
           placeholder={t("collections.namePlaceholder")}
           disabled={disabled || loading}
-          className="mt-1 w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-white outline-none focus:border-emerald-500/50 disabled:opacity-60"
+          className="mt-1 w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-white outline-none focus:border-accent/50 disabled:opacity-60"
           autoFocus
           onKeyDown={(event) => {
             if (event.key === "Enter") {

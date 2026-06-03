@@ -40,7 +40,7 @@ export function SearchBar({
         onChange={(event) => onChange(event.target.value)}
         placeholder={placeholder ?? t("common.searchDefaultPlaceholder")}
         className={cn(
-          "w-full rounded-2xl border border-white/10 bg-white/5 py-3 pl-10 text-sm text-white placeholder:text-zinc-500 focus:border-emerald-400/50 focus:outline-none",
+          "w-full rounded-2xl border border-white/10 bg-white/5 py-3 pl-10 text-sm text-white placeholder:text-zinc-500 focus:border-accent-hover/50 focus:outline-none",
           canClear ? "pr-10" : "pr-4",
         )}
       />

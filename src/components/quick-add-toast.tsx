@@ -38,7 +38,7 @@ export function QuickAddToast({ data, className }: QuickAddToastProps) {
   return (
     <div
       className={cn(
-        "pointer-events-none fixed inset-x-4 bottom-[calc(4.5rem+env(safe-area-inset-bottom))] z-50 mx-auto max-w-lg rounded-2xl border border-emerald-400/30 bg-[#0f1612]/95 px-4 py-3 shadow-xl shadow-black/40 backdrop-blur-sm",
+        "pointer-events-none fixed inset-x-4 bottom-[calc(4.5rem+env(safe-area-inset-bottom))] z-50 mx-auto max-w-lg rounded-2xl border border-accent-hover/30 bg-[#0f1612]/95 px-4 py-3 shadow-xl shadow-black/40 backdrop-blur-sm",
         className,
       )}
       role="status"
@@ -46,19 +46,19 @@ export function QuickAddToast({ data, className }: QuickAddToastProps) {
     >
       <p className="flex flex-wrap items-center justify-center gap-x-2 gap-y-1 text-sm leading-snug">
         <Check
-          className="h-4 w-4 shrink-0 text-emerald-400"
+          className="h-4 w-4 shrink-0 text-accent-hover"
           strokeWidth={2.5}
           aria-hidden
         />
         <span className="inline-flex min-w-0 flex-wrap items-center justify-center gap-x-1.5 gap-y-0.5">
-          <span className="shrink-0 font-semibold tabular-nums text-emerald-300/90">
+          <span className="shrink-0 font-semibold tabular-nums text-accent-text/90">
             {data.number}
           </span>
           <span className="min-w-0 truncate font-medium text-white">
             {data.name}
           </span>
           <ConditionBadge condition={data.condition} size="md" />
-          <span className="shrink-0 text-emerald-400/75">{t("common.added")}</span>
+          <span className="shrink-0 text-accent-hover/75">{t("common.added")}</span>
         </span>
       </p>
     </div>

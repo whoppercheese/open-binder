@@ -14,11 +14,11 @@ const iconButtonVariants = cva(
           "rounded-full p-2 text-zinc-400 hover:bg-white/5 hover:text-white",
         menu: "-mr-1 h-10 w-10 rounded-full text-zinc-500 hover:bg-white/5 hover:text-zinc-300 active:bg-white/10",
         toolbar:
-          "h-10 w-10 rounded-xl text-emerald-200 hover:bg-emerald-500/15",
+          "h-10 w-10 rounded-xl text-accent-text-soft hover:bg-accent/15",
         subtle:
           "h-10 w-10 rounded-xl text-zinc-300 hover:bg-white/5 hover:text-white",
         clear:
-          "rounded-lg p-2 text-emerald-200 hover:bg-emerald-500/10",
+          "rounded-lg p-2 text-accent-text-soft hover:bg-accent/10",
       },
     },
     defaultVariants: {

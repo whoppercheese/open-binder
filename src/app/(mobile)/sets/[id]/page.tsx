@@ -338,7 +338,7 @@ export default function SetDetailPage() {
     <div className="rounded-2xl border border-dashed border-white/10 p-8 text-center">
       {syncStatus === "pending" || syncStatus === "running" ? (
         <div className="flex flex-col items-center gap-3 text-sm text-zinc-400">
-          <Loader2 className="h-5 w-5 animate-spin text-emerald-400" />
+          <Loader2 className="h-5 w-5 animate-spin text-accent-hover" />
           <p>
             {formatSyncJobMessage(syncMessage, t) ??
               t("sets.detailCardsLoading")}
@@ -412,7 +412,7 @@ export default function SetDetailPage() {
             {data.setCollectionCount > 0 ? (
               <TextLink
                 href={`/collections?setId=${encodeURIComponent(params.id)}`}
-                className="text-xs text-emerald-300/85 hover:text-emerald-200"
+                className="text-xs text-accent-text/85 hover:text-accent-text-soft"
               >
                 {t.plural("collections.setBindersCount", data.setCollectionCount, {
                   count: data.setCollectionCount,
@@ -435,8 +435,8 @@ export default function SetDetailPage() {
           <p className="text-sm text-red-400">{loadError}</p>
         ) : null}
         {syncStatus === "pending" || syncStatus === "running" ? (
-          <div className="flex items-center gap-2 rounded-xl border border-emerald-500/20 bg-emerald-500/10 px-3 py-2 text-sm text-emerald-100">
-            <Loader2 className="h-4 w-4 shrink-0 animate-spin text-emerald-400" />
+          <div className="flex items-center gap-2 rounded-xl border border-accent/20 bg-accent/10 px-3 py-2 text-sm text-accent-text-soft">
+            <Loader2 className="h-4 w-4 shrink-0 animate-spin text-accent-hover" />
             <span>
               {formatSyncJobMessage(syncMessage, t) ??
                 t("sets.detailCardsUpdating")}

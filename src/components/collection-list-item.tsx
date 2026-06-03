@@ -37,7 +37,7 @@ export function CollectionListItem({
   const showProgress = total > 0;
   const href = `/collections/${id}`;
   const linkClassName =
-    "absolute inset-0 z-0 rounded-2xl focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400/50";
+    "absolute inset-0 z-0 rounded-2xl focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-hover/50";
 
   return (
     <div className="relative rounded-2xl border border-white/10 bg-white/[0.03] transition hover:bg-white/[0.06]">

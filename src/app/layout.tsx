@@ -2,6 +2,9 @@ import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { ServiceWorkerRegistration } from "@/components/service-worker-registration";
 import { getRequestLocale } from "@/lib/i18n/server";
+import { themeTokensToStyle } from "@/lib/theme/css-vars";
+import { getRequestColorTheme } from "@/lib/theme/server";
+import { THEME_DEFINITIONS } from "@/lib/theme/themes";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -48,13 +51,17 @@ export default async function RootLayout({
   children: React.ReactNode;
 }>) {
   const locale = await getRequestLocale();
+  const colorTheme = await getRequestColorTheme();
+  const themeStyle = themeTokensToStyle(THEME_DEFINITIONS[colorTheme].tokens);
 
   return (
     <html
       lang={locale}
+      data-theme={colorTheme}
+      style={themeStyle}
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
-      <body className="h-full overflow-hidden bg-[#0b0d12] text-white">
+      <body className="h-full overflow-hidden bg-background text-white">
         {children}
         <ServiceWorkerRegistration />
       </body>

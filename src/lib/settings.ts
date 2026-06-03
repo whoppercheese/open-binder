@@ -1,6 +1,11 @@
 import { eq } from "drizzle-orm";
 import { db } from "@/db/client";
 import { appSettings } from "@/db/schema";
+import {
+  DEFAULT_COLOR_THEME,
+  normalizeColorTheme,
+  type ColorThemeId,
+} from "@/lib/theme/themes";
 import { normalizeLegacyCondition, type CardCondition } from "@/lib/utils";
 
 export async function getSetting(
@@ -31,4 +36,9 @@ export async function getDefaultCondition(): Promise<CardCondition> {
 export async function getUiLanguage(): Promise<"en" | "de"> {
   const value = await getSetting("ui_language", "en");
   return value === "de" ? "de" : "en";
+}
+
+export async function getColorTheme(): Promise<ColorThemeId> {
+  const value = await getSetting("color_theme", DEFAULT_COLOR_THEME);
+  return normalizeColorTheme(value);
 }

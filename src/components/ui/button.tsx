@@ -17,13 +17,13 @@ const buttonVariants = cva(
     variants: {
       variant: {
         primary:
-          "rounded-2xl bg-emerald-500 text-sm font-semibold text-black hover:bg-emerald-400",
+          "rounded-2xl bg-accent text-sm font-semibold text-accent-foreground hover:bg-accent-hover",
         secondary:
           "rounded-xl bg-white/10 text-sm font-medium text-white",
-        soft: "rounded-xl bg-emerald-500/15 text-sm font-medium text-emerald-300 hover:bg-emerald-500/25",
-        pill: "rounded-full bg-emerald-500/15 text-sm font-medium text-emerald-300 hover:bg-emerald-500/25",
+        soft: "rounded-xl bg-accent/15 text-sm font-medium text-accent-text hover:bg-accent/25",
+        pill: "rounded-full bg-accent/15 text-sm font-medium text-accent-text hover:bg-accent/25",
         outline:
-          "rounded-2xl border border-emerald-400/30 bg-emerald-500/10 text-sm font-medium text-emerald-200 hover:bg-emerald-500/20",
+          "rounded-2xl border border-accent-hover/30 bg-accent/10 text-sm font-medium text-accent-text-soft hover:bg-accent/20",
         cancel:
           "rounded-2xl border border-white/10 text-sm font-medium text-zinc-300 hover:bg-white/5",
         destructive:
@@ -31,7 +31,7 @@ const buttonVariants = cva(
         destructiveSoft:
           "rounded-2xl border border-red-500/30 bg-red-500/10 text-sm font-medium text-red-300 hover:bg-red-500/20",
         dashed:
-          "rounded-2xl border border-dashed border-white/15 bg-white/[0.02] text-sm font-medium text-zinc-300 hover:border-emerald-500/30 hover:bg-emerald-500/10 hover:text-emerald-200",
+          "rounded-2xl border border-dashed border-white/15 bg-white/[0.02] text-sm font-medium text-zinc-300 hover:border-accent/30 hover:bg-accent/10 hover:text-accent-text-soft",
       },
       size: {
         md: "px-4 py-3",
