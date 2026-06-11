@@ -31,6 +31,8 @@ services:
       DATABASE_URL: postgres://${POSTGRES_USER:-binder}:${POSTGRES_PASSWORD:-binder}@postgres:5432/${POSTGRES_DB:-binder}
       IMAGE_STORAGE_PATH: /app/storage/images
       NODE_ENV: production
+      CARDSIGHT_API_KEY: ${CARDSIGHT_API_KEY:-}
+      CARDSIGHT_API_BASE_URL: ${CARDSIGHT_API_BASE_URL:-}
     volumes:
       - image_storage:/app/storage/images
     ports:
