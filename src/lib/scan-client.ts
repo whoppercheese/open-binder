@@ -31,6 +31,20 @@ export type ScanCardResult = {
   scan: ScanMeta;
 };
 
+export async function fetchScanEnabled(locale: UiLocale): Promise<boolean> {
+  try {
+    const response = await fetch(apiUrl("/api/cards/scan", locale));
+    if (!response.ok) {
+      return false;
+    }
+
+    const payload = (await response.json()) as { enabled?: boolean };
+    return payload.enabled === true;
+  } catch {
+    return false;
+  }
+}
+
 export class ScanClientError extends Error {
   readonly code: ScanErrorCode;
 

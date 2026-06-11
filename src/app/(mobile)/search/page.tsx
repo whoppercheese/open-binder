@@ -26,6 +26,7 @@ import {
 } from "@/lib/checklist-count-overrides.client";
 import { isSearchableQuery } from "@/lib/search";
 import {
+  fetchScanEnabled,
   scanCard,
   ScanClientError,
   type ScanMeta,
@@ -118,6 +119,7 @@ export default function SearchPage() {
   );
   const [loading, setLoading] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
+  const [scanEnabled, setScanEnabled] = useState(false);
   const [scanning, setScanning] = useState(false);
   const [scanMeta, setScanMeta] = useState<ScanMeta | null>(null);
   const [scanError, setScanError] = useState<string | null>(null);
@@ -205,6 +207,20 @@ export default function SearchPage() {
     }
     void refreshCachedChecklistCounts();
   }, [hydrated, pathname, refreshCachedChecklistCounts]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    void fetchScanEnabled(locale).then((enabled) => {
+      if (!cancelled) {
+        setScanEnabled(enabled);
+      }
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [locale]);
 
   useEffect(() => {
     if (!hydrated) {
@@ -468,7 +484,7 @@ export default function SearchPage() {
       <div className="space-y-3">
         <div className="flex items-center gap-2">
           <SearchBar
-            className="min-w-0 flex-1"
+            className={scanEnabled ? "min-w-0 flex-1" : undefined}
             value={query}
             onChange={(value) => {
               setScanMeta(null);
@@ -479,14 +495,16 @@ export default function SearchPage() {
             onClear={resetSearch}
             showClear={hasActiveSearch}
           />
-          <CardScanButton
-            disabled={scanning || loading}
-            onScanStart={() => {
-              selection.clear();
-            }}
-            onScanComplete={(file) => void handleScan(file)}
-            onScanError={() => setScanError(t("search.scanFailed"))}
-          />
+          {scanEnabled ? (
+            <CardScanButton
+              disabled={scanning || loading}
+              onScanStart={() => {
+                selection.clear();
+              }}
+              onScanComplete={(file) => void handleScan(file)}
+              onScanError={() => setScanError(t("search.scanFailed"))}
+            />
+          ) : null}
         </div>
         <FilterChipList>
           <FilterChip

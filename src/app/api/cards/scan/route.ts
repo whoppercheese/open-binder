@@ -10,6 +10,10 @@ const ALLOWED_MIME_TYPES = new Set([
   "image/webp",
 ]);
 
+export async function GET() {
+  return NextResponse.json({ enabled: isCardSightConfigured() });
+}
+
 export async function POST(request: Request) {
   try {
     if (!isCardSightConfigured()) {
