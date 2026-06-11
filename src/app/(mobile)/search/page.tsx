@@ -484,7 +484,7 @@ export default function SearchPage() {
       <div className="space-y-3">
         <div className="flex items-center gap-2">
           <SearchBar
-            className={scanEnabled ? "min-w-0 flex-1" : undefined}
+            className="min-w-0 flex-1"
             value={query}
             onChange={(value) => {
               setScanMeta(null);
