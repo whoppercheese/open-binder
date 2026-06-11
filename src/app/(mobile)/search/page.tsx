@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { usePathname, useSearchParams } from "next/navigation";
 import type { CardDetail } from "@/components/card-modal";
+import { CardScanButton } from "@/components/card-scan-button";
 import { BulkAddToChecklistSheet } from "@/components/bulk-add-to-checklist-sheet";
 import { SetCardPreviewModal } from "@/components/set-card-preview-modal";
 import { CardGrid } from "@/components/card-grid";
@@ -24,9 +25,13 @@ import {
   writeChecklistCountOverride,
 } from "@/lib/checklist-count-overrides.client";
 import { isSearchableQuery } from "@/lib/search";
+import {
+  scanCard,
+  ScanClientError,
+  type ScanMeta,
+} from "@/lib/scan-client";
 import { useCardGridSelection } from "@/lib/use-card-grid-selection";
 import { useSearchPageState } from "@/lib/use-search-page-state";
-import { cn } from "@/lib/utils";
 
 const PAGE_SIZE = 24;
 
@@ -113,6 +118,9 @@ export default function SearchPage() {
   );
   const [loading, setLoading] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
+  const [scanning, setScanning] = useState(false);
+  const [scanMeta, setScanMeta] = useState<ScanMeta | null>(null);
+  const [scanError, setScanError] = useState<string | null>(null);
   const [previewCard, setPreviewCard] = useState<CardDetail | null>(null);
   const [previewRarity, setPreviewRarity] = useState<string | null>(null);
   const [previewOwnedQuantity, setPreviewOwnedQuantity] = useState<
@@ -303,6 +311,9 @@ export default function SearchPage() {
     clearStoredState();
     setLoading(false);
     setLoadingMore(false);
+    setScanning(false);
+    setScanMeta(null);
+    setScanError(null);
     setPreviewCard(null);
     setPreviewRarity(null);
     setPreviewOwnedQuantity(undefined);
@@ -311,6 +322,78 @@ export default function SearchPage() {
     clearSavedScrollPosition("/search");
     scrollMainToTop();
   }, [clearStoredState]);
+
+  const scanErrorMessage = useCallback(
+    (code: string) => {
+      switch (code) {
+        case "SCAN_NO_CARD":
+          return t("search.scanNoCard");
+        case "SCAN_NOT_CONFIGURED":
+          return t("search.scanNotConfigured");
+        case "SCAN_UPSTREAM_RATE_LIMIT":
+          return t("search.scanRateLimited");
+        default:
+          return t("search.scanFailed");
+      }
+    },
+    [t],
+  );
+
+  const handleScan = useCallback(
+    async (file: File) => {
+      searchRequestIdRef.current += 1;
+      const requestId = searchRequestIdRef.current;
+      skipNextSearchRef.current = true;
+      setScanning(true);
+      setScanMeta(null);
+      setScanError(null);
+      setLoading(false);
+      setLoadingMore(false);
+      clearSavedScrollPosition("/search");
+      scrollMainToTop();
+
+      try {
+        const payload = await scanCard(file, locale, {
+          scope: searchAllSets ? "all" : undefined,
+          collectionId: collectionId || undefined,
+        });
+
+        if (requestId !== searchRequestIdRef.current) {
+          return;
+        }
+
+        const newResults = parseStoredResults(payload.results ?? []);
+        setQuery(payload.scan.query);
+        setResultsState({
+          results: newResults,
+          hasMore: Boolean(payload.hasMore),
+          offset: newResults.length,
+        });
+        setScanMeta(payload.scan);
+      } catch (error) {
+        if (requestId !== searchRequestIdRef.current) {
+          return;
+        }
+
+        const code =
+          error instanceof ScanClientError ? error.code : "SCAN_FAILED";
+        setScanError(scanErrorMessage(code));
+        setResultsState({ results: [], hasMore: false, offset: 0 });
+      } finally {
+        if (requestId === searchRequestIdRef.current) {
+          setScanning(false);
+        }
+      }
+    },
+    [
+      collectionId,
+      locale,
+      scanErrorMessage,
+      searchAllSets,
+      setQuery,
+      setResultsState,
+    ],
+  );
 
   useEffect(() => {
     if (!hydrated || initialSearchHandledRef.current) {
@@ -392,13 +475,28 @@ export default function SearchPage() {
       />
 
       <div className="space-y-3">
-        <SearchBar
-          value={query}
-          onChange={setQuery}
-          onSubmit={() => void loadPage(true, query, searchAllSets)}
-          onClear={resetSearch}
-          showClear={hasActiveSearch}
-        />
+        <div className="flex items-center gap-2">
+          <SearchBar
+            className="min-w-0 flex-1"
+            value={query}
+            onChange={(value) => {
+              setScanMeta(null);
+              setScanError(null);
+              setQuery(value);
+            }}
+            onSubmit={() => void loadPage(true, query, searchAllSets)}
+            onClear={resetSearch}
+            showClear={hasActiveSearch}
+          />
+          <CardScanButton
+            disabled={scanning || loading}
+            onScanStart={() => {
+              selection.clear();
+            }}
+            onScanComplete={(file) => void handleScan(file)}
+            onScanError={() => setScanError(t("search.scanFailed"))}
+          />
+        </div>
         <FilterChipList>
           <FilterChip
             active={searchAllSets}
@@ -409,11 +507,40 @@ export default function SearchPage() {
         </FilterChipList>
       </div>
 
-      {loading ? (
+      {scanning ? (
+        <p className="text-sm text-zinc-400">{t("search.scanning")}</p>
+      ) : null}
+
+      {!scanning && loading ? (
         <p className="text-sm text-zinc-400">{t("search.loading")}</p>
       ) : null}
 
-      {!loading && isSearchableQuery(query) && results.length === 0 ? (
+      {!scanning && scanError ? (
+        <p className="text-sm text-red-300/90">{scanError}</p>
+      ) : null}
+
+      {!scanning && scanMeta?.detectedName ? (
+        <p className="text-sm text-zinc-400">
+          {t("search.scanMatch", {
+            name: scanMeta.detectedName,
+            confidence: scanMeta.confidence ?? "—",
+          })}
+        </p>
+      ) : null}
+
+      {!scanning &&
+      !loading &&
+      scanMeta &&
+      isSearchableQuery(query) &&
+      results.length === 0 ? (
+        <p className="text-sm text-zinc-500">{t("search.scanNoResults")}</p>
+      ) : null}
+
+      {!scanning &&
+      !loading &&
+      !scanMeta &&
+      isSearchableQuery(query) &&
+      results.length === 0 ? (
         <p className="text-sm text-zinc-500">{t("search.noResults")}</p>
       ) : null}
 
