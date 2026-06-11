@@ -19,9 +19,8 @@ export type ScanMeta = {
   query: string;
   requestId?: string;
   confidence?: string;
-  detectedName?: string;
+  detectedSetCode?: string;
   detectedNumber?: string;
-  detectedSet?: string;
   messages?: ScanMessage[];
 };
 
@@ -42,26 +41,11 @@ export class ScanClientError extends Error {
   }
 }
 
-type ScanCardOptions = {
-  scope?: "all";
-  collectionId?: string;
-};
-
 export async function scanCard(
   file: File,
   locale: UiLocale,
-  options: ScanCardOptions = {},
 ): Promise<ScanCardResult> {
-  const params = new URLSearchParams();
-  if (options.scope === "all") {
-    params.set("scope", "all");
-  }
-  if (options.collectionId) {
-    params.set("collectionId", options.collectionId);
-  }
-
-  const query = params.toString();
-  const path = query ? `/api/cards/scan?${query}` : "/api/cards/scan";
+  const path = "/api/cards/scan";
 
   const formData = new FormData();
   formData.append("image", file, file.name || "scan.jpg");

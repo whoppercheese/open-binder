@@ -5,6 +5,11 @@ const IDENTIFY_PATH = "/v1/identify/card/pokemon";
 
 export type CardSightConfidence = "High" | "Medium" | "Low" | string;
 
+export type CardSightFieldValue = {
+  key?: string;
+  value?: string;
+};
+
 export type CardSightCard = {
   id?: string;
   setId?: string;
@@ -13,6 +18,7 @@ export type CardSightCard = {
   setName?: string;
   releaseName?: string;
   year?: string;
+  fields?: CardSightFieldValue[];
 };
 
 export type CardSightDetection = {

@@ -353,16 +353,14 @@ export default function SearchPage() {
       scrollMainToTop();
 
       try {
-        const payload = await scanCard(file, locale, {
-          scope: searchAllSets ? "all" : undefined,
-          collectionId: collectionId || undefined,
-        });
+        const payload = await scanCard(file, locale);
 
         if (requestId !== searchRequestIdRef.current) {
           return;
         }
 
         const newResults = parseStoredResults(payload.results ?? []);
+        setSearchAllSets(true);
         setQuery(payload.scan.query);
         setResultsState({
           results: newResults,
@@ -385,14 +383,7 @@ export default function SearchPage() {
         }
       }
     },
-    [
-      collectionId,
-      locale,
-      scanErrorMessage,
-      searchAllSets,
-      setQuery,
-      setResultsState,
-    ],
+    [locale, scanErrorMessage, setQuery, setResultsState, setSearchAllSets],
   );
 
   useEffect(() => {
@@ -519,10 +510,10 @@ export default function SearchPage() {
         <p className="text-sm text-red-300/90">{scanError}</p>
       ) : null}
 
-      {!scanning && scanMeta?.detectedName ? (
+      {!scanning && scanMeta?.query ? (
         <p className="text-sm text-zinc-400">
           {t("search.scanMatch", {
-            name: scanMeta.detectedName,
+            query: scanMeta.query,
             confidence: scanMeta.confidence ?? "—",
           })}
         </p>

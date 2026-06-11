@@ -172,7 +172,7 @@
     "noResults": "Keine Karten gefunden.",
     "scanButton": "Karte scannen",
     "scanning": "Karte wird erkannt…",
-    "scanMatch": "Scan-Treffer: {name} ({confidence})",
+    "scanMatch": "Scan-Treffer: {query} ({confidence})",
     "scanNoResults": "Karte erkannt, aber kein Treffer im Katalog.",
     "scanNoCard": "Keine Karte im Bild gefunden.",
     "scanFailed": "Scan fehlgeschlagen. Bitte erneut versuchen.",

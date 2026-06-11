@@ -3,10 +3,15 @@ import "server-only";
 import {
   CardSightApiError,
   type CardSightDetection,
+  type CardSightFieldValue,
   type CardSightIdentifyResponse,
   type CardSightMessage,
   identifyPokemonCard,
 } from "@/lib/cardsight.server";
+import {
+  getCatalogSetIndex,
+  matchCatalogSetIdsForBulkFetch,
+} from "@/lib/catalog-set-index.server";
 import { searchCards } from "@/lib/card-search.server";
 import type { UiLocale } from "@/lib/i18n/locale";
 
@@ -20,9 +25,8 @@ export type CardScanMeta = {
   query: string;
   requestId?: string;
   confidence?: string;
-  detectedName?: string;
+  detectedSetCode?: string;
   detectedNumber?: string;
-  detectedSet?: string;
   messages?: CardSightMessage[];
 };
 
@@ -39,6 +43,17 @@ const CONFIDENCE_RANK: Record<string, number> = {
   Medium: 2,
   Low: 1,
 };
+
+const SET_CODE_FIELD_KEYS = new Set([
+  "set_code",
+  "setcode",
+  "set_abbreviation",
+  "setabbreviation",
+  "expansion_code",
+  "expansioncode",
+  "set_symbol",
+  "setsymbol",
+]);
 
 function isExactMatch(detection: CardSightDetection): boolean {
   return Boolean(detection.card.id?.trim());
@@ -64,44 +79,129 @@ export function pickPrimaryDetection(
   )[0];
 }
 
-export function buildScanSearchQuery(detection: CardSightDetection): string {
-  const { card } = detection;
-  const parts = [
-    card.name?.trim(),
-    card.number?.trim(),
-    card.setName?.trim() ?? card.releaseName?.trim(),
-    card.year?.trim(),
-  ].filter((part): part is string => Boolean(part));
-
-  const seen = new Set<string>();
-  const tokens: string[] = [];
-  for (const part of parts) {
-    const key = part.toLowerCase();
-    if (seen.has(key)) {
-      continue;
-    }
-    seen.add(key);
-    tokens.push(part);
+export function normalizeScanCardNumber(
+  raw: string | undefined,
+): string | null {
+  const trimmed = raw?.trim();
+  if (!trimmed) {
+    return null;
   }
 
-  return tokens.join(" ");
+  const primary = trimmed.split("/")[0]?.trim();
+  return primary || null;
+}
+
+function getSetCodeFromFields(
+  fields: readonly CardSightFieldValue[] | undefined,
+): string | null {
+  if (!fields?.length) {
+    return null;
+  }
+
+  for (const field of fields) {
+    const key = field.key?.trim().toLowerCase();
+    const value = field.value?.trim();
+    if (!key || !value) {
+      continue;
+    }
+    if (SET_CODE_FIELD_KEYS.has(key.replace(/[\s-]+/g, "_"))) {
+      return value;
+    }
+  }
+
+  return null;
+}
+
+function resolveSetCodeFromLabel(
+  setLabel: string,
+  index: Awaited<ReturnType<typeof getCatalogSetIndex>>,
+): string | null {
+  const matchedSetIds = matchCatalogSetIdsForBulkFetch(setLabel, index);
+  if (matchedSetIds.length !== 1) {
+    return null;
+  }
+
+  const entry = index.find((item) => item.id === matchedSetIds[0]);
+  if (!entry) {
+    return null;
+  }
+
+  return entry.officialCode?.trim() || entry.id;
+}
+
+async function resolveSetCode(
+  detection: CardSightDetection,
+  locale: UiLocale,
+): Promise<string | null> {
+  const fromFields = getSetCodeFromFields(detection.card.fields);
+  if (fromFields) {
+    return fromFields;
+  }
+
+  const setLabel =
+    detection.card.setName?.trim() ?? detection.card.releaseName?.trim();
+  if (!setLabel) {
+    return null;
+  }
+
+  const localized = await getCatalogSetIndex(locale);
+  const localizedCode = resolveSetCodeFromLabel(setLabel, localized);
+  if (localizedCode) {
+    return localizedCode;
+  }
+
+  if (locale !== "en") {
+    const english = await getCatalogSetIndex("en");
+    return resolveSetCodeFromLabel(setLabel, english);
+  }
+
+  return null;
+}
+
+export async function buildScanSearchQuery(
+  detection: CardSightDetection,
+  locale: UiLocale,
+): Promise<string | null> {
+  const number = normalizeScanCardNumber(detection.card.number);
+  const setCode = await resolveSetCode(detection, locale);
+  if (!number || !setCode) {
+    return null;
+  }
+
+  return `${setCode} ${number}`;
 }
 
 function buildScanMeta(
   detection: CardSightDetection,
   query: string,
+  setCode: string,
+  number: string,
   response: CardSightIdentifyResponse,
 ): CardScanMeta {
-  const { card } = detection;
   return {
     query,
     requestId: response.requestId,
     confidence: detection.confidence,
-    detectedName: card.name,
-    detectedNumber: card.number,
-    detectedSet: card.setName ?? card.releaseName,
+    detectedSetCode: setCode,
+    detectedNumber: number,
     messages: response.messages,
   };
+}
+
+function buildScanSearchParams(searchParams: URLSearchParams): URLSearchParams {
+  const scoped = new URLSearchParams();
+  scoped.set("scope", "all");
+
+  const limit = searchParams.get("limit");
+  const offset = searchParams.get("offset");
+  if (limit) {
+    scoped.set("limit", limit);
+  }
+  if (offset) {
+    scoped.set("offset", offset);
+  }
+
+  return scoped;
 }
 
 export async function scanCardAndSearch(
@@ -127,14 +227,21 @@ export async function scanCardAndSearch(
     return { error: "SCAN_NO_CARD" };
   }
 
-  const query = buildScanSearchQuery(primary);
-  if (!query) {
+  const number = normalizeScanCardNumber(primary.card.number);
+  const setCode = await resolveSetCode(primary, locale);
+  if (!number || !setCode) {
     return { error: "SCAN_NO_CARD" };
   }
 
-  const searchPage = await searchCards(query, locale, searchParams);
+  const query = `${setCode} ${number}`;
+  const searchPage = await searchCards(
+    query,
+    locale,
+    buildScanSearchParams(searchParams),
+  );
+
   return {
     ...searchPage,
-    scan: buildScanMeta(primary, query, identifyResponse),
+    scan: buildScanMeta(primary, query, setCode, number, identifyResponse),
   };
 }

@@ -172,7 +172,7 @@
     "noResults": "No cards found.",
     "scanButton": "Scan card",
     "scanning": "Identifying card…",
-    "scanMatch": "Scan match: {name} ({confidence})",
+    "scanMatch": "Scan match: {query} ({confidence})",
     "scanNoResults": "Card detected but no matches in catalog.",
     "scanNoCard": "No card found in image.",
     "scanFailed": "Scan failed. Try again.",
