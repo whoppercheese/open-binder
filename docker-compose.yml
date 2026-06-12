@@ -1,6 +1,7 @@
 services:
   postgres:
     image: postgres:16-alpine
+    restart: unless-stopped
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-binder}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-binder}
@@ -26,11 +27,14 @@ services:
 
   app:
     build: .
+    restart: unless-stopped
     command: sh -c "npm run db:migrate && npm run start"
     environment:
       DATABASE_URL: postgres://${POSTGRES_USER:-binder}:${POSTGRES_PASSWORD:-binder}@postgres:5432/${POSTGRES_DB:-binder}
       IMAGE_STORAGE_PATH: /app/storage/images
       NODE_ENV: production
+      CARDSIGHT_API_KEY: ${CARDSIGHT_API_KEY:-}
+      CARDSIGHT_API_BASE_URL: ${CARDSIGHT_API_BASE_URL:-}
     volumes:
       - image_storage:/app/storage/images
     ports:
@@ -43,6 +47,7 @@ services:
 
   worker:
     build: .
+    restart: unless-stopped
     command: sh -c "npm run db:migrate && npm run worker"
     environment:
       DATABASE_URL: postgres://${POSTGRES_USER:-binder}:${POSTGRES_PASSWORD:-binder}@postgres:5432/${POSTGRES_DB:-binder}

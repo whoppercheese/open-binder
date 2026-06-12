@@ -169,7 +169,15 @@
     "subtitleCollection": "Add cards to checklist",
     "allSetsButton": "Search all sets",
     "loading": "Searching…",
-    "noResults": "No cards found."
+    "noResults": "No cards found.",
+    "scanButton": "Scan card",
+    "scanning": "Identifying card…",
+    "scanMatch": "Scan match: {query} ({confidence})",
+    "scanNoResults": "Card detected but no matches in catalog.",
+    "scanNoCard": "No card found in image.",
+    "scanFailed": "Scan failed. Try again.",
+    "scanNotConfigured": "Card scan not configured (missing API key).",
+    "scanRateLimited": "Scan limit reached. Try later."
   },
   "sets": {
     "title": "Sets",

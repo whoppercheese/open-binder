@@ -169,7 +169,15 @@
     "subtitleCollection": "Karten zur Sammelliste hinzufügen",
     "allSetsButton": "Alle Sets durchsuchen",
     "loading": "Suche läuft…",
-    "noResults": "Keine Karten gefunden."
+    "noResults": "Keine Karten gefunden.",
+    "scanButton": "Karte scannen",
+    "scanning": "Karte wird erkannt…",
+    "scanMatch": "Scan-Treffer: {query} ({confidence})",
+    "scanNoResults": "Karte erkannt, aber kein Treffer im Katalog.",
+    "scanNoCard": "Keine Karte im Bild gefunden.",
+    "scanFailed": "Scan fehlgeschlagen. Bitte erneut versuchen.",
+    "scanNotConfigured": "Kartenscan nicht konfiguriert (API-Schlüssel fehlt).",
+    "scanRateLimited": "Scan-Limit erreicht. Später erneut versuchen."
   },
   "sets": {
     "title": "Sets",

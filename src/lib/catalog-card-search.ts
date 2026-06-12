@@ -14,6 +14,7 @@ import type { UiLocale } from "@/lib/i18n/locale";
 import type { CardSearchFields, ParsedSearchQuery } from "@/lib/search";
 import {
   cardMatchesCatalogSearchQuery,
+  cardNumberLookupVariants,
   isNumberToken,
   numbersMatch,
   parseSearchQuery,
@@ -161,28 +162,36 @@ async function fetchCardsByExactNumber(
   locale: UiLocale,
 ): Promise<TcgdexCardBrief[]> {
   const matches: TcgdexCardBrief[] = [];
+  const seenIds = new Set<string>();
 
-  for (let page = 1; page <= NUMBER_FETCH_MAX_PAGES; page += 1) {
-    const batch = await listCatalogCards(
-      locale,
-      Query.create()
-        .contains("localId", number)
-        .paginate(page, NUMBER_FETCH_PAGE_SIZE),
-    );
+  for (const variant of cardNumberLookupVariants(number)) {
+    for (let page = 1; page <= NUMBER_FETCH_MAX_PAGES; page += 1) {
+      const batch = await listCatalogCards(
+        locale,
+        Query.create()
+          .contains("localId", variant)
+          .paginate(page, NUMBER_FETCH_PAGE_SIZE),
+      );
 
-    if (batch.length === 0) {
-      break;
-    }
-
-    for (const brief of batch) {
-      const cardNumber = decodeTcgdexLocalId(brief.localId);
-      if (numbersMatch(cardNumber, number)) {
-        matches.push(brief);
+      if (batch.length === 0) {
+        break;
       }
-    }
 
-    if (batch.length < NUMBER_FETCH_PAGE_SIZE) {
-      break;
+      for (const brief of batch) {
+        if (seenIds.has(brief.id)) {
+          continue;
+        }
+
+        const cardNumber = decodeTcgdexLocalId(brief.localId);
+        if (numbersMatch(cardNumber, number)) {
+          seenIds.add(brief.id);
+          matches.push(brief);
+        }
+      }
+
+      if (batch.length < NUMBER_FETCH_PAGE_SIZE) {
+        break;
+      }
     }
   }
 
@@ -311,19 +320,29 @@ async function fetchCandidateBriefs(
   if (numberTokens.length > 0 && matchedSetIds.length > 0) {
     for (const setId of matchedSetIds) {
       for (const number of numberTokens) {
-        batches.push(
-          await listCatalogCards(
+        const briefsById = new Map<string, TcgdexCardBrief>();
+
+        for (const variant of cardNumberLookupVariants(number)) {
+          const briefs = await listCatalogCards(
             locale,
             Query.create()
               .equal("set", setId)
-              .contains("localId", number)
+              .contains("localId", variant)
               .paginate(1, CATALOG_SET_FETCH_LIMIT),
-          ).then((briefs) =>
-            briefs.filter((brief) =>
-              numbersMatch(decodeTcgdexLocalId(brief.localId), number),
-            ),
-          ),
-        );
+          );
+
+          for (const brief of briefs) {
+            if (briefsById.has(brief.id)) {
+              continue;
+            }
+
+            if (numbersMatch(decodeTcgdexLocalId(brief.localId), number)) {
+              briefsById.set(brief.id, brief);
+            }
+          }
+        }
+
+        batches.push([...briefsById.values()]);
       }
     }
   }

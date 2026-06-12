@@ -56,8 +56,53 @@ export function isNumberToken(token: string): boolean {
   return /^\d+[a-zA-Z]?$/.test(token);
 }
 
+/** Strip leading zeros from numeric card numbers (e.g. 053 → 53). */
+export function normalizeCardNumberKey(number: string): string {
+  if (!isNumberToken(number)) {
+    return number;
+  }
+
+  const match = number.match(/^0*(\d+)([a-zA-Z]?)$/);
+  if (!match) {
+    return number;
+  }
+
+  return `${match[1]}${match[2]}`;
+}
+
+/** Variants for catalog/API lookups when padding may differ (53 ↔ 053). */
+export function cardNumberLookupVariants(token: string): string[] {
+  const variants = new Set<string>([token]);
+  if (!isNumberToken(token)) {
+    return [...variants];
+  }
+
+  const normalized = normalizeCardNumberKey(token);
+  variants.add(normalized);
+
+  const digitPart = normalized.match(/^(\d+)/)?.[1];
+  if (digitPart) {
+    variants.add(digitPart.padStart(3, "0"));
+    if (token !== digitPart) {
+      variants.add(token.padStart(3, "0"));
+    }
+  }
+
+  return [...variants];
+}
+
 export function numbersMatch(storedNumber: string, token: string): boolean {
-  return storedNumber === token;
+  if (storedNumber === token) {
+    return true;
+  }
+
+  if (isNumberToken(storedNumber) && isNumberToken(token)) {
+    return (
+      normalizeCardNumberKey(storedNumber) === normalizeCardNumberKey(token)
+    );
+  }
+
+  return false;
 }
 
 export function isSearchableQuery(raw: string): boolean {
@@ -292,7 +337,10 @@ export function buildSetHintMatchSql(setHint: string, locale: UiLocale) {
 
 export function buildTokenMatchSql(token: string, locale: UiLocale) {
   if (isNumberToken(token)) {
-    return sql`c.number = ${token}`;
+    return sql`(
+      c.number = ${token}
+      OR regexp_replace(c.number, '^0+(?=\\d)', '') = regexp_replace(${token}, '^0+(?=\\d)', '')
+    )`;
   }
   const lowerToken = token.toLowerCase();
   const cardNameExpr = localizedNameExpr("c", locale);
